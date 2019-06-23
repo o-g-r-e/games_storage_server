@@ -1,0 +1,13 @@
+85.119.150.22:3636/readSave?key=tXP1jqhDQUrtTRIKFZgxjSaj4LaRyb5eZlDZ3aPTK9z2B&player_id=k48gj38d39w2t
+85.119.150.22:3636/regPlayer?name=Johny&player_id=k48gj38d39w2t
+85.119.150.22:3636/addGame?owner_name=Yuriy&name=match3
+85.119.150.22:3636/updateLevel?key=tXP1jqhDQUrtTRIKFZgxjSaj4LaRyb5eZlDZ3aPTK9z2B&player_id=k48gj38d39w2t&level=3&stars=2
+85.119.150.22:3636/insertLevel?key=tXP1jqhDQUrtTRIKFZgxjSaj4LaRyb5eZlDZ3aPTK9z2B&player_id=k48gj38d39w2t&level=3&stars=2
+
+85.119.150.22:3636/regOwner?name=Yuriy
+//85.119.150.22:3636/buyBoost?key=tXP1jqhDQUrtTRIKFZgxjSaj4LaRyb5eZlDZ3aPTK9z2B&player_id=k48gj38d39w2t&boost_data=...
+//85.119.150.22:3636/spendBoost?key=tXP1jqhDQUrtTRIKFZgxjSaj4LaRyb5eZlDZ3aPTK9z2B&player_id=k48gj38d39w2t&boost_data=...
+85.119.150.22:3636/updateBoost?key=tXP1jqhDQUrtTRIKFZgxjSaj4LaRyb5eZlDZ3aPTK9z2B&player_id=k48gj38d39w2t&boost_data=...
+
+//85.119.150.22:3636/save?key=tXP1jqhDQUrtTRIKFZgxjSaj4LaRyb5eZlDZ3aPTK9z2B&player_id=k48gj38d39w2t&level=3&stars=2&boost_data=...
+
