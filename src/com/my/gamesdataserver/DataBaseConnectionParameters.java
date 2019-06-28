@@ -6,15 +6,15 @@ public class DataBaseConnectionParameters {
 	private String port;
 	private String dataBaseName;
 	private String user;
-	private String passwrod;
+	private String password;
 	
-	public DataBaseConnectionParameters(String schema, String host, String port, String dataBaseName, String user, String passwrod) {
+	public DataBaseConnectionParameters(String schema, String host, String port, String dataBaseName, String user, String password) {
 		this.schema = schema;
 		this.host = host;
 		this.port = port;
 		this.dataBaseName = dataBaseName;
 		this.user = user;
-		this.passwrod = passwrod;
+		this.password = password;
 	}
 
 	public String getSchema() {
@@ -37,7 +37,11 @@ public class DataBaseConnectionParameters {
 		return user;
 	}
 
-	public String getPasswrod() {
-		return passwrod;
+	public String getPassword() {
+		return password;
+	}
+	
+	public String getUrl() {
+		return schema+"://"+host+":"+port+"/"+dataBaseName+"?autoReconnect=true&useSSL=false";
 	}
 }

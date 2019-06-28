@@ -17,9 +17,8 @@ public class Main {
 		}
 		
 		int port = Integer.parseInt(args[0]);
-		DataBaseConnectionParameters dbConParams = new DataBaseConnectionParameters("jdbc:mysql", "localhost", "3306", "epsilon", "root", "1234567890");
 		try {
-			dbManager = new DataBaseManager(dbConParams.getSchema()+"://"+dbConParams.getHost()+":"+dbConParams.getPort()+"/"+dbConParams.getDataBaseName()+"?autoReconnect=true&useSSL=false", dbConParams.getUser(), dbConParams.getPasswrod());
+			dbManager = new DataBaseManager(new DataBaseConnectionParameters("jdbc:mysql", "localhost", "3306", "games_data", "root", "1234567890"));
 		
 			ServerSocket serverSocket = new ServerSocket(port);
 			ExecutorService executorService = Executors.newFixedThreadPool(8);

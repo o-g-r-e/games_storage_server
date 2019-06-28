@@ -13,9 +13,9 @@ public class HTTPRequestFilter {
 	
 	public boolean urlFilter(String url) {
 		if("/favicon.ico".equals(url)) {
-			return false;
+			return true;
 		}
-		return true;
+		return false;
 	}
 	
 	private void initDeprecatedRequestsList(List<String> deprecatedRequestsList) {

@@ -5,12 +5,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Request {
+	private String path;
 	private Command command;
 	private Map<String, String> parameters;
 	
 	public Request(String url) {
 		parameters = parseUrlParameters(url);
 		command = parseCommand(url);
+		path = parseRequestPath(url);
 	}
 	
 	private boolean validateParameters(String[] names, Map<String, String> parameters) {
@@ -28,6 +30,9 @@ public class Request {
 	}
 	
 	public boolean validate() {
+		
+		if (command == null) return false;
+		
 		switch (command) {
 		case READ_SAVE:
 			return validateParameters(new String[] {"key", "player_id"}, parameters);
@@ -43,24 +48,33 @@ public class Request {
 			return validateParameters(new String[] {"name"}, parameters);
 		case UPDATE_BOOST:
 			return validateParameters(new String[] {"key", "player_id", "boost_data"}, parameters);
-		case SHOW_MON:
+		default:
 			if(parameters.containsKey("key") && parameters.get("key").equals("vjsYeNp4ZsGtPcHLz4AfghqMkTPwCjA4")) {
 				return true;
 			}
-		default:
 			break;
 		}
 		
 		return false;
 	}
 	
-	Command parseCommand(String url) {
+	private Command parseCommand(String url) {
 		Pattern p = Pattern.compile("\\/(\\w+)(\\?|$)");
 		Matcher m = p.matcher(url);
 		
 		if(m.find()) {
 			String command = m.group(1);
 			return recognizeCommandType(command);
+		}
+		return null;
+	}
+	
+	private String parseRequestPath(String url) {
+		Pattern p = Pattern.compile("\\/([\\w\\.\\/]+)");
+		Matcher m = p.matcher(url);
+		
+		if(m.find()) {
+			return m.group(1);
 		}
 		return null;
 	}
@@ -82,26 +96,26 @@ public class Request {
 	}
 	
 	private Command recognizeCommandType(String command) {
-		Command result = null;
 		switch (command) {
 		case "readSave":
-			result = Command.READ_SAVE;
+			return Command.READ_SAVE;
 		case "regPlayer":
-			result = Command.REGISTER_PLAYER;
+			return Command.REGISTER_PLAYER;
 		case "addGame":
-			result = Command.ADD_GAME;
+			return Command.ADD_GAME;
 		case "updateLevel":
-			result = Command.UPDATE_LEVEL;
+			return Command.UPDATE_LEVEL;
 		case "insertLevel":
-			result = Command.INSERT_LEVEL;
+			return Command.INSERT_LEVEL;
 		case "regOwner":
-			result = Command.REGISTER_OWNER;
+			return Command.REGISTER_OWNER;
 		case "updateBoost":
-			result = Command.UPDATE_BOOST;
+			return Command.UPDATE_BOOST;
 		case "show_mon":
-			result = Command.SHOW_MON;
+			return Command.SHOW_MON;
 		}
-		return result;
+		
+		return null;
 	}
 
 	public Command getCommand() {
@@ -110,5 +124,9 @@ public class Request {
 
 	public Map<String, String> getParameters() {
 		return parameters;
+	}
+
+	public String getPath() {
+		return path;
 	}
 }

@@ -55,7 +55,7 @@ public class ClientProcessor extends Thread {
 			
 			String url = httpParser.parseUrl(httpRequest.toString());
 			
-			if(httpRequestFilter.urlFilter(url)) {
+			if(!httpRequestFilter.urlFilter(url)) {
 				System.out.println("\nRequest from "+ipAddress);
 				System.out.println(httpRequest.toString());
 				requestProcessor(url);
@@ -206,12 +206,15 @@ public class ClientProcessor extends Thread {
 			}
 			
 			break;*/
-		case SHOW_MON:
+		/*case SHOW_MON:
 			String workPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getCanonicalPath();
-			String content = readFile(workPath+File.separatorChar+"epsilon_monitor"+File.separatorChar+"index.html", StandardCharsets.UTF_8);
+			String content = readFile(workPath+File.separatorChar+"epsilon_monitor"+File.separatorChar+"monitor.html", StandardCharsets.UTF_8);
 			sendHttpResponse(out,content);
-			break;
+			break;*/
 		default:
+			String workPath2 = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getCanonicalPath();
+			String content2 = readFile(workPath2+File.separatorChar+"epsilon_monitor"+File.separatorChar+request.getPath(), StandardCharsets.UTF_8);
+			sendHttpResponse(out,content2);
 			break;
 		}
     }
