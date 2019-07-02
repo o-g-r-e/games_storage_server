@@ -22,6 +22,9 @@ import org.json.JSONObject;
 
 public class ClientProcessor extends Thread {
 	
+	private BufferedReader in;
+	private PrintWriter out;
+	
 	private Socket socket;
 	private DataBaseManager dbm = null;
 	private String ipAddress;
@@ -29,7 +32,7 @@ public class ClientProcessor extends Thread {
 	private HTTPParser httpParser;
 	private HTTPRequestFilter httpRequestFilter;
 	
-	public ClientProcessor(Socket socket, DataBaseManager dbm){
+	public ClientProcessor(Socket socket, DataBaseManager dbm) throws IOException {
 		this.socket = socket;
 		this.dbm = dbm;
 		this.ipAddress = socket.getRemoteSocketAddress().toString();
@@ -41,8 +44,6 @@ public class ClientProcessor extends Thread {
 
 	public void run() {
 		//System.out.println("Client socket started.");
-		
-		BufferedReader in = null;
 		try {
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			
@@ -54,11 +55,19 @@ public class ClientProcessor extends Thread {
 			}
 			
 			String url = httpParser.parseUrl(httpRequest.toString());
+			Request request = new Request(url);
 			
-			if(!httpRequestFilter.urlFilter(url)) {
+			if(!httpRequestFilter.filterForbiddens(request.getPath())) {
 				System.out.println("\nRequest from "+ipAddress);
 				System.out.println(httpRequest.toString());
-				requestProcessor(url);
+				out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
+				if(request.commandValidate()) {
+					commandRequestProcessor(request, out);
+				} else {
+					contentRequestProcessor();
+					//sendHttpResponse(out, new JSONObject().append("requestError", "Bad request").toString() /*"{ \"requestError\" : \"Bad request\" }"*/);
+					//return;
+				}
 			} else {
 				System.out.println("Request parsing failed or filtered.");
 			}
@@ -86,17 +95,14 @@ public class ClientProcessor extends Thread {
 		}
 	}
 	
+	private void contentRequestProcessor() {
+		
+	}
 	
-	
-	void requestProcessor(String url) throws IOException, JSONException {
-		Request request = new Request(url);
-		PrintWriter out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
-		if(!request.validate()) {
-			sendHttpResponse(out, new JSONObject().append("requestError", "Bad request").toString() /*"{ \"requestError\" : \"Bad request\" }"*/);
-			return;
-		}
+	private void commandRequestProcessor(Request request, PrintWriter out) throws IOException, JSONException {
+		
 		Map<String, String> getParameters = request.getParameters();
-		Command command = request.getCommand();
+		Commands command = request.getCommand();
 		
 		switch (command) {
 		case READ_SAVE:
@@ -212,9 +218,11 @@ public class ClientProcessor extends Thread {
 			sendHttpResponse(out,content);
 			break;*/
 		default:
-			String workPath2 = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getCanonicalPath();
-			String content2 = readFile(workPath2+File.separatorChar+"epsilon_monitor"+File.separatorChar+request.getPath(), StandardCharsets.UTF_8);
-			sendHttpResponse(out,content2);
+			if(httpRequestFilter.filterAllowed(request.getPath())) {
+				String workPath2 = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getCanonicalPath();
+				String content2 = readFile(workPath2+File.separatorChar+"epsilon_monitor"+File.separatorChar+request.getPath(), StandardCharsets.UTF_8);
+				sendHttpResponse(out,content2);
+			}
 			break;
 		}
     }

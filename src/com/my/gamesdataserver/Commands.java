@@ -1,6 +1,6 @@
 package com.my.gamesdataserver;
 
-public enum Command {READ_SAVE, 
+public enum Commands {READ_SAVE, 
 						 REGISTER_PLAYER, 
 						 ADD_GAME, 
 						 UPDATE_LEVEL, 

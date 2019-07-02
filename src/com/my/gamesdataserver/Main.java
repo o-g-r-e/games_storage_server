@@ -36,6 +36,7 @@ public class Main {
 	      
 		} catch (SQLException e1) {
 			e1.printStackTrace();
+			//System.err.println("Could not create connection to database server.");
 		}
 	}
 }

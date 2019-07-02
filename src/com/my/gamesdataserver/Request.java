@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 public class Request {
 	private String path;
-	private Command command;
+	private Commands command;
 	private Map<String, String> parameters;
 	
 	public Request(String url) {
@@ -15,12 +15,12 @@ public class Request {
 		path = parseRequestPath(url);
 	}
 	
-	private boolean validateParameters(String[] names, Map<String, String> parameters) {
-		if(parameters.size() != names.length) {
+	private boolean validateParameters(String[] namesMustFound, Map<String, String> parameters) {
+		if(parameters.size() != namesMustFound.length) {
 			return false;
 		}
 		
-		for(String paramName : names) {
+		for(String paramName : namesMustFound) {
 			if(!parameters.containsKey(paramName)) {
 				return false;
 			}
@@ -29,7 +29,7 @@ public class Request {
 		return true;
 	}
 	
-	public boolean validate() {
+	public boolean commandValidate() {
 		
 		if (command == null) return false;
 		
@@ -58,7 +58,7 @@ public class Request {
 		return false;
 	}
 	
-	private Command parseCommand(String url) {
+	private Commands parseCommand(String url) {
 		Pattern p = Pattern.compile("\\/(\\w+)(\\?|$)");
 		Matcher m = p.matcher(url);
 		
@@ -95,30 +95,30 @@ public class Request {
 		return result;
 	}
 	
-	private Command recognizeCommandType(String command) {
+	private Commands recognizeCommandType(String command) {
 		switch (command) {
 		case "readSave":
-			return Command.READ_SAVE;
+			return Commands.READ_SAVE;
 		case "regPlayer":
-			return Command.REGISTER_PLAYER;
+			return Commands.REGISTER_PLAYER;
 		case "addGame":
-			return Command.ADD_GAME;
+			return Commands.ADD_GAME;
 		case "updateLevel":
-			return Command.UPDATE_LEVEL;
+			return Commands.UPDATE_LEVEL;
 		case "insertLevel":
-			return Command.INSERT_LEVEL;
+			return Commands.INSERT_LEVEL;
 		case "regOwner":
-			return Command.REGISTER_OWNER;
+			return Commands.REGISTER_OWNER;
 		case "updateBoost":
-			return Command.UPDATE_BOOST;
+			return Commands.UPDATE_BOOST;
 		case "show_mon":
-			return Command.SHOW_MON;
+			return Commands.SHOW_MON;
 		}
 		
 		return null;
 	}
 
-	public Command getCommand() {
+	public Commands getCommand() {
 		return command;
 	}
 
