@@ -16,6 +16,8 @@ import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -31,6 +33,7 @@ public class ClientProcessor extends Thread {
 	
 	private HTTPParser httpParser;
 	private HTTPRequestFilter httpRequestFilter;
+	private Access access;
 	
 	public ClientProcessor(Socket socket, DataBaseManager dbm) throws IOException {
 		this.socket = socket;
@@ -38,6 +41,7 @@ public class ClientProcessor extends Thread {
 		this.ipAddress = socket.getRemoteSocketAddress().toString();
 		this.httpParser = new HTTPParser();
 		this.httpRequestFilter = new HTTPRequestFilter();
+		this.access = new Access();
 		System.out.println("\nNew connection from "+this.ipAddress);
 	    
 	}
@@ -55,21 +59,23 @@ public class ClientProcessor extends Thread {
 			}
 			
 			String url = httpParser.parseUrl(httpRequest.toString());
-			Request request = new Request(url);
 			
-			if(!httpRequestFilter.filterForbiddens(request.getPath())) {
-				System.out.println("\nRequest from "+ipAddress);
-				System.out.println(httpRequest.toString());
-				out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
-				if(request.commandValidate()) {
-					commandRequestProcessor(request, out);
-				} else {
-					contentRequestProcessor();
-					//sendHttpResponse(out, new JSONObject().append("requestError", "Bad request").toString() /*"{ \"requestError\" : \"Bad request\" }"*/);
-					//return;
-				}
-			} else {
+			String urlPath = parseUrlPath(url);
+			if(httpRequestFilter.filterForbiddens(urlPath))  {
 				System.out.println("Request parsing failed or filtered.");
+				return;
+			}
+			
+			System.out.println("\nRequest from "+ipAddress);
+			System.out.println(httpRequest.toString());
+			out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
+			Request request = new Request(url);
+			if(request.commandValidate()) {
+				commandRequestProcessor(request, out);
+			} else {
+				contentRequestProcessor(urlPath);
+				//sendHttpResponse(out, new JSONObject().append("requestError", "Bad request").toString() /*"{ \"requestError\" : \"Bad request\" }"*/);
+				//return;
 			}
 			
 		} catch (IOException e) {
@@ -95,8 +101,22 @@ public class ClientProcessor extends Thread {
 		}
 	}
 	
-	private void contentRequestProcessor() {
+	private String parseUrlPath(String url) {
+		Pattern p = Pattern.compile("\\/([\\w\\.\\/]+)");
+		Matcher m = p.matcher(url);
 		
+		if(m.find()) {
+			return m.group(1);
+		}
+		return null;
+	}
+	
+	private void contentRequestProcessor(String urlPath) throws IOException {
+		if(access.isAllowedPath(urlPath)) {
+			String workPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getCanonicalPath();
+			String content = readFile(workPath+File.separatorChar+"epsilon_monitor"+urlPath.replaceAll("/", String.valueOf(File.separatorChar)), StandardCharsets.UTF_8);
+			sendHttpResponse(out,content);
+		}
 	}
 	
 	private void commandRequestProcessor(Request request, PrintWriter out) throws IOException, JSONException {
@@ -217,13 +237,13 @@ public class ClientProcessor extends Thread {
 			String content = readFile(workPath+File.separatorChar+"epsilon_monitor"+File.separatorChar+"monitor.html", StandardCharsets.UTF_8);
 			sendHttpResponse(out,content);
 			break;*/
-		default:
+		/*default:
 			if(httpRequestFilter.filterAllowed(request.getPath())) {
 				String workPath2 = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getCanonicalPath();
 				String content2 = readFile(workPath2+File.separatorChar+"epsilon_monitor"+File.separatorChar+request.getPath(), StandardCharsets.UTF_8);
 				sendHttpResponse(out,content2);
 			}
-			break;
+			break;*/
 		}
     }
 	

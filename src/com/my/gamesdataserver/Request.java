@@ -5,14 +5,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Request {
-	private String path;
 	private Commands command;
 	private Map<String, String> parameters;
 	
 	public Request(String url) {
 		parameters = parseUrlParameters(url);
 		command = parseCommand(url);
-		path = parseRequestPath(url);
 	}
 	
 	private boolean validateParameters(String[] namesMustFound, Map<String, String> parameters) {
@@ -69,16 +67,6 @@ public class Request {
 		return null;
 	}
 	
-	private String parseRequestPath(String url) {
-		Pattern p = Pattern.compile("\\/([\\w\\.\\/]+)");
-		Matcher m = p.matcher(url);
-		
-		if(m.find()) {
-			return m.group(1);
-		}
-		return null;
-	}
-	
 	Map<String, String> parseUrlParameters(String url) {
 		Map<String, String> result = new HashMap<String, String>();
 		String[] pairs = url.substring(url.indexOf("?")+1).split("&");
@@ -124,9 +112,5 @@ public class Request {
 
 	public Map<String, String> getParameters() {
 		return parameters;
-	}
-
-	public String getPath() {
-		return path;
 	}
 }
