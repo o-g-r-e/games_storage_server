@@ -1,5 +1,6 @@
 package com.my.gamesdataserver;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class GameSaveData {
@@ -25,5 +26,21 @@ public class GameSaveData {
 
 	public String getBoostData() {
 		return boostJsonData;
+	}
+	
+	public String toJsonString() {
+		StringBuilder result = new StringBuilder();
+		result.append("{ \"boosts\" : ");
+		result.append(boostJsonData);
+		result.append(", \"stars\" : [");
+		for (int i = 0; i < stars.size(); i++) {
+			result.append(stars.get(i));
+			if(i < stars.size() - 1) {
+				result.append(", ");
+			}
+		}
+		result.append("]}");
+		
+		return result.toString();
 	}
 }

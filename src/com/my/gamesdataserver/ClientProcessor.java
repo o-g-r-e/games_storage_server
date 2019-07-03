@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.URLDecoder;
@@ -31,7 +32,6 @@ public class ClientProcessor extends Thread {
 	private DataBaseManager dbm = null;
 	private String ipAddress;
 	
-	private HTTPParser httpParser;
 	private HTTPRequestFilter httpRequestFilter;
 	private Access access;
 	
@@ -39,7 +39,6 @@ public class ClientProcessor extends Thread {
 		this.socket = socket;
 		this.dbm = dbm;
 		this.ipAddress = socket.getRemoteSocketAddress().toString();
-		this.httpParser = new HTTPParser();
 		this.httpRequestFilter = new HTTPRequestFilter();
 		this.access = new Access();
 		System.out.println("\nNew connection from "+this.ipAddress);
@@ -51,16 +50,10 @@ public class ClientProcessor extends Thread {
 		try {
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			
-			StringBuilder httpRequest = new StringBuilder();
-			
-			String line;
-			while(!(line = in.readLine()).equals("")) {///////////////////////////////////////////
-				httpRequest.append(line).append("\n");
-			}
-			
-			String url = httpParser.parseUrl(httpRequest.toString());
-			
+			String httpRequest = readRequest(in);
+			String url = parseUrl(httpRequest);
 			String urlPath = parseUrlPath(url);
+			
 			if(httpRequestFilter.filterForbiddens(urlPath))  {
 				System.out.println("Request parsing failed or filtered.");
 				return;
@@ -68,14 +61,15 @@ public class ClientProcessor extends Thread {
 			
 			System.out.println("\nRequest from "+ipAddress);
 			System.out.println(httpRequest.toString());
+			
 			out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
+			
 			Request request = new Request(url);
+			
 			if(request.commandValidate()) {
 				commandRequestProcessor(request, out);
 			} else {
-				contentRequestProcessor(urlPath);
-				//sendHttpResponse(out, new JSONObject().append("requestError", "Bad request").toString() /*"{ \"requestError\" : \"Bad request\" }"*/);
-				//return;
+				contentRequestProcessor(urlPath, out);
 			}
 			
 		} catch (IOException e) {
@@ -101,6 +95,29 @@ public class ClientProcessor extends Thread {
 		}
 	}
 	
+	private String readRequest(Reader reader) throws IOException {
+		StringBuilder result = new StringBuilder();
+		
+		String line;
+		while(!(line = in.readLine()).equals("")) {
+			result.append(line).append("\n");
+		}
+		
+		return result.toString();
+	}
+	
+	private String parseUrl(String httpRequest) {
+		String result = null;
+		Pattern urlPattern = Pattern.compile("GET ([\\w\\?=&/%{}\\.-]+) HTTP");
+		Matcher matcher = urlPattern.matcher(httpRequest);
+		
+		if(matcher.find()) {
+			result = matcher.group(1);
+		}
+		
+		return result;
+	}
+	
 	private String parseUrlPath(String url) {
 		Pattern p = Pattern.compile("\\/([\\w\\.\\/]+)");
 		Matcher m = p.matcher(url);
@@ -111,7 +128,7 @@ public class ClientProcessor extends Thread {
 		return null;
 	}
 	
-	private void contentRequestProcessor(String urlPath) throws IOException {
+	private void contentRequestProcessor(String urlPath, PrintWriter out) throws IOException {
 		if(access.isAllowedPath(urlPath)) {
 			String workPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getCanonicalPath();
 			String content = readFile(workPath+File.separatorChar+"epsilon_monitor"+urlPath.replaceAll("/", String.valueOf(File.separatorChar)), StandardCharsets.UTF_8);
@@ -129,24 +146,24 @@ public class ClientProcessor extends Thread {
 			try {
 				GameSaveData saveData = dbm.selectSaves(getParameters.get("key"), getParameters.get("player_id"));
 				if(saveData != null) {
-					String savesJson = buildSavesJsonData(saveData);
+					String savesJson = saveData.toJsonString();
 					sendHttpResponse(out, savesJson);
 				} else {
-					sendHttpResponse(out, new JSONObject().append("sqlMessage", "0 row(s) returned").toString()/*"{ \"sqlMessage\" : \"0 row(s) returned\" }"*/);
+					sendHttpResponse(out, simpleJsonObject("sqlMessage", "0 row(s) returned"));
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
-				sendHttpResponse(out, "{ \"sqlError\" : \""+e.getMessage()+"\" }");
+				sendHttpResponse(out, simpleJsonObject("sqlError", e.getMessage()));
 			}
 			
 			break;
 		case REGISTER_PLAYER:
 			try {
 				int rowsAdded = dbm.insertPlayer(getParameters.get("name"), getParameters.get("player_id"));
-				sendHttpResponse(out, "{ \"addedRows\" : "+rowsAdded+" }");
+				sendHttpResponse(out, simpleJsonObject("addedRows", String.valueOf(rowsAdded)));
 			} catch (SQLException e1) {
 				e1.printStackTrace();
-				sendHttpResponse(out, "{ \"sqlError\" : \""+e1.getMessage()+"\" }");
+				sendHttpResponse(out, simpleJsonObject("sqlError", e1.getMessage()));
 			}
 			break;
 		case ADD_GAME:
@@ -155,61 +172,61 @@ public class ClientProcessor extends Thread {
 				String key = rkg.nextString();
 				int rowsAdded = dbm.insertGame(getParameters.get("owner_name"), getParameters.get("name"), key);
 				if(rowsAdded > 0) {
-					sendHttpResponse(out, "{ \"security_key\" : \""+key+"\" }");
+					sendHttpResponse(out, simpleJsonObject("security_key", key));
 				} else {
-					sendHttpResponse(out, "{ \"error\" : \"Game not added.\" }");
+					sendHttpResponse(out, simpleJsonObject("error", "Game not added."));
 				}
 			} catch (SQLException e1) {
 				e1.printStackTrace();
-				sendHttpResponse(out, "{ \"sqlError\" : \""+e1.getMessage()+"\" }");
+				sendHttpResponse(out, simpleJsonObject("sqlError", e1.getMessage()));
 			}
 			break;
 		case UPDATE_LEVEL:
 			try {
 				int rowsChanged = dbm.updateLevel(getParameters.get("key"), getParameters.get("player_id"), Integer.parseInt(getParameters.get("level")), Integer.parseInt(getParameters.get("stars")));
 				if(rowsChanged > 0) {
-					sendHttpResponse(out, "{ \"updatedRows\" : "+rowsChanged+" }");
+					sendHttpResponse(out, simpleJsonObject("updatedRows", String.valueOf(rowsChanged)));
 				} else {
-					sendHttpResponse(out, "{ \"error\" : \"Level data not updated.\" }");
+					sendHttpResponse(out, simpleJsonObject("error", "Level data not updated."));
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
-				sendHttpResponse(out, "{ \"sqlError\" : \""+e.getMessage()+"\" }");
+				sendHttpResponse(out, simpleJsonObject("sqlError", e.getMessage()));
 			}
 			break;
 		case INSERT_LEVEL:
 			try {
 				int rowsAdded = dbm.insertLevel(getParameters.get("key"), getParameters.get("player_id"), Integer.parseInt(getParameters.get("level")), Integer.parseInt(getParameters.get("stars")));
 				if(rowsAdded > 0) {
-					sendHttpResponse(out, "{ \"addedRows\" : "+rowsAdded+" }");
+					sendHttpResponse(out, simpleJsonObject("addedRows", String.valueOf(rowsAdded)));
 				} else {
-					sendHttpResponse(out, "{ \"error\" : \"Level data not added.\" }");
+					sendHttpResponse(out, simpleJsonObject("error", "Level data not added."));
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
-				sendHttpResponse(out, "{ \"sqlError\" : \""+e.getMessage()+"\" }");
+				sendHttpResponse(out, simpleJsonObject("sqlError", e.getMessage()));
 			}
 			break;
 		case REGISTER_OWNER:
 			try {
 				int rowsChanged = dbm.insertOwner(getParameters.get("name"));
-				sendHttpResponse(out, "{ \"addedRows\" : "+rowsChanged+" }");
+				sendHttpResponse(out, simpleJsonObject("addedRows", String.valueOf(rowsChanged)));
 			} catch (SQLException e) {
 				e.printStackTrace();
-				sendHttpResponse(out, "{ \"sqlError\" : \""+e.getMessage()+"\" }");
+				sendHttpResponse(out, simpleJsonObject("sqlError", e.getMessage()));
 			}
 			break;
 		case UPDATE_BOOST:
 			try {
 				int rowsChanged = dbm.updateBoostData(getParameters.get("key"), getParameters.get("player_id"), URLDecoder.decode(getParameters.get("boost_data"), "UTF-8"));
 				if(rowsChanged > 0) {
-					sendHttpResponse(out, "{ \"updatedRows\" : "+rowsChanged+" }");
+					sendHttpResponse(out, simpleJsonObject("updatedRows", String.valueOf(rowsChanged)));
 				} else {
-					sendHttpResponse(out, "{ \"error\" : \"Boost data not updated.\" }");
+					sendHttpResponse(out, simpleJsonObject("error", "Boost data not updated."));
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
-				sendHttpResponse(out, "{ \"sqlError\" : \""+e.getMessage()+"\" }");
+				sendHttpResponse(out, simpleJsonObject("sqlError", e.getMessage()));
 			} catch (UnsupportedEncodingException e) {
 				e.printStackTrace();
 			}
@@ -305,35 +322,6 @@ public class ClientProcessor extends Thread {
 		byte[] encoded = Files.readAllBytes(Paths.get(path));
 		return new String(encoded, encoding);
 	}
-	
-    String buildJson(List<List<String>> data, String name) {
-    	if(data == null || data.size() <= 0) {
-    		return "[]";
-    	}
-    	StringBuilder result = new StringBuilder();
-    	int rowSize = data.get(0).size();
-    	result.append("\"").append(name).append("\":[");
-    	for(int j=0;j<data.size();j++) {
-    		List<String> row = data.get(j);
-    		result.append("[");
-    		for(int i=0;i<rowSize;i++) {
-    			if(i>=row.size()) {
-    				result.append("null");
-    			} else {
-    				result.append(row.get(i));
-    			}
-    			if(i<rowSize-1) {
-    				result.append(",");
-    			}
-    		}
-    		result.append("]");
-    		if(j<data.size()-1) {
-				result.append(",");
-			}
-    	}
-    	result.append("]");
-    	return result.toString();
-    }
     
 	void sendHttpResponse(PrintWriter writer, String httpContent) {
 		System.out.println("\nHTTP response to: "+ipAddress);
@@ -348,39 +336,7 @@ public class ClientProcessor extends Thread {
            		+ httpContent);
 	}
 	
-	
-	
-	String buildSavesJsonData(GameSaveData saveData) {
-		/*AssociateArray resultArray = new AssociateArray();
-		resultArray.addPair("user_id", userId);
-		AssociateArray gameSaveArray = new AssociateArray();
-		gameSaveArray.addPair("game_id", gameId);
-		gameSaveArray.addPair("scores", scores);
-		gameSaveArray.addPair("last_level", lastLevel);
-		resultArray.addAssArray("game_", gameSaveArray);
-		
-		return resultArray.toString(1);*/
-		JSONObject b = new JSONObject();
-		try {
-			b.append("boosts", new JSONObject(saveData.getBoostData()));
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-		
-		StringBuilder result = new StringBuilder();
-		result.append("{\n\t\"boosts\":").append(saveData.getBoostData()).append(",\n\t[");
-		List<Integer> stars = saveData.getLevelStars();
-		int levels = stars.size();
-		for(int i=0;i<levels;i++) {
-			result.append(stars.get(i));
-			if(i<levels-1) {
-				result.append(",");
-			}
-		}
-		result.append("]\n}");
-		/*for(Integer levelStars : saveData.getLevelStars()) {
-			result.append(levelStars);
-		}*/
-		return result.toString();
+	private String simpleJsonObject(String name, String value) {
+		return "{ \""+name+"\" : \""+value+"\" }";
 	}
 }
