@@ -42,7 +42,6 @@ public class ClientProcessor extends Thread {
 		this.httpRequestFilter = new HTTPRequestFilter();
 		this.access = new Access();
 		System.out.println("\nNew connection from "+this.ipAddress);
-	    
 	}
 
 	public void run() {
@@ -59,8 +58,7 @@ public class ClientProcessor extends Thread {
 				return;
 			}
 			
-			System.out.println("\nRequest from "+ipAddress);
-			System.out.println(httpRequest.toString());
+			printHttpRequest(httpRequest, ipAddress, false);
 			
 			out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
 			
@@ -68,8 +66,11 @@ public class ClientProcessor extends Thread {
 			
 			if(request.commandValidate()) {
 				commandRequestProcessor(request, out);
-			} else {
+			} else if(access.isAllowedPath(urlPath) && url.contains("key="+Access.contentAccessKey)) {
 				contentRequestProcessor(urlPath, out);
+			} else {
+				sendHttpResponse(out, simpleJsonObject("Request error", "Bad request"));
+				return;
 			}
 			
 		} catch (IOException e) {
@@ -119,7 +120,7 @@ public class ClientProcessor extends Thread {
 	}
 	
 	private String parseUrlPath(String url) {
-		Pattern p = Pattern.compile("\\/([\\w\\.\\/]+)");
+		Pattern p = Pattern.compile("(\\/[\\w\\.\\/]+)");
 		Matcher m = p.matcher(url);
 		
 		if(m.find()) {
@@ -129,11 +130,9 @@ public class ClientProcessor extends Thread {
 	}
 	
 	private void contentRequestProcessor(String urlPath, PrintWriter out) throws IOException {
-		if(access.isAllowedPath(urlPath)) {
-			String workPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getCanonicalPath();
-			String content = readFile(workPath+File.separatorChar+"epsilon_monitor"+urlPath.replaceAll("/", String.valueOf(File.separatorChar)), StandardCharsets.UTF_8);
-			sendHttpResponse(out,content);
-		}
+		String workPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getCanonicalPath();
+		String content = readFile(workPath+urlPath.replace('/', File.separatorChar), StandardCharsets.UTF_8);
+		sendHttpResponse(out,content);
 	}
 	
 	private void commandRequestProcessor(Request request, PrintWriter out) throws IOException, JSONException {
@@ -324,19 +323,29 @@ public class ClientProcessor extends Thread {
 	}
     
 	void sendHttpResponse(PrintWriter writer, String httpContent) {
-		System.out.println("\nHTTP response to: "+ipAddress);
-		if(httpContent.length() > 30) {
-			System.out.println(httpContent.substring(0, 30));
-		} else {
-			System.out.println(httpContent);
-		}
-		writer.println("HTTP/1.1 200 OK\r\n" +
-           		"Content-Length: "+httpContent.length()+"\r\n"
-           		+ "\r\n"
-           		+ httpContent);
+		HttpResponse httpResponse = new HttpResponse("1.1", 200, httpContent);
+		printHttpResponse(httpResponse, ipAddress, true);
+		writer.println(httpResponse.toString());
 	}
 	
 	private String simpleJsonObject(String name, String value) {
 		return "{ \""+name+"\" : \""+value+"\" }";
+	}
+	
+	private void printHttpRequest(String httpRequest, String ipAddress, boolean isPrintHeader) {
+		System.out.println("\nRequest from "+ipAddress);
+		System.out.println(isPrintHeader ? httpRequest : httpRequest.substring(0, httpRequest.indexOf("\n")));
+	}
+	
+	private void printHttpResponse(HttpResponse httpResponse, String ipAddress, boolean cutContent) {
+		System.out.println("\nHTTP response to: "+ipAddress);
+		System.out.println(httpResponse.getHeader());
+		if(httpResponse.getContent() != null && httpResponse.getContent().length() > 0) {
+			if(cutContent) {
+				System.out.println(httpResponse.getCutContent(10));
+			} else {
+				System.out.println(httpResponse.getContent());
+			}
+		}
 	}
 }

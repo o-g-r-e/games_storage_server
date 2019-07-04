@@ -46,11 +46,6 @@ public class Request {
 			return validateParameters(new String[] {"name"}, parameters);
 		case UPDATE_BOOST:
 			return validateParameters(new String[] {"key", "player_id", "boost_data"}, parameters);
-		default:
-			if(parameters.containsKey("key") && parameters.get("key").equals("vjsYeNp4ZsGtPcHLz4AfghqMkTPwCjA4")) {
-				return true;
-			}
-			break;
 		}
 		
 		return false;

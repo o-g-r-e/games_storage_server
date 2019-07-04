@@ -5,6 +5,7 @@ import java.util.List;
 
 public class Access {
 	private List<String> allowedPathes;
+	public final static String contentAccessKey = "vjsYeNp4ZsGtPcHLz4AfghqMkTPwCjA4";
 	
 	public Access() {
 		allowedPathes = new ArrayList<String>();
@@ -13,7 +14,7 @@ public class Access {
 	
 	public boolean isAllowedPath(String urlPath) {
 		for (String allowedPath : allowedPathes) {
-			if(urlPath.equals(allowedPath)) {
+			if(urlPath.startsWith(allowedPath)) {
 				return true;
 			}
 		}
