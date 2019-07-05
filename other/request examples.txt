@@ -1,9 +1,11 @@
 localhost:3636/regOwner?name=Yuriy
-localhost:3636/addGame?owner_name=Yuriy&name=match3
+localhost:3636/addGame?owner_name=Yuriy&name=Helicopters battle
 
-localhost:3636/regPlayer?name=Johny&player_id=k48gj38d39w2t
-localhost:3636/insertLevel?key=tXP1jqhDQUrtTRIKFZgxjSaj4LaRyb5eZlDZ3aPTK9z2B&player_id=k48gj38d39w2t&level=3&stars=2
-localhost:3636/updateLevel?key=tXP1jqhDQUrtTRIKFZgxjSaj4LaRyb5eZlDZ3aPTK9z2B&player_id=k48gj38d39w2t&level=3&stars=2
-localhost:3636/readSave?key=tXP1jqhDQUrtTRIKFZgxjSaj4LaRyb5eZlDZ3aPTK9z2B&player_id=k48gj38d39w2t
+localhost:3636/regPlayer?player_name=Johny&player_id=k48gj38d39w2t&game_api_key=QDxk9K4H987UvrISZAivM2At26KnLgmdEbCQdefJOjmuP
 
-localhost:3636/monitor?key=vjsYeNp4ZsGtPcHLz4AfghqMkTPwCjA4
+localhost:3636/updateSave?game_api_key=QDxk9K4H987UvrISZAivM2At26KnLgmdEbCQdefJOjmuP&player_id=k48gj38d39w2t&save_data=[2,3,1,1,2,1,2,2,3]
+localhost:3636/readSave?game_api_key=QDxk9K4H987UvrISZAivM2At26KnLgmdEbCQdefJOjmuP&player_id=k48gj38d39w2t
+
+localhost:3636/updateBoost?game_api_key=QDxk9K4H987UvrISZAivM2At26KnLgmdEbCQdefJOjmuP&player_id=k48gj38d39w2t&boost_data={"rocket":3,"bomb":4}
+
+http://localhost:3636/monitor/monitor.html?key=vjsYeNp4ZsGtPcHLz4AfghqMkTPwCjA4

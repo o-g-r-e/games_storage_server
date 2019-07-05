@@ -1,6 +1,6 @@
 $(function() {
 	$.ajax({
-    url: 'http://localhost:8080/eps_mon',
+    url: 'http://localhost:8080/monitor_data?key=vjsYeNp4ZsGtPcHLz4AfghqMkTPwCjA4',
 	crossDomain: true,
 	xhrFields: {
         withCredentials: true

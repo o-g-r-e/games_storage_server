@@ -1,4 +1,4 @@
-package com.my.gamesdataserver;
+package com.my.gamesdataserver.dbmodels;
 
 public class GameEntity {
 	private int id;

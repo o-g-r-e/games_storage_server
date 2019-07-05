@@ -6,6 +6,7 @@ import java.util.List;
 public class Access {
 	private List<String> allowedPathes;
 	public final static String contentAccessKey = "vjsYeNp4ZsGtPcHLz4AfghqMkTPwCjA4";
+	public final static String boostPurchaseToken = "vjsYeNp4ZsGtPcHLz4AfghqMkTPwCjA4";
 	
 	public Access() {
 		allowedPathes = new ArrayList<String>();

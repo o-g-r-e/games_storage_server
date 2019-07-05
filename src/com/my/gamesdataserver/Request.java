@@ -29,26 +29,41 @@ public class Request {
 	
 	public boolean commandValidate() {
 		
-		if (command == null) return false;
+		if (command == null) {
+			return false;
+		}
+		
+		String[] pNames = null;
 		
 		switch (command) {
 		case READ_SAVE:
-			return validateParameters(new String[] {"key", "player_id"}, parameters);
+			pNames = new String[] {"game_api_key", "player_id"};
+			break;
 		case REGISTER_PLAYER:
-			return validateParameters(new String[] {"name", "player_id"}, parameters);
+			pNames = new String[] {"player_name", "player_id", "game_api_key"};
+			break;
 		case ADD_GAME:
-			return validateParameters(new String[] {"name", "owner_name"}, parameters);
-		case UPDATE_LEVEL:
-			return validateParameters(new String[] {"key", "player_id", "level", "stars"}, parameters);
-		case INSERT_LEVEL:
-			return validateParameters(new String[] {"key", "player_id", "level", "stars"}, parameters);
+			pNames = new String[] {"name", "owner_name"};
+			break;
+		case UPDATE_SAVE :
+			pNames = new String[] {"game_api_key", "player_id", "save_data"};
+			break;
 		case REGISTER_OWNER:
-			return validateParameters(new String[] {"name"}, parameters);
+			pNames = new String[] {"name"};
+			break;
 		case UPDATE_BOOST:
-			return validateParameters(new String[] {"key", "player_id", "boost_data"}, parameters);
+			pNames = new String[] {"game_api_key", "player_id", "boost_data"};
+			break;
+		case MONITOR_DATA:
+			pNames = new String[] {"key"};
+			break;
 		}
 		
-		return false;
+		if(pNames == null) {
+			return false;
+		}
+		
+		return validateParameters(pNames, parameters);
 	}
 	
 	private Commands parseCommand(String url) {
@@ -70,12 +85,18 @@ public class Request {
 			for(String p : pairs) {
 				String[] s = p.split("=");
 				if(s != null && s.length >= 2) {
-					result.put(s[0], s[1]);
+					result.put(s[0], urlDecode(s[1]));
 				}
 			}
 		}
 		
 		return result;
+	}
+	
+	private String urlDecode(String parameterValue) {
+		parameterValue = parameterValue.replaceAll("%20", " ");
+		parameterValue = parameterValue.replaceAll("%22", "\"");
+		return parameterValue;
 	}
 	
 	private Commands recognizeCommandType(String command) {
@@ -86,16 +107,14 @@ public class Request {
 			return Commands.REGISTER_PLAYER;
 		case "addGame":
 			return Commands.ADD_GAME;
-		case "updateLevel":
-			return Commands.UPDATE_LEVEL;
-		case "insertLevel":
-			return Commands.INSERT_LEVEL;
+		case "updateSave":
+			return Commands.UPDATE_SAVE;
 		case "regOwner":
 			return Commands.REGISTER_OWNER;
 		case "updateBoost":
 			return Commands.UPDATE_BOOST;
-		case "show_mon":
-			return Commands.SHOW_MON;
+		case "monitor_data":
+			return Commands.MONITOR_DATA;
 		}
 		
 		return null;

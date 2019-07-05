@@ -23,6 +23,11 @@ import java.util.regex.Pattern;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.my.gamesdataserver.dbmodels.GameEntity;
+import com.my.gamesdataserver.dbmodels.GameOwnerEntity;
+import com.my.gamesdataserver.dbmodels.SaveEntity;
+import com.my.gamesdataserver.dbmodels.PlayerEntity;
+
 public class ClientProcessor extends Thread {
 	
 	private BufferedReader in;
@@ -77,6 +82,9 @@ public class ClientProcessor extends Thread {
 			System.err.println(e.getMessage());
 		} catch (JSONException e) {
 			e.printStackTrace();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			sendHttpResponse(out, simpleJsonObject("sqlError", e.getMessage()));
 		} finally {
 			if(in != null) {
 				try {
@@ -109,7 +117,7 @@ public class ClientProcessor extends Thread {
 	
 	private String parseUrl(String httpRequest) {
 		String result = null;
-		Pattern urlPattern = Pattern.compile("GET ([\\w\\?=&/%{}\\.-]+) HTTP");
+		Pattern urlPattern = Pattern.compile("GET (.+) HTTP");
 		Matcher matcher = urlPattern.matcher(httpRequest);
 		
 		if(matcher.find()) {
@@ -135,147 +143,191 @@ public class ClientProcessor extends Thread {
 		sendHttpResponse(out,content);
 	}
 	
-	private void commandRequestProcessor(Request request, PrintWriter out) throws IOException, JSONException {
+	private void commandRequestProcessor(Request request, PrintWriter out) throws IOException, JSONException, SQLException {
 		
 		Map<String, String> getParameters = request.getParameters();
 		Commands command = request.getCommand();
 		
 		switch (command) {
 		case READ_SAVE:
-			try {
-				GameSaveData saveData = dbm.selectSaves(getParameters.get("key"), getParameters.get("player_id"));
-				if(saveData != null) {
-					String savesJson = saveData.toJsonString();
-					sendHttpResponse(out, savesJson);
-				} else {
-					sendHttpResponse(out, simpleJsonObject("sqlMessage", "0 row(s) returned"));
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-				sendHttpResponse(out, simpleJsonObject("sqlError", e.getMessage()));
-			}
+			
+			readSave(getParameters);
 			
 			break;
 		case REGISTER_PLAYER:
-			try {
-				int rowsAdded = dbm.insertPlayer(getParameters.get("name"), getParameters.get("player_id"));
-				sendHttpResponse(out, simpleJsonObject("addedRows", String.valueOf(rowsAdded)));
-			} catch (SQLException e1) {
-				e1.printStackTrace();
-				sendHttpResponse(out, simpleJsonObject("sqlError", e1.getMessage()));
-			}
+			
+			registerPlayer(getParameters);
+			
 			break;
 		case ADD_GAME:
-			try {
-				RandomKeyGenerator rkg = new RandomKeyGenerator(45);
-				String key = rkg.nextString();
-				int rowsAdded = dbm.insertGame(getParameters.get("owner_name"), getParameters.get("name"), key);
-				if(rowsAdded > 0) {
-					sendHttpResponse(out, simpleJsonObject("security_key", key));
-				} else {
-					sendHttpResponse(out, simpleJsonObject("error", "Game not added."));
-				}
-			} catch (SQLException e1) {
-				e1.printStackTrace();
-				sendHttpResponse(out, simpleJsonObject("sqlError", e1.getMessage()));
-			}
+			
+			addGame(getParameters);
+			
 			break;
-		case UPDATE_LEVEL:
-			try {
-				int rowsChanged = dbm.updateLevel(getParameters.get("key"), getParameters.get("player_id"), Integer.parseInt(getParameters.get("level")), Integer.parseInt(getParameters.get("stars")));
-				if(rowsChanged > 0) {
-					sendHttpResponse(out, simpleJsonObject("updatedRows", String.valueOf(rowsChanged)));
-				} else {
-					sendHttpResponse(out, simpleJsonObject("error", "Level data not updated."));
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-				sendHttpResponse(out, simpleJsonObject("sqlError", e.getMessage()));
-			}
-			break;
-		case INSERT_LEVEL:
-			try {
-				int rowsAdded = dbm.insertLevel(getParameters.get("key"), getParameters.get("player_id"), Integer.parseInt(getParameters.get("level")), Integer.parseInt(getParameters.get("stars")));
-				if(rowsAdded > 0) {
-					sendHttpResponse(out, simpleJsonObject("addedRows", String.valueOf(rowsAdded)));
-				} else {
-					sendHttpResponse(out, simpleJsonObject("error", "Level data not added."));
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-				sendHttpResponse(out, simpleJsonObject("sqlError", e.getMessage()));
-			}
+		case UPDATE_SAVE:
+			
+			updateSave(getParameters);
+			
 			break;
 		case REGISTER_OWNER:
-			try {
-				int rowsChanged = dbm.insertOwner(getParameters.get("name"));
-				sendHttpResponse(out, simpleJsonObject("addedRows", String.valueOf(rowsChanged)));
-			} catch (SQLException e) {
-				e.printStackTrace();
-				sendHttpResponse(out, simpleJsonObject("sqlError", e.getMessage()));
-			}
+			
+			registerOwner(getParameters);
+			
 			break;
 		case UPDATE_BOOST:
-			try {
-				int rowsChanged = dbm.updateBoostData(getParameters.get("key"), getParameters.get("player_id"), URLDecoder.decode(getParameters.get("boost_data"), "UTF-8"));
-				if(rowsChanged > 0) {
-					sendHttpResponse(out, simpleJsonObject("updatedRows", String.valueOf(rowsChanged)));
-				} else {
-					sendHttpResponse(out, simpleJsonObject("error", "Boost data not updated."));
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-				sendHttpResponse(out, simpleJsonObject("sqlError", e.getMessage()));
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			}
-			break;
-		/*case "eps_mon":
-			try {
-				List<BoostEntity> boosts = dbm.selectFromBoosts();
-				List<GameOwnerEntity> gameOwners = dbm.selectFromGameOwners();
-				List<GameEntity> games = dbm.selectFromGames();
-				List<PlayerEntity> players = dbm.selectFromPlayers();
-				List<SaveEntity> saves = dbm.selectFromSaves();
-				
-				String response = prepareJsonForMonitor(boosts, gameOwners, games, players, saves);
-				
-				//sendHttp(out, response.append("{").append(buildJson(boosts, "boosts")).append(",").append(buildJson(gameOwners, "game_owners")).append(",").append(buildJson(games, "games")).append(",").append(buildJson(players, "players")).append(",").append(buildJson(saves, "saves")).append("}").toString());
-				//sendHttp(out,"{\"boosts\":[[1,1,1,1]],\"game_owners\":[[1,Yuriy]],\"games\":[[1,match3,1,abc]],\"players\":[[1,Yuriy,123]],\"saves\":[[1,1,1,1,3]]}");
-				sendHttp(out, response.toString());
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
 			
-			break;*/
-		/*case SHOW_MON:
-			String workPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getCanonicalPath();
-			String content = readFile(workPath+File.separatorChar+"epsilon_monitor"+File.separatorChar+"monitor.html", StandardCharsets.UTF_8);
-			sendHttpResponse(out,content);
-			break;*/
-		/*default:
-			if(httpRequestFilter.filterAllowed(request.getPath())) {
-				String workPath2 = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getCanonicalPath();
-				String content2 = readFile(workPath2+File.separatorChar+"epsilon_monitor"+File.separatorChar+request.getPath(), StandardCharsets.UTF_8);
-				sendHttpResponse(out,content2);
-			}
-			break;*/
+			updateBoost(getParameters);
+			
+			break;
+		case MONITOR_DATA:
+			
+			break;
 		}
     }
 	
-	/*private String prepareJsonForMonitor(List<BoostEntity> boosts, List<GameOwnerEntity> gameOwners, List<GameEntity> games, List<PlayerEntity> players, List<SaveEntity> saves) {
+	private void readSave(Map<String, String> getParameters) throws SQLException, JSONException {
+		GameEntity game = dbm.selectGameByApiKey(getParameters.get("game_api_key"));
 		
-		StringBuilder result = new StringBuilder();
-		result.append("{\"boosts\":[");
-		
-		for(int i=0;i<boosts.size();i++) {
-			result.append(boosts.get(i).toJson());
-			if(i<boosts.size()-1) {
-				result.append(",");
-			}
+		if(game == null) {
+			sendHttpResponse(out, simpleJsonObject("Fail", "Game not found"));
+			return;
 		}
 		
-		result.append("],\"game_owners\":[");
+		PlayerEntity player = dbm.selectPlayer(getParameters.get("player_id"), game.getId());
+		
+		if(player == null) {
+			sendHttpResponse(out, simpleJsonObject("Fail", "Player not found"));
+			return;
+		}
+		
+		SaveEntity save = dbm.selectSave(game.getId(), player.getId());
+		
+		if(save == null) {
+			sendHttpResponse(out, simpleJsonObject("Fail", "Failed to read save data"));
+			return;
+		}
+		
+		sendHttpResponse(out, save.toJson());
+	}
+	
+	private void registerPlayer(Map<String, String> getParameters) throws SQLException {
+		GameEntity game = dbm.selectGameByApiKey(getParameters.get("game_api_key"));
+		
+		if(game == null) {
+			sendHttpResponse(out, simpleJsonObject("Fail", "Game not found"));
+			return;
+		}
+		
+		PlayerEntity player = dbm.selectPlayer(getParameters.get("player_id"), game.getId());
+		
+		if(player != null) {
+			sendHttpResponse(out, simpleJsonObject("Fail", "You alredy registered in this game"));
+			return;
+		}
+		
+		int rowsAdded = dbm.insertPlayer(getParameters.get("player_name"), getParameters.get("player_id"), game.getId());
+		
+		if(rowsAdded > 0) {
+			sendHttpResponse(out, simpleJsonObject("Success", "Player added"));
+		} else {
+			sendHttpResponse(out, simpleJsonObject("Fail", "Player not added"));
+		}
+	}
+	
+	private void addGame(Map<String, String> getParameters) throws SQLException {
+		GameOwnerEntity owner = dbm.selectOwnerByName(getParameters.get("name"));
+		
+		if(owner == null) {
+			sendHttpResponse(out, simpleJsonObject("Fail", "Owner not found"));
+			return;
+		}
+		
+		RandomKeyGenerator keyGen = new RandomKeyGenerator(45);
+		String key = keyGen.nextString();
+		int rowsAdded1 = dbm.insertGame(owner.getId(), getParameters.get("name"), key);
+		
+		if(rowsAdded1 > 0) {
+			sendHttpResponse(out, simpleJsonObject("Your game API key", key));
+		} else {
+			sendHttpResponse(out, simpleJsonObject("Fail", "Game not added"));
+		}
+	}
+	
+	private void updateSave(Map<String, String> getParameters) throws SQLException {
+		GameEntity game = dbm.selectGameByApiKey(getParameters.get("game_api_key"));
+		
+		if(game == null) {
+			sendHttpResponse(out, simpleJsonObject("Fail", "Game not found"));
+			return;
+		}
+		
+		PlayerEntity player = dbm.selectPlayer(getParameters.get("player_id"), game.getId());
+		
+		if(player == null) {
+			sendHttpResponse(out, simpleJsonObject("Fail", "Player not found"));
+			return;
+		}
+		
+		SaveEntity save = dbm.selectSave(game.getId(), player.getId());
+		int rows = 0;
+		if(save == null) {
+			rows = dbm.insertSave(game.getId(), player.getId(), getParameters.get("save_data"), "{}");
+		} else {
+			rows = dbm.updateSave(save.getId(), getParameters.get("save_data"));
+		}
+		
+		if(rows > 0) {
+			sendHttpResponse(out, simpleJsonObject("Sucess", "Game save updated"));
+			return;
+		}
+		
+		sendHttpResponse(out, simpleJsonObject("Fail", "Failed to update or insert save"));
+	}
+	
+	private void registerOwner(Map<String, String> getParameters) throws SQLException {
+		int newRowsCount = dbm.insertOwner(getParameters.get("name"));
+		if(newRowsCount > 0) {
+			sendHttpResponse(out, simpleJsonObject("Success", "New owner added"));
+		} else {
+			sendHttpResponse(out, simpleJsonObject("Fail", "New owner not added"));
+		}
+	}
+	
+	private void updateBoost(Map<String, String> getParameters) throws SQLException {
+		GameEntity game = dbm.selectGameByApiKey(getParameters.get("game_api_key"));
+		
+		if(game == null) {
+			sendHttpResponse(out, simpleJsonObject("Fail", "Game not found"));
+			return;
+		}
+		
+		PlayerEntity player = dbm.selectPlayer(getParameters.get("player_id"), game.getId());
+		
+		if(player == null) {
+			sendHttpResponse(out, simpleJsonObject("Fail", "Player not found"));
+			return;
+		}
+		
+		SaveEntity save = dbm.selectSave(game.getId(), player.getId());
+		int rows = 0;
+		if(save == null) {
+			rows = dbm.insertSave(game.getId(), player.getId(), "[0]", getParameters.get("boost_data"));
+		} else {
+			rows = dbm.updateBoost(save.getId(), getParameters.get("boost_data"));
+		}
+		
+		if(rows > 0) {
+			sendHttpResponse(out, simpleJsonObject("Sucess", "Boost data updated"));
+			return;
+		}
+		
+		sendHttpResponse(out, simpleJsonObject("Fail", "Failed to update boost data"));
+	}
+	
+	private String prepareJsonForMonitor(List<GameOwnerEntity> gameOwners, List<GameEntity> games, List<PlayerEntity> players, List<SaveEntity> saves) {
+		
+		StringBuilder result = new StringBuilder();
+		result.append("{\"game_owners\":[");
 		
 		for(int i=0;i<gameOwners.size();i++) {
 			result.append(gameOwners.get(i).toJson());
@@ -314,7 +366,7 @@ public class ClientProcessor extends Thread {
 		result.append("]}");
 		
 		return result.toString();
-	}*/
+	}
 	
 	String readFile(String path, Charset encoding) throws IOException 
 	{
