@@ -38,7 +38,7 @@ public class SaveEntity {
 		return boostData;
 	}
 	
-	public String toJson() throws JSONException {
-		return new JSONObject().put("save_data", saveData).put("boost_data", boostData).toString();
+	public String toJson()  {
+		return "[ "+id+", "+gameId+", "+playerId+", \""+saveData+"\", \""+boostData.replaceAll("\"", "\\\"")+"\" ]";
 	}
 }

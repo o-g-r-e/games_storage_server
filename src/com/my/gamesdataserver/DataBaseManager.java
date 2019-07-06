@@ -164,7 +164,7 @@ public class DataBaseManager {
 		return result;
 	}
 	
-	List<GameOwnerEntity> selectFromGameOwners() throws SQLException {
+	List<GameOwnerEntity> selectOwners() throws SQLException {
 		List<GameOwnerEntity> result = new ArrayList<GameOwnerEntity>();
 		
 		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM game_owners");
@@ -175,7 +175,7 @@ public class DataBaseManager {
 		return result;
 	}
 	
-	List<GameEntity> selectFromGames() throws SQLException {
+	List<GameEntity> selectGames() throws SQLException {
 		List<GameEntity> result = new ArrayList<GameEntity>();
 		
 		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM games");
@@ -190,7 +190,7 @@ public class DataBaseManager {
 		return result;
 	}
 	
-	List<PlayerEntity> selectFromPlayers() throws SQLException {
+	List<PlayerEntity> selectPlayers() throws SQLException {
 		List<PlayerEntity> result = new ArrayList<PlayerEntity>();
 		
 		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM players");
@@ -201,7 +201,7 @@ public class DataBaseManager {
 		return result;
 	}
 	
-	List<SaveEntity> selectFromSaves() throws SQLException {
+	List<SaveEntity> selectSaves() throws SQLException {
 		List<SaveEntity> result = new ArrayList<SaveEntity>();
 		
 		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM saves");

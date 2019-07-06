@@ -1,6 +1,7 @@
 $(function() {
+	console.log("hahahhahhah");
 	$.ajax({
-    url: 'http://localhost:8080/monitor_data?key=vjsYeNp4ZsGtPcHLz4AfghqMkTPwCjA4',
+    url: 'http://localhost:3636/monitor_data?key=vjsYeNp4ZsGtPcHLz4AfghqMkTPwCjA4',
 	crossDomain: true,
 	xhrFields: {
         withCredentials: true

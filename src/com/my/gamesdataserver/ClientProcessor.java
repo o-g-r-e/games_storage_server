@@ -128,7 +128,7 @@ public class ClientProcessor extends Thread {
 	}
 	
 	private String parseUrlPath(String url) {
-		Pattern p = Pattern.compile("(\\/[\\w\\.\\/]+)");
+		Pattern p = Pattern.compile("([\\w\\.\\/-]+)");
 		Matcher m = p.matcher(url);
 		
 		if(m.find()) {
@@ -138,7 +138,7 @@ public class ClientProcessor extends Thread {
 	}
 	
 	private void contentRequestProcessor(String urlPath, PrintWriter out) throws IOException {
-		String workPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getCanonicalPath();
+		String workPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getCanonicalPath().replaceAll("%20", " ");
 		String content = readFile(workPath+urlPath.replace('/', File.separatorChar), StandardCharsets.UTF_8);
 		sendHttpResponse(out,content);
 	}
@@ -181,6 +181,8 @@ public class ClientProcessor extends Thread {
 			break;
 		case MONITOR_DATA:
 			
+			monitorData();
+			
 			break;
 		}
     }
@@ -207,7 +209,7 @@ public class ClientProcessor extends Thread {
 			return;
 		}
 		
-		sendHttpResponse(out, save.toJson());
+		sendHttpResponse(out, "{\"save_data\" : \""+save.getSaveData()+"\", \"boost_data\" : \""+save.getBoostData()+"\" }");
 	}
 	
 	private void registerPlayer(Map<String, String> getParameters) throws SQLException {
@@ -322,6 +324,15 @@ public class ClientProcessor extends Thread {
 		}
 		
 		sendHttpResponse(out, simpleJsonObject("Fail", "Failed to update boost data"));
+	}
+	
+	private void monitorData() throws SQLException {
+		List<GameOwnerEntity> gameOwners = dbm.selectOwners();
+		List<GameEntity> games = dbm.selectGames();
+		List<PlayerEntity> players = dbm.selectPlayers();
+		List<SaveEntity> saves = dbm.selectSaves();
+		
+		sendHttpResponse(out, prepareJsonForMonitor(gameOwners, games, players, saves));
 	}
 	
 	private String prepareJsonForMonitor(List<GameOwnerEntity> gameOwners, List<GameEntity> games, List<PlayerEntity> players, List<SaveEntity> saves) {

@@ -30,7 +30,6 @@ public class PlayerEntity {
 	}
 	
 	public String toJson() {
-		StringBuilder result = new StringBuilder();
-		return result.append("[").append(id).append(",\"").append(name).append("\",\"").append(playerId).append("\"]").toString();
+		return "["+id+",\""+name+"\",\""+playerId+"\","+gameId+"]";
 	}
 }
