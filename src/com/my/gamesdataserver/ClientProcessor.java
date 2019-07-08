@@ -237,15 +237,15 @@ public class ClientProcessor extends Thread {
 	}
 	
 	private void addGame(Map<String, String> getParameters) throws SQLException {
-		GameOwnerEntity owner = dbm.selectOwnerByName(getParameters.get("name"));
+		GameOwnerEntity owner = dbm.selectOwnerByName(getParameters.get("owner_name"));
 		
 		if(owner == null) {
 			sendHttpResponse(out, simpleJsonObject("Fail", "Owner not found"));
 			return;
 		}
 		
-		RandomKeyGenerator keyGen = new RandomKeyGenerator(45);
-		String key = keyGen.nextString();
+		RandomKeyGenerator keyGen = new RandomKeyGenerator();
+		String key = keyGen.nextString(45);
 		int rowsAdded1 = dbm.insertGame(owner.getId(), getParameters.get("name"), key);
 		
 		if(rowsAdded1 > 0) {
@@ -405,7 +405,7 @@ public class ClientProcessor extends Thread {
 		System.out.println(httpResponse.getHeader());
 		if(httpResponse.getContent() != null && httpResponse.getContent().length() > 0) {
 			if(cutContent) {
-				System.out.println(httpResponse.getCutContent(10));
+				System.out.println(httpResponse.getContentCharacters(255));
 			} else {
 				System.out.println(httpResponse.getContent());
 			}

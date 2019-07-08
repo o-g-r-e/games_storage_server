@@ -39,6 +39,6 @@ public class SaveEntity {
 	}
 	
 	public String toJson()  {
-		return "[ "+id+", "+gameId+", "+playerId+", \""+saveData+"\", \""+boostData.replaceAll("\"", "\\\"")+"\" ]";
+		return "[ "+id+", "+gameId+", "+playerId+", \""+saveData+"\", \""+boostData.replaceAll("\"", "\\\\\"")+"\" ]";
 	}
 }

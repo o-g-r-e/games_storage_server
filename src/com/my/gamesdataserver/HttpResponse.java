@@ -61,6 +61,13 @@ public class HttpResponse {
 		
 		return result.toString();
 	}
+	
+	public String getContentCharacters(int countOfCharacters) {
+		if(countOfCharacters > content.length()) {
+			return content;
+		}
+		return content.substring(0, countOfCharacters);
+	}
 
 	public void setContent(String content) {
 		this.content = content;

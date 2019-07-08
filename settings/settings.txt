@@ -1,0 +1,6 @@
+serverPort=3636
+dbAddr=localhost
+dbPort=3306
+dbName=games_data
+dbUser=root
+dbPassword=1234567890
