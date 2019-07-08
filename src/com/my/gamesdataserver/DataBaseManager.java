@@ -49,11 +49,11 @@ public class DataBaseManager {
 		return null;
 	}
 	
-	PlayerEntity selectPlayer(String playerId, int gameId) throws SQLException {
+	PlayerEntity selectPlayer(String playerSecretId, int gameId) throws SQLException {
 		
 		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM players WHERE players.player_uniqe_id LIKE ? AND players.game_id = ?");
 		
-		pstmt.setString(1, playerId);
+		pstmt.setString(1, playerSecretId);
 		pstmt.setInt(2, gameId);
 		ResultSet resultSet = pstmt.executeQuery();
 		
