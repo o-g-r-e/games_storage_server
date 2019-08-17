@@ -17,7 +17,7 @@ public class Main {
 		
 		if(args.length < 1) {
 			String workPath = new File(".").getAbsolutePath();
-			settings.readSettings(new File(workPath+"\\"+Settings.defaultSettingsFilePath));
+			settings.readSettings(new File(workPath+File.separator+Settings.defaultSettingsFilePath));
 		} else {
 			settings.readSettings(new File(args[0]));
 		}

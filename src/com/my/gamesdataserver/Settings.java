@@ -11,7 +11,7 @@ public class Settings {
 	private String dbName;
 	private String dbUser;
 	private String dbPassword;
-	public static final String defaultSettingsFilePath = "settings\\settings.txt";
+	public static final String defaultSettingsFilePath = "settings"+File.separator+"settings.txt";
 	
 	public void readSettings(File settingsFile) {
 		Scanner scanner = null;
