@@ -10,7 +10,7 @@ public class Access {
 	
 	public Access() {
 		allowedPathes = new ArrayList<String>();
-		allowedPathes.add("/monitor");
+		allowedPathes.add("/html");
 	}
 	
 	public boolean isAllowedPath(String urlPath) {

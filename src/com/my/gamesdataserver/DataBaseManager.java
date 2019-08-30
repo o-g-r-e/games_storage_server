@@ -3,6 +3,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +34,31 @@ public class DataBaseManager {
 		}
 	}
 	
+	public void createTable(String name, MyField[] fields) {
+		String query = "CREATE TABLE "+name+" (id INT NOT NULL,";
+		
+		for (int i = 0; i < fields.length; i++) {
+			query += fields[i].name;
+			if(fields[i].type == MyField.Type.INTEGER) {
+				query += " INT NULL,";
+			} else if (fields[i].type == MyField.Type.STRING) {
+				query += " VARCHAR(45) NULL,";
+			} else if (fields[i].type == MyField.Type.FLOAT) {
+				query += " FLOAT NULL,";
+			} else {
+				return;
+			}
+		}
+		
+		query += "PRIMARY KEY (id));";
+	}
+	
+	public void insertToTable(String tableName, Object[] values) throws SQLException {
+		ResultSet res = con.prepareStatement("SELECT * FROM "+tableName+";").executeQuery();
+		ResultSetMetaData rsmd = res.getMetaData();
+		rsmd.getColumnType(1);
+	}
+	
 	GameEntity selectGameByApiKey(String gameApiKey) throws SQLException {
 		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM games WHERE games.key LIKE ?");
 		pstmt.setString(1, gameApiKey);
@@ -56,7 +82,7 @@ public class DataBaseManager {
 		pstmt.setString(1, playerSecretId);
 		pstmt.setInt(2, gameId);
 		ResultSet resultSet = pstmt.executeQuery();
-		
+		System.out.println("CLASS_NAME: "+resultSet.getClass().getName());
 		if(resultSet.next()) {
 			int id = resultSet.getInt(1);
 			String name = resultSet.getString(2);

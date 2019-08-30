@@ -1,0 +1,15 @@
+#boosts {
+	min-width: 265px;
+}
+
+.first_row {
+	margin-top: 20px;
+	margin-bottom: 20px;
+}
+
+td {  
+	white-space: nowrap;                      
+	overflow: hidden;  
+	text-overflow: ellipsis;  
+	max-width: 100px;
+  } 
