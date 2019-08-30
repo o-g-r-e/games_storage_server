@@ -69,7 +69,7 @@ public class ClientProcessor extends Thread {
 			
 			Request request = new Request(url);
 			
-			if(request.commandValidate()) {
+			if(request.validateParametersWithSchema()) {
 				commandRequestProcessor(request, out);
 			} else if(access.isAllowedPath(urlPath) && url.contains("key="+Access.contentAccessKey)) {
 				contentRequestProcessor(urlPath, out);
@@ -146,41 +146,34 @@ public class ClientProcessor extends Thread {
 	private void commandRequestProcessor(Request request, PrintWriter out) throws IOException, JSONException, SQLException {
 		
 		Map<String, String> getParameters = request.getParameters();
-		Commands command = request.getCommand();
+		Request.Type command = request.getCommand();
 		
 		switch (command) {
 		case READ_SAVE:
-			
 			readSave(getParameters);
 			
 			break;
 		case REGISTER_PLAYER:
-			
 			registerPlayer(getParameters);
 			
 			break;
 		case ADD_GAME:
-			
 			addGame(getParameters);
 			
 			break;
 		case UPDATE_SAVE:
-			
 			updateSave(getParameters);
 			
 			break;
 		case REGISTER_OWNER:
-			
 			registerOwner(getParameters);
 			
 			break;
 		case UPDATE_BOOST:
-			
 			updateBoost(getParameters);
 			
 			break;
 		case MONITOR_DATA:
-			
 			monitorData();
 			
 			break;

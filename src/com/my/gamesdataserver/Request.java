@@ -5,20 +5,29 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Request {
-	private Commands command;
+	private Type commandType;
 	private Map<String, String> parameters;
+	private String[] validationSchema;
 	
-	public Request(String url) {
-		parameters = parseUrlParameters(url);
-		command = parseCommand(url);
+	public enum Type {READ_SAVE, 
+					  REGISTER_PLAYER, 
+					  ADD_GAME, 
+					  UPDATE_SAVE,
+					  REGISTER_OWNER, 
+					  UPDATE_BOOST,
+					  MONITOR_DATA}
+	
+	public Request(String urlRequest) {
+		parameters = parseUrlParameters(urlRequest);
+		parseCommand(urlRequest);
 	}
 	
-	private boolean validateParameters(String[] namesMustFound, Map<String, String> parameters) {
-		if(parameters.size() != namesMustFound.length) {
+	public boolean validateParametersWithSchema() {
+		if(parameters.size() != validationSchema.length) {
 			return false;
 		}
 		
-		for(String paramName : namesMustFound) {
+		for(String paramName : validationSchema) {
 			if(!parameters.containsKey(paramName)) {
 				return false;
 			}
@@ -27,54 +36,45 @@ public class Request {
 		return true;
 	}
 	
-	public boolean commandValidate() {
-		
-		if (command == null) {
-			return false;
-		}
-		
-		String[] pNames = null;
-		
-		switch (command) {
-		case READ_SAVE:
-			pNames = new String[] {"game_api_key", "player_id"};
-			break;
-		case REGISTER_PLAYER:
-			pNames = new String[] {"player_name", "player_id", "game_api_key"};
-			break;
-		case ADD_GAME:
-			pNames = new String[] {"name", "owner_name"};
-			break;
-		case UPDATE_SAVE :
-			pNames = new String[] {"game_api_key", "player_id", "save_data"};
-			break;
-		case REGISTER_OWNER:
-			pNames = new String[] {"name"};
-			break;
-		case UPDATE_BOOST:
-			pNames = new String[] {"game_api_key", "player_id", "boost_data"};
-			break;
-		case MONITOR_DATA:
-			pNames = new String[] {"key"};
-			break;
-		}
-		
-		if(pNames == null) {
-			return false;
-		}
-		
-		return validateParameters(pNames, parameters);
-	}
-	
-	private Commands parseCommand(String url) {
+	private void parseCommand(String urlRequest) {
 		Pattern p = Pattern.compile("\\/(\\w+)(\\?|$)");
-		Matcher m = p.matcher(url);
+		Matcher m = p.matcher(urlRequest);
 		
 		if(m.find()) {
-			String command = m.group(1);
-			return recognizeCommandType(command);
+			String com = m.group(1);
+			switch (com) {
+			case "readSave":
+				commandType = Type.READ_SAVE;
+				validationSchema = new String[] {"game_api_key", "player_id"};
+				break;
+			case "regPlayer":
+				commandType = Type.REGISTER_PLAYER;
+				validationSchema = new String[] {"player_name", "player_id", "game_api_key"};
+				break;
+			case "addGame":
+				commandType = Type.ADD_GAME;
+				validationSchema = new String[] {"name", "owner_name"};
+				break;
+			case "updateSave":
+				commandType = Type.UPDATE_SAVE;
+				validationSchema = new String[] {"game_api_key", "player_id", "save_data"};
+				break;
+			case "regOwner":
+				commandType = Type.REGISTER_OWNER;
+				validationSchema = new String[] {"name"};
+				break;
+			case "updateBoost":
+				commandType = Type.UPDATE_BOOST;
+				validationSchema = new String[] {"game_api_key", "player_id", "boost_data"};
+				break;
+			case "monitor_data":
+				commandType = Type.MONITOR_DATA;
+				validationSchema = new String[] {"key"};
+				break;
+			default: 
+				break;
+			}
 		}
-		return null;
 	}
 	
 	Map<String, String> parseUrlParameters(String url) {
@@ -98,30 +98,9 @@ public class Request {
 		parameterValue = parameterValue.replaceAll("%22", "\"");
 		return parameterValue;
 	}
-	
-	private Commands recognizeCommandType(String command) {
-		switch (command) {
-		case "readSave":
-			return Commands.READ_SAVE;
-		case "regPlayer":
-			return Commands.REGISTER_PLAYER;
-		case "addGame":
-			return Commands.ADD_GAME;
-		case "updateSave":
-			return Commands.UPDATE_SAVE;
-		case "regOwner":
-			return Commands.REGISTER_OWNER;
-		case "updateBoost":
-			return Commands.UPDATE_BOOST;
-		case "monitor_data":
-			return Commands.MONITOR_DATA;
-		}
-		
-		return null;
-	}
 
-	public Commands getCommand() {
-		return command;
+	public Type getCommand() {
+		return commandType;
 	}
 
 	public Map<String, String> getParameters() {
