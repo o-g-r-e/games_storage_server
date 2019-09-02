@@ -67,6 +67,19 @@ $(function() {
 	$('#table-creation-modal-close-button1, #table-creation-modal-close-button2').on('click', function() {
 		$('.modal-table-creation').hide();
 	});
+
+	$('#add-field').on('click', function() {
+		var el = '<div class="input-group">';
+		el += '<label for="sel1">Type:</label>';
+		el += '<select class="form-control" id="sel1">';
+		el += '<option>INTEGER</option>';
+		el += '<option>STRING</option>';
+		el += '<option>FLOAT</option>';
+		el += '</select>';
+		el += '<input type="text" class="form-control" name="val" placeholder="Val">';
+		el += '</div>';
+		$(el).insertBefore('.add-field-group');
+	});
 	
 	function buildTableRows(tableElement, table) {
 		

@@ -20,7 +20,7 @@
 			<div class="modal-dialog" role="document">
 			  <div class="modal-content">
 				<div class="modal-header">
-				  <h5 class="modal-title">Modal title</h5>
+				  <h5 class="modal-title">Create table</h5>
 				  <button id="table-creation-modal-close-button1" type="button" class="close" data-dismiss="modal" aria-label="Close">
 					<span aria-hidden="true">&times;</span>
 				  </button>
@@ -32,8 +32,16 @@
 							<input id="msg" type="text" class="form-control" name="msg" placeholder="Table1">
 						</div>
 						<div class="input-group">
-							<input id="msg" type="text" class="form-control" name="msg" placeholder="Field name">
-							<input id="msg" type="text" class="form-control" name="msg" placeholder="Field type">
+							<label for="sel1">Type:</label>
+							<select class="form-control" id="sel1">
+								<option>INTEGER</option>
+								<option>STRING</option>
+								<option>FLOAT</option>
+							</select>
+							<input type="text" class="form-control" name="val" placeholder="Val">
+						</div>
+						<div class="input-group add-field-group">
+							<button id="add-field" type="button" class="btn btn-primary">Add field</button>
 						</div>
 					</form>
 				</div>
