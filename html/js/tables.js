@@ -66,19 +66,27 @@ $(function() {
 
 	$('#table-creation-modal-close-button1, #table-creation-modal-close-button2').on('click', function() {
 		$('.modal-table-creation').hide();
+		$('.modal-table-creation .additional-field').remove();
+		$('.modal-table-creation input').val('');
 	});
 
 	$('#add-field').on('click', function() {
-		var el = '<div class="input-group">';
-		el += '<label for="sel1">Type:</label>';
+		var el = '<div class="input-group additional-field">';
+		el += '<span class="input-group-addon">Type:</span>';
 		el += '<select class="form-control" id="sel1">';
 		el += '<option>INTEGER</option>';
 		el += '<option>STRING</option>';
 		el += '<option>FLOAT</option>';
 		el += '</select>';
+		el += '<span class="input-group-addon">Name:</span>';
 		el += '<input type="text" class="form-control" name="val" placeholder="Val">';
+		el += '<button class="rem-field" type="button">X</button>';
 		el += '</div>';
 		$(el).insertBefore('.add-field-group');
+	});
+
+	$('.modal-body').on('click', '.rem-field', function() {
+		$(this).parent().remove();
 	});
 	
 	function buildTableRows(tableElement, table) {

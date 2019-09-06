@@ -31,13 +31,15 @@
 							<span class="input-group-addon">Table name</span>
 							<input id="msg" type="text" class="form-control" name="msg" placeholder="Table1">
 						</div>
+						<div class="input-group">Fields:</div>
 						<div class="input-group">
-							<label for="sel1">Type:</label>
+							<span class="input-group-addon">Type:</span>
 							<select class="form-control" id="sel1">
 								<option>INTEGER</option>
 								<option>STRING</option>
 								<option>FLOAT</option>
 							</select>
+							<span class="input-group-addon">Name:</span>
 							<input type="text" class="form-control" name="val" placeholder="Val">
 						</div>
 						<div class="input-group add-field-group">
@@ -46,7 +48,7 @@
 					</form>
 				</div>
 				<div class="modal-footer">
-				  <button type="button" class="btn btn-primary">Save changes</button>
+				  <button id="submit-new-table" type="button" class="btn btn-primary">Save changes</button>
 				  <button id="table-creation-modal-close-button2" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
 				</div>
 			  </div>
