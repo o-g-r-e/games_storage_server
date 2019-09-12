@@ -29,18 +29,20 @@
 					<form class="form-horizontal">
 						<div class="input-group">
 							<span class="input-group-addon">Table name</span>
-							<input id="msg" type="text" class="form-control" name="msg" placeholder="Table1">
+							<input id="msg" type="text" class="form-control" name="table-name" placeholder="Table1">
 						</div>
 						<div class="input-group">Fields:</div>
-						<div class="input-group">
-							<span class="input-group-addon">Type:</span>
-							<select class="form-control" id="sel1">
-								<option>INTEGER</option>
-								<option>STRING</option>
-								<option>FLOAT</option>
-							</select>
-							<span class="input-group-addon">Name:</span>
-							<input type="text" class="form-control" name="val" placeholder="Val">
+						<div class="input-group nfield">
+							<label>Type:
+								<select name="f1-type">
+									<option>INTEGER</option>
+									<option>STRING</option>
+									<option>FLOAT</option>
+								</select>
+							</label>
+							<label>Name:
+								<input type="text" name="f1-name" placeholder="Val">
+							</label>
 						</div>
 						<div class="input-group add-field-group">
 							<button id="add-field" type="button" class="btn btn-primary">Add field</button>
