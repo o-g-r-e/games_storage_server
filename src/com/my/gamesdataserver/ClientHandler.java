@@ -26,31 +26,76 @@ import org.json.JSONObject;
 import com.my.gamesdataserver.dbmodels.GameEntity;
 import com.my.gamesdataserver.dbmodels.GameOwnerEntity;
 import com.my.gamesdataserver.dbmodels.SaveEntity;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.util.ReferenceCountUtil;
+
 import com.my.gamesdataserver.dbmodels.PlayerEntity;
 
-public class ClientProcessor extends Thread {
+public class ClientHandler extends ChannelInboundHandlerAdapter {
 	
-	private BufferedReader in;
-	private PrintWriter out;
-	
-	private Socket socket;
 	private DataBaseManager dbm = null;
-	private String ipAddress;
 	
 	private HTTPRequestFilter httpRequestFilter;
 	private Access access;
 	
-	public ClientProcessor(Socket socket, DataBaseManager dbm) throws IOException {
-		this.socket = socket;
+	public ClientHandler(DataBaseManager dbm) throws IOException {
 		this.dbm = dbm;
-		this.ipAddress = socket.getRemoteSocketAddress().toString();
 		this.httpRequestFilter = new HTTPRequestFilter();
 		this.access = new Access();
-		System.out.println("\nNew connection from "+this.ipAddress);
+		//System.out.println("\nNew connection from "+this.ipAddress);
 	}
+	
+	@Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+		System.out.println("channelRead");
+		String httpRequest;
+	    try {
+	    	httpRequest = readRequest((ByteBuf)msg);
+	    } finally {
+	        ReferenceCountUtil.release(msg);
+	    }
+	    
+	    String url = parseUrl(httpRequest);
+		String urlPath = parseUrlPath(url);
+		
+		if(httpRequestFilter.filterForbiddens(urlPath))  {
+			System.out.println("Request parsing failed or filtered.");
+			return;
+		}
+		
+		printHttpRequest(httpRequest, "nnn.nnn.nnn.nnn", false);
+		
+		Request request = new Request(url);
+		
+		try {
+			if(request.validateParametersWithSchema()) {
+				commandRequestProcessor(request, ctx);
+			} else if(access.isAllowedPath(urlPath) && url.contains("key="+Access.contentAccessKey)) {
+				contentRequestProcessor(urlPath, ctx);
+			} else {
+				sendHttpResponse(ctx, simpleJsonObject("Request error", "Bad request"));
+				return;
+			}
+		} catch (IOException e) {
+			System.err.println(e.getMessage());
+		} catch (JSONException e) {
+			e.printStackTrace();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			sendHttpResponse(ctx, simpleJsonObject("sqlError", e.getMessage()));
+		}
+    }
 
-	public void run() {
-		//System.out.println("Client socket started.");
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        cause.printStackTrace();
+        ctx.close();
+    }
+
+	/*public void run() {
 		try {
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			
@@ -102,15 +147,14 @@ public class ClientProcessor extends Thread {
 			}
 			System.out.println(ipAddress+" Socket closed.");
 		}
-	}
-	
-	private String readRequest(Reader reader) throws IOException {
+	}*/
+    
+	private String readRequest(ByteBuf in) {
 		StringBuilder result = new StringBuilder();
 		
-		String line;
-		while(!(line = in.readLine()).equals("")) {
-			result.append(line).append("\n");
-		}
+		while (in.isReadable()) {
+			result.append(in.readChar());
+	    }
 		
 		return result.toString();
 	}
@@ -137,103 +181,103 @@ public class ClientProcessor extends Thread {
 		return null;
 	}
 	
-	private void contentRequestProcessor(String urlPath, PrintWriter out) throws IOException {
+	private void contentRequestProcessor(String urlPath, ChannelHandlerContext ctx) throws IOException {
 		String workPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getCanonicalPath().replaceAll("%20", " ");
 		String content = readFile(workPath+urlPath.replace('/', File.separatorChar), StandardCharsets.UTF_8);
-		sendHttpResponse(out,content);
+		sendHttpResponse(ctx, content);
 	}
 	
-	private void commandRequestProcessor(Request request, PrintWriter out) throws IOException, JSONException, SQLException {
+	private void commandRequestProcessor(Request request, ChannelHandlerContext ctx) throws IOException, JSONException, SQLException {
 		
 		Map<String, String> getParameters = request.getParameters();
 		Request.Type command = request.getCommand();
 		
 		switch (command) {
 		case READ_SAVE:
-			readSave(getParameters);
+			readSave(getParameters, ctx);
 			
 			break;
 		case REGISTER_PLAYER:
-			registerPlayer(getParameters);
+			registerPlayer(getParameters, ctx);
 			
 			break;
 		case ADD_GAME:
-			addGame(getParameters);
+			addGame(getParameters, ctx);
 			
 			break;
 		case UPDATE_SAVE:
-			updateSave(getParameters);
+			updateSave(getParameters, ctx);
 			
 			break;
 		case REGISTER_OWNER:
-			registerOwner(getParameters);
+			registerOwner(getParameters, ctx);
 			
 			break;
 		case UPDATE_BOOST:
-			updateBoost(getParameters);
+			updateBoost(getParameters, ctx);
 			
 			break;
 		case MONITOR_DATA:
-			monitorData();
+			monitorData(ctx);
 			
 			break;
 		}
     }
 	
-	private void readSave(Map<String, String> getParameters) throws SQLException, JSONException {
+	private void readSave(Map<String, String> getParameters, ChannelHandlerContext ctx) throws SQLException, JSONException {
 		GameEntity game = dbm.selectGameByApiKey(getParameters.get("game_api_key"));
 		
 		if(game == null) {
-			sendHttpResponse(out, simpleJsonObject("Fail", "Game not found"));
+			sendHttpResponse(ctx, simpleJsonObject("Fail", "Game not found"));
 			return;
 		}
 		
 		PlayerEntity player = dbm.selectPlayer(getParameters.get("player_id"), game.getId());
 		
 		if(player == null) {
-			sendHttpResponse(out, simpleJsonObject("Fail", "Player not found"));
+			sendHttpResponse(ctx, simpleJsonObject("Fail", "Player not found"));
 			return;
 		}
 		
 		SaveEntity save = dbm.selectSave(game.getId(), player.getId());
 		
 		if(save == null) {
-			sendHttpResponse(out, simpleJsonObject("Fail", "Failed to read save data"));
+			sendHttpResponse(ctx, simpleJsonObject("Fail", "Failed to read save data"));
 			return;
 		}
 		
-		sendHttpResponse(out, "{\"save_data\" : \""+save.getSaveData()+"\", \"boost_data\" : \""+save.getBoostData()+"\" }");
+		sendHttpResponse(ctx, "{\"save_data\" : \""+save.getSaveData()+"\", \"boost_data\" : \""+save.getBoostData()+"\" }");
 	}
 	
-	private void registerPlayer(Map<String, String> getParameters) throws SQLException {
+	private void registerPlayer(Map<String, String> getParameters, ChannelHandlerContext ctx) throws SQLException {
 		GameEntity game = dbm.selectGameByApiKey(getParameters.get("game_api_key"));
 		
 		if(game == null) {
-			sendHttpResponse(out, simpleJsonObject("Fail", "Game not found"));
+			sendHttpResponse(ctx, simpleJsonObject("Fail", "Game not found"));
 			return;
 		}
 		
 		PlayerEntity player = dbm.selectPlayer(getParameters.get("player_id"), game.getId());
 		
 		if(player != null) {
-			sendHttpResponse(out, simpleJsonObject("Fail", "You alredy registered in this game"));
+			sendHttpResponse(ctx, simpleJsonObject("Fail", "You alredy registered in this game"));
 			return;
 		}
 		
 		int rowsAdded = dbm.insertPlayer(getParameters.get("player_name"), getParameters.get("player_id"), game.getId());
 		
 		if(rowsAdded > 0) {
-			sendHttpResponse(out, simpleJsonObject("Success", "Player added"));
+			sendHttpResponse(ctx, simpleJsonObject("Success", "Player added"));
 		} else {
-			sendHttpResponse(out, simpleJsonObject("Fail", "Player not added"));
+			sendHttpResponse(ctx, simpleJsonObject("Fail", "Player not added"));
 		}
 	}
 	
-	private void addGame(Map<String, String> getParameters) throws SQLException {
+	private void addGame(Map<String, String> getParameters, ChannelHandlerContext ctx) throws SQLException {
 		GameOwnerEntity owner = dbm.selectOwnerByName(getParameters.get("owner_name"));
 		
 		if(owner == null) {
-			sendHttpResponse(out, simpleJsonObject("Fail", "Owner not found"));
+			sendHttpResponse(ctx, simpleJsonObject("Fail", "Owner not found"));
 			return;
 		}
 		
@@ -242,24 +286,24 @@ public class ClientProcessor extends Thread {
 		int rowsAdded1 = dbm.insertGame(owner.getId(), getParameters.get("name"), key);
 		
 		if(rowsAdded1 > 0) {
-			sendHttpResponse(out, simpleJsonObject("Your game API key", key));
+			sendHttpResponse(ctx, simpleJsonObject("Your game API key", key));
 		} else {
-			sendHttpResponse(out, simpleJsonObject("Fail", "Game not added"));
+			sendHttpResponse(ctx, simpleJsonObject("Fail", "Game not added"));
 		}
 	}
 	
-	private void updateSave(Map<String, String> getParameters) throws SQLException {
+	private void updateSave(Map<String, String> getParameters, ChannelHandlerContext ctx) throws SQLException {
 		GameEntity game = dbm.selectGameByApiKey(getParameters.get("game_api_key"));
 		
 		if(game == null) {
-			sendHttpResponse(out, simpleJsonObject("Fail", "Game not found"));
+			sendHttpResponse(ctx, simpleJsonObject("Fail", "Game not found"));
 			return;
 		}
 		
 		PlayerEntity player = dbm.selectPlayer(getParameters.get("player_id"), game.getId());
 		
 		if(player == null) {
-			sendHttpResponse(out, simpleJsonObject("Fail", "Player not found"));
+			sendHttpResponse(ctx, simpleJsonObject("Fail", "Player not found"));
 			return;
 		}
 		
@@ -272,34 +316,34 @@ public class ClientProcessor extends Thread {
 		}
 		
 		if(rows > 0) {
-			sendHttpResponse(out, simpleJsonObject("Sucess", "Game save updated"));
+			sendHttpResponse(ctx, simpleJsonObject("Sucess", "Game save updated"));
 			return;
 		}
 		
-		sendHttpResponse(out, simpleJsonObject("Fail", "Failed to update or insert save"));
+		sendHttpResponse(ctx, simpleJsonObject("Fail", "Failed to update or insert save"));
 	}
 	
-	private void registerOwner(Map<String, String> getParameters) throws SQLException {
+	private void registerOwner(Map<String, String> getParameters, ChannelHandlerContext ctx) throws SQLException {
 		int newRowsCount = dbm.insertOwner(getParameters.get("name"));
 		if(newRowsCount > 0) {
-			sendHttpResponse(out, simpleJsonObject("Success", "New owner added"));
+			sendHttpResponse(ctx, simpleJsonObject("Success", "New owner added"));
 		} else {
-			sendHttpResponse(out, simpleJsonObject("Fail", "New owner not added"));
+			sendHttpResponse(ctx, simpleJsonObject("Fail", "New owner not added"));
 		}
 	}
 	
-	private void updateBoost(Map<String, String> getParameters) throws SQLException {
+	private void updateBoost(Map<String, String> getParameters, ChannelHandlerContext ctx) throws SQLException {
 		GameEntity game = dbm.selectGameByApiKey(getParameters.get("game_api_key"));
 		
 		if(game == null) {
-			sendHttpResponse(out, simpleJsonObject("Fail", "Game not found"));
+			sendHttpResponse(ctx, simpleJsonObject("Fail", "Game not found"));
 			return;
 		}
 		
 		PlayerEntity player = dbm.selectPlayer(getParameters.get("player_id"), game.getId());
 		
 		if(player == null) {
-			sendHttpResponse(out, simpleJsonObject("Fail", "Player not found"));
+			sendHttpResponse(ctx, simpleJsonObject("Fail", "Player not found"));
 			return;
 		}
 		
@@ -312,20 +356,20 @@ public class ClientProcessor extends Thread {
 		}
 		
 		if(rows > 0) {
-			sendHttpResponse(out, simpleJsonObject("Sucess", "Boost data updated"));
+			sendHttpResponse(ctx, simpleJsonObject("Sucess", "Boost data updated"));
 			return;
 		}
 		
-		sendHttpResponse(out, simpleJsonObject("Fail", "Failed to update boost data"));
+		sendHttpResponse(ctx, simpleJsonObject("Fail", "Failed to update boost data"));
 	}
 	
-	private void monitorData() throws SQLException {
+	private void monitorData(ChannelHandlerContext ctx) throws SQLException {
 		List<GameOwnerEntity> gameOwners = dbm.selectOwners();
 		List<GameEntity> games = dbm.selectGames();
 		List<PlayerEntity> players = dbm.selectPlayers();
 		List<SaveEntity> saves = dbm.selectSaves();
 		
-		sendHttpResponse(out, prepareJsonForMonitor(gameOwners, games, players, saves));
+		sendHttpResponse(ctx, prepareJsonForMonitor(gameOwners, games, players, saves));
 	}
 	
 	private String prepareJsonForMonitor(List<GameOwnerEntity> gameOwners, List<GameEntity> games, List<PlayerEntity> players, List<SaveEntity> saves) {
@@ -378,10 +422,10 @@ public class ClientProcessor extends Thread {
 		return new String(encoded, encoding);
 	}
     
-	void sendHttpResponse(PrintWriter writer, String httpContent) {
+	void sendHttpResponse(ChannelHandlerContext ctx, String httpContent) {
 		HttpResponse httpResponse = new HttpResponse("1.1", 200, httpContent);
-		printHttpResponse(httpResponse, ipAddress, true);
-		writer.println(httpResponse.toString());
+		printHttpResponse(httpResponse, "nnn.nnn.nnn.nnn", true);
+		ctx.writeAndFlush(httpResponse.toString());
 	}
 	
 	private String simpleJsonObject(String name, String value) {

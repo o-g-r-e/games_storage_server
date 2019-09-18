@@ -7,12 +7,21 @@ import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+
 public class Main {
 	
 	private static DataBaseManager dbManager;
 	private static Settings settings;
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, NumberFormatException, InterruptedException {
 		settings = new Settings();
 		
 		if(args.length < 1) {
@@ -28,8 +37,29 @@ public class Main {
 																						   settings.getDbName(), 
 																						   settings.getDbUser(), 
 																						   settings.getDbPassword()));
+			
+			EventLoopGroup bossGroup = new NioEventLoopGroup();
+	        EventLoopGroup workerGroup = new NioEventLoopGroup();
+	        try {
+	            ServerBootstrap b = new ServerBootstrap();
+	            b.group(bossGroup, workerGroup)
+	             .channel(NioServerSocketChannel.class)
+	             .childHandler(new ChannelInitializer<SocketChannel>() {
+	                 @Override
+	                 public void initChannel(SocketChannel ch) throws Exception {
+	                     ch.pipeline().addLast(new ClientHandler(dbManager));
+	                 }
+	             })
+	             .option(ChannelOption.SO_BACKLOG, 128)
+	             .childOption(ChannelOption.SO_KEEPALIVE, true);
+	            
+	            b.bind(Integer.parseInt(settings.getServerPort())).sync().channel().closeFuture().sync();
+	        } finally {
+	            workerGroup.shutdownGracefully();
+	            bossGroup.shutdownGracefully();
+	        }
 		
-			ServerSocket serverSocket = new ServerSocket(Integer.parseInt(settings.getServerPort()));
+			/*ServerSocket serverSocket = new ServerSocket(Integer.parseInt(settings.getServerPort()));
 			ExecutorService executorService = Executors.newFixedThreadPool(8);
 			System.out.println("Server started.");
 		    try {
@@ -41,7 +71,7 @@ public class Main {
 		    	serverSocket.close();
 		    	dbManager.closeConnection();
 		    	System.out.println("Server closed.");
-		    }
+		    }*/
 	      
 		} catch (SQLException e1) {
 			e1.printStackTrace();
