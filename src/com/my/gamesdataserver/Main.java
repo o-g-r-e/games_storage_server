@@ -49,9 +49,7 @@ public class Main {
 	                 public void initChannel(SocketChannel ch) throws Exception {
 	                     ch.pipeline().addLast(new ClientHandler(dbManager));
 	                 }
-	             })
-	             .option(ChannelOption.SO_BACKLOG, 128)
-	             .childOption(ChannelOption.SO_KEEPALIVE, true);
+	             });
 	            
 	            b.bind(Integer.parseInt(settings.getServerPort())).sync().channel().closeFuture().sync();
 	            System.out.println("Server started.");

@@ -28,6 +28,7 @@ import com.my.gamesdataserver.dbmodels.GameOwnerEntity;
 import com.my.gamesdataserver.dbmodels.SaveEntity;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.CharsetUtil;
@@ -62,7 +63,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		String urlPath = parseUrlPath(url);
 		
 		if(httpRequestFilter.filterForbiddens(urlPath))  {
-			System.out.println("Request parsing failed or filtered.");
+			System.out.println("Request "+urlPath+" parsing failed or filtered.");
 			return;
 		}
 		
@@ -425,7 +426,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	void sendHttpResponse(ChannelHandlerContext ctx, String httpContent) {
 		HttpResponse httpResponse = new HttpResponse("1.1", 200, httpContent);
 		printHttpResponse(httpResponse, "nnn.nnn.nnn.nnn", true);
-		ctx.writeAndFlush(httpResponse.toString());
+		ctx.writeAndFlush(Unpooled.copiedBuffer(httpResponse.toString(), CharsetUtil.UTF_8));
 	}
 	
 	private String simpleJsonObject(String name, String value) {
