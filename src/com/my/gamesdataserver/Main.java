@@ -54,6 +54,7 @@ public class Main {
 	             .childOption(ChannelOption.SO_KEEPALIVE, true);
 	            
 	            b.bind(Integer.parseInt(settings.getServerPort())).sync().channel().closeFuture().sync();
+	            System.out.println("Server started.");
 	        } finally {
 	            workerGroup.shutdownGracefully();
 	            bossGroup.shutdownGracefully();

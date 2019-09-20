@@ -30,6 +30,7 @@ import com.my.gamesdataserver.dbmodels.SaveEntity;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.util.CharsetUtil;
 import io.netty.util.ReferenceCountUtil;
 
 import com.my.gamesdataserver.dbmodels.PlayerEntity;
@@ -50,15 +51,14 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	
 	@Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-		System.out.println("channelRead");
-		String httpRequest;
+		String inputString;
 	    try {
-	    	httpRequest = readRequest((ByteBuf)msg);
+	    	inputString = ((ByteBuf)msg).toString(CharsetUtil.UTF_8);
 	    } finally {
 	        ReferenceCountUtil.release(msg);
 	    }
 	    
-	    String url = parseUrl(httpRequest);
+	    String url = parseUrl(inputString);
 		String urlPath = parseUrlPath(url);
 		
 		if(httpRequestFilter.filterForbiddens(urlPath))  {
@@ -66,7 +66,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			return;
 		}
 		
-		printHttpRequest(httpRequest, "nnn.nnn.nnn.nnn", false);
+		printHttpRequest(inputString, "nnn.nnn.nnn.nnn", false);
 		
 		Request request = new Request(url);
 		
@@ -150,7 +150,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	}*/
     
 	private String readRequest(ByteBuf in) {
-		StringBuilder result = new StringBuilder();
+		StringBuilder result = new StringBuilder(in.capacity());
 		
 		while (in.isReadable()) {
 			result.append(in.readChar());
