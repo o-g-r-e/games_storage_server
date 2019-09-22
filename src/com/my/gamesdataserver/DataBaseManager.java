@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,10 +54,94 @@ public class DataBaseManager {
 		query += "PRIMARY KEY (id));";
 	}
 	
-	public void insertToTable(String tableName, Object[] values) throws SQLException {
-		ResultSet res = con.prepareStatement("SELECT * FROM "+tableName+";").executeQuery();
-		ResultSetMetaData rsmd = res.getMetaData();
-		rsmd.getColumnType(1);
+	public int insertToTable(String tableName, List<List<DataCell>> values) throws SQLException {
+		StringBuilder fieldsNames = new StringBuilder("(");
+		StringBuilder fieldsValues = new StringBuilder("(");
+		int width = values.get(0).size();
+		for (int i = 0; i < width; i++) {
+			DataCell d = values.get(0).get(i);
+			fieldsNames.append(d.getName());
+			fieldsValues.append("?");
+			if(i < width-1) {
+				fieldsNames.append(",");
+				fieldsValues.append(",");
+			}
+		}
+		
+		fieldsNames.append(")");
+		fieldsValues.append(")");
+		
+		StringBuilder sqlInsert = new StringBuilder("INSERT INTO ");
+		sqlInsert.append(tableName);
+		sqlInsert.append(" ");
+		sqlInsert.append(fieldsNames);
+		sqlInsert.append(" VALUES ");
+		sqlInsert.append(fieldsValues);
+		for (int i = 1; i < values.size(); i++) {
+			sqlInsert.append(",");
+			sqlInsert.append(fieldsValues);
+		}
+		
+		PreparedStatement pstmt = con.prepareStatement(sqlInsert.toString());
+		
+		for (int i = 0; i < values.size(); i++) {
+			List<DataCell> row = values.get(i);
+			for (int j = 0; j < row.size(); j++) {
+				setQueryValue(pstmt, row.get(j), i*row.size()+j+1);
+			}
+		}
+		
+		return pstmt.executeUpdate();
+	}
+	
+	public int updateTable(String tableName, List<DataCell> set, List<DataCell> where) throws SQLException {
+		StringBuilder sqlUpdate = new StringBuilder("UPDATE ");
+		sqlUpdate.append(tableName);
+		sqlUpdate.append(" SET ");
+		for (int i = 0; i < set.size(); i++) {
+			DataCell d = set.get(i);
+			sqlUpdate.append(d.getName());
+			sqlUpdate.append("=?");
+			if(i < set.size()-1) {
+				sqlUpdate.append(",");
+			}
+		}
+		sqlUpdate.append(" WHERE (");
+		for (int i = 0; i < where.size(); i++) {
+			DataCell d = where.get(i);
+			sqlUpdate.append(d.getName());
+			sqlUpdate.append("=?");
+			if(i < set.size()-1) {
+				sqlUpdate.append(" AND ");
+			}
+		}
+		sqlUpdate.append(")");
+		
+		PreparedStatement pstmt = con.prepareStatement(sqlUpdate.toString());
+		
+		for (int i = 0; i < set.size(); i++) {
+			setQueryValue(pstmt, set.get(i), i+1);
+		}
+		
+		for (int i = 0; i < where.size(); i++) {
+			setQueryValue(pstmt, where.get(i), i+1+set.size());
+		}
+		
+		return pstmt.executeUpdate();
+	}
+	
+	private void setQueryValue(PreparedStatement pstmt, DataCell d, int index) throws SQLException {
+		switch (d.getType()) {
+		case Types.INTEGER:
+			pstmt.setInt(index, (int)d.getValue());
+			break;
+		case Types.VARCHAR:
+			pstmt.setString(index, String.valueOf(d.getValue()));
+			break;
+		case Types.FLOAT:
+			pstmt.setFloat(index, (float)d.getValue());
+			break;
+		}
 	}
 	
 	GameEntity selectGameByApiKey(String gameApiKey) throws SQLException {

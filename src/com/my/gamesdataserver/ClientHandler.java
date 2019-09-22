@@ -1,15 +1,6 @@
 package com.my.gamesdataserver;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
-import java.net.Socket;
-import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -17,11 +8,8 @@ import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import com.my.gamesdataserver.dbmodels.GameEntity;
 import com.my.gamesdataserver.dbmodels.GameOwnerEntity;
@@ -38,16 +26,12 @@ import com.my.gamesdataserver.dbmodels.PlayerEntity;
 
 public class ClientHandler extends ChannelInboundHandlerAdapter {
 	
-	private DataBaseManager dbm = null;
-	
-	private HTTPRequestFilter httpRequestFilter;
+	private DataBaseManager dbm;
 	private Access access;
 	
 	public ClientHandler(DataBaseManager dbm) throws IOException {
 		this.dbm = dbm;
-		this.httpRequestFilter = new HTTPRequestFilter();
 		this.access = new Access();
-		//System.out.println("\nNew connection from "+this.ipAddress);
 	}
 	
 	@Override
@@ -59,23 +43,40 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	        ReferenceCountUtil.release(msg);
 	    }
 	    
-	    String url = parseUrl(inputString);
-		String urlPath = parseUrlPath(url);
-		
-		if(httpRequestFilter.filterForbiddens(urlPath))  {
-			System.out.println("Request "+urlPath+" parsing failed or filtered.");
+	    HttpRequest httpRequest = new HttpRequest(inputString);
+	    
+		if(access.isForbidden(httpRequest.getUrl()))  {
+			System.out.println("Request "+httpRequest.getUrl()+" parsing failed or filtered.");
 			return;
 		}
 		
 		printHttpRequest(inputString, "nnn.nnn.nnn.nnn", false);
 		
-		Request request = new Request(url);
-		
+		AbstractRequest request = null;
+		AbstractRequest.Type command = AbstractRequest.parseCommand(httpRequest.getUrl());
 		try {
-			if(request.validateParametersWithSchema()) {
-				commandRequestProcessor(request, ctx);
-			} else if(access.isAllowedPath(urlPath) && url.contains("key="+Access.contentAccessKey)) {
-				contentRequestProcessor(urlPath, ctx);
+			switch (command) {
+			case INSERT_INTO_TABLE:
+				request = new InsertRequest(httpRequest);
+				break;
+				
+			case UPDATE_TABLE:
+				request = new UpdateRequest(httpRequest);
+				break;
+	
+			default:
+				break;
+			}
+			
+			if(request == null) {
+				sendHttpResponse(ctx, simpleJsonObject("Internal error", "Cannot create request"));
+				return;
+			}
+			
+			if(request.validate()) {
+				commandRequestProcessor(command, request, ctx);
+			} else if(access.isAllowedPath(httpRequest.getUrl()) && httpRequest.getUrlParametrs().containsKey("key") && httpRequest.getUrlParametrs().get("key").equals(Access.contentAccessKey)) {
+				contentRequestProcessor(httpRequest.getUrl(), ctx);
 			} else {
 				sendHttpResponse(ctx, simpleJsonObject("Request error", "Bad request"));
 				return;
@@ -150,7 +151,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		}
 	}*/
     
-	private String readRequest(ByteBuf in) {
+	/*private String readRequest(ByteBuf in) {
 		StringBuilder result = new StringBuilder(in.capacity());
 		
 		while (in.isReadable()) {
@@ -158,29 +159,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	    }
 		
 		return result.toString();
-	}
-	
-	private String parseUrl(String httpRequest) {
-		String result = null;
-		Pattern urlPattern = Pattern.compile("GET (.+) HTTP");
-		Matcher matcher = urlPattern.matcher(httpRequest);
-		
-		if(matcher.find()) {
-			result = matcher.group(1);
-		}
-		
-		return result;
-	}
-	
-	private String parseUrlPath(String url) {
-		Pattern p = Pattern.compile("([\\w\\.\\/-]+)");
-		Matcher m = p.matcher(url);
-		
-		if(m.find()) {
-			return m.group(1);
-		}
-		return null;
-	}
+	}*/
 	
 	private void contentRequestProcessor(String urlPath, ChannelHandlerContext ctx) throws IOException {
 		String workPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getCanonicalPath().replaceAll("%20", " ");
@@ -188,10 +167,10 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		sendHttpResponse(ctx, content);
 	}
 	
-	private void commandRequestProcessor(Request request, ChannelHandlerContext ctx) throws IOException, JSONException, SQLException {
+	private void commandRequestProcessor(AbstractRequest.Type command, AbstractRequest request, ChannelHandlerContext ctx) throws IOException, JSONException, SQLException {
 		
 		Map<String, String> getParameters = request.getParameters();
-		Request.Type command = request.getCommand();
+		//AbstractRequest.Type command = request.getCommand();
 		
 		switch (command) {
 		case READ_SAVE:
@@ -220,7 +199,14 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			break;
 		case MONITOR_DATA:
 			monitorData(ctx);
-			
+			break;
+		case INSERT_INTO_TABLE:
+			int changed = dbm.insertToTable(request.getTableName(), ((InsertRequest)request).getData());
+			sendHttpResponse(ctx, simpleJsonObject("result", ""+changed));
+			break;
+		case UPDATE_TABLE:
+			int changed2 = dbm.updateTable(request.getTableName(), ((UpdateRequest)request).getSet(), ((UpdateRequest)request).getWhere());
+			sendHttpResponse(ctx, simpleJsonObject("result", ""+changed2));
 			break;
 		}
     }
