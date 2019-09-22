@@ -111,7 +111,7 @@ public class DataBaseManager {
 			DataCell d = where.get(i);
 			sqlUpdate.append(d.getName());
 			sqlUpdate.append("=?");
-			if(i < set.size()-1) {
+			if(i < where.size()-1) {
 				sqlUpdate.append(" AND ");
 			}
 		}

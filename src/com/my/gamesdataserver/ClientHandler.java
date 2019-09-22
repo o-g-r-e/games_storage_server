@@ -54,6 +54,12 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		
 		AbstractRequest request = null;
 		AbstractRequest.Type command = AbstractRequest.parseCommand(httpRequest.getUrl());
+		
+		if(command == null) {
+			sendHttpResponse(ctx, simpleJsonObject("Internal error", "Cannot create request"));
+			return;
+		}
+		
 		try {
 			switch (command) {
 			case INSERT_INTO_TABLE:
@@ -85,6 +91,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			System.err.println(e.getMessage());
 		} catch (JSONException e) {
 			e.printStackTrace();
+			sendHttpResponse(ctx, e.getMessage());
 		} catch (SQLException e) {
 			e.printStackTrace();
 			sendHttpResponse(ctx, simpleJsonObject("sqlError", e.getMessage()));
