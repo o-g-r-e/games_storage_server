@@ -11,7 +11,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public abstract class AbstractRequest {
+public abstract class AbstractSqlRequest {
 	protected static final Pattern TABLE_NAME_PATTERN = Pattern.compile("^\\/[\\w-]+\\/([\\w-]+)");
 	//protected Type commandType;
 	protected Map<String, String> parameters;
@@ -31,7 +31,7 @@ public abstract class AbstractRequest {
 	
 	public abstract boolean validate();
 	
-	AbstractRequest(HttpRequest httpRequest) {
+	AbstractSqlRequest(HttpRequest httpRequest) {
 		parameters = httpRequest.getUrlParametrs();
 		Matcher matcher = TABLE_NAME_PATTERN.matcher(httpRequest.getUrl());
 		
@@ -50,7 +50,7 @@ public abstract class AbstractRequest {
 		return commandType;
 	}*/
 	
-	public static AbstractRequest.Type parseCommand(String urlRequest) {
+	public static AbstractSqlRequest.Type parseCommand(String urlRequest) {
 		{
 			Pattern p = Pattern.compile("^\\/([^\\/]+)");
 			Matcher m = p.matcher(urlRequest);
@@ -119,7 +119,7 @@ public abstract class AbstractRequest {
 			String name = (String) o.get("name");
 			String value = (String) o.get("value");
 			
-			result.add(AbstractRequest.parseCellData(type, name, value));
+			result.add(AbstractSqlRequest.parseCellData(type, name, value));
 		}
 		return result;
 	}

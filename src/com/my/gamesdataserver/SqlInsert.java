@@ -10,18 +10,18 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class InsertRequest extends AbstractRequest {
+public class SqlInsert extends AbstractSqlRequest {
 	
 
 	private List<List<DataCell>> data = new ArrayList<List<DataCell>>();
 	
-	public InsertRequest(HttpRequest httpRequest) throws JSONException {
+	public SqlInsert(HttpRequest httpRequest) throws JSONException {
 		super(httpRequest);
 		if(httpRequest.getContent() != null) {
 			JSONArray rootArray = new JSONArray(httpRequest.getContent());
 			for (int i = 0; i < rootArray.length(); i++) {
 				JSONArray jsonRow = (JSONArray) rootArray.get(i);
-				data.add(AbstractRequest.dataCellRow(jsonRow));
+				data.add(AbstractSqlRequest.dataCellRow(jsonRow));
 			}
 		}
 	}

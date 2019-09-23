@@ -45,50 +45,38 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	    
 	    HttpRequest httpRequest = new HttpRequest(inputString);
 	    
-		if(access.isForbidden(httpRequest.getUrl()))  {
-			System.out.println("Request "+httpRequest.getUrl()+" parsing failed or filtered.");
+	    printHttpRequest(inputString, "nnn.nnn.nnn.nnn", false);
+	    
+		if(access.isDiscardRequest(httpRequest.getUrl()))  {
+			System.out.println("Request was supressed.");
 			return;
 		}
 		
-		printHttpRequest(inputString, "nnn.nnn.nnn.nnn", false);
-		
-		AbstractRequest request = null;
-		AbstractRequest.Type command = AbstractRequest.parseCommand(httpRequest.getUrl());
+		AbstractSqlRequest.Type command = AbstractSqlRequest.parseCommand(httpRequest.getUrl());
 		
 		if(command == null) {
-			sendHttpResponse(ctx, simpleJsonObject("Internal error", "Cannot create request"));
+			sendHttpResponse(ctx, simpleJsonObject("Internal error", "Cannot recognize command"));
 			return;
 		}
 		
 		try {
-			switch (command) {
-			case INSERT_INTO_TABLE:
-				request = new InsertRequest(httpRequest);
-				break;
-				
-			case UPDATE_TABLE:
-				request = new UpdateRequest(httpRequest);
-				break;
-	
-			default:
-				break;
-			}
+			AbstractSqlRequest request = initRequest(command, httpRequest);
 			
 			if(request == null) {
 				sendHttpResponse(ctx, simpleJsonObject("Internal error", "Cannot create request"));
 				return;
 			}
 			
-			if(request.validate()) {
+			executeRequest(request, ctx);
+			
+			/*if(request.validate()) {
 				commandRequestProcessor(command, request, ctx);
-			} else if(access.isAllowedPath(httpRequest.getUrl()) && httpRequest.getUrlParametrs().containsKey("key") && httpRequest.getUrlParametrs().get("key").equals(Access.contentAccessKey)) {
+			} else if(access.isPermittedPath(httpRequest.getUrl()) && httpRequest.getUrlParametrs().containsKey("key") && httpRequest.getUrlParametrs().get("key").equals(Access.contentAccessKey)) {
 				contentRequestProcessor(httpRequest.getUrl(), ctx);
 			} else {
-				sendHttpResponse(ctx, simpleJsonObject("Request error", "Bad request"));
+				sendHttpResponse(ctx, simpleJsonObject("Request error", "Request failed validation"));
 				return;
-			}
-		} catch (IOException e) {
-			System.err.println(e.getMessage());
+			}*/
 		} catch (JSONException e) {
 			e.printStackTrace();
 			sendHttpResponse(ctx, e.getMessage());
@@ -97,6 +85,40 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			sendHttpResponse(ctx, simpleJsonObject("sqlError", e.getMessage()));
 		}
     }
+	
+	private AbstractSqlRequest initRequest(AbstractSqlRequest.Type command, HttpRequest httpRequest) throws JSONException {
+		switch (command) {
+		case INSERT_INTO_TABLE:
+			return new SqlInsert(httpRequest);
+			
+		case UPDATE_TABLE:
+			return new SqlUpdate(httpRequest);
+		}
+		
+		return null;
+	}
+	
+	<T extends AbstractSqlRequest> void executeRequest(T request, ChannelHandlerContext ctx) throws SQLException {
+		
+		if(!request.validate()) {
+			sendHttpResponse(ctx, simpleJsonObject("Request error", "Request failed validation"));
+			return;
+		}
+		
+		int changed;
+		
+		if(request instanceof SqlInsert) {
+			
+			changed = dbm.insertToTable(request.getTableName(), ((SqlInsert)request).getData());
+			sendHttpResponse(ctx, simpleJsonObject("Row's added", ""+changed));
+			
+		} else if (request instanceof SqlUpdate) {
+			
+			changed = dbm.updateTable(request.getTableName(), ((SqlUpdate)request).getSet(), ((SqlUpdate)request).getWhere());
+			sendHttpResponse(ctx, simpleJsonObject("Row's updated", ""+changed));
+			
+		}
+	}
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
@@ -174,7 +196,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		sendHttpResponse(ctx, content);
 	}
 	
-	private void commandRequestProcessor(AbstractRequest.Type command, AbstractRequest request, ChannelHandlerContext ctx) throws IOException, JSONException, SQLException {
+	private void commandRequestProcessor(AbstractSqlRequest.Type command, AbstractSqlRequest request, ChannelHandlerContext ctx) throws IOException, JSONException, SQLException {
 		
 		Map<String, String> getParameters = request.getParameters();
 		//AbstractRequest.Type command = request.getCommand();
@@ -208,11 +230,11 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			monitorData(ctx);
 			break;
 		case INSERT_INTO_TABLE:
-			int changed = dbm.insertToTable(request.getTableName(), ((InsertRequest)request).getData());
+			int changed = dbm.insertToTable(request.getTableName(), ((SqlInsert)request).getData());
 			sendHttpResponse(ctx, simpleJsonObject("result", ""+changed));
 			break;
 		case UPDATE_TABLE:
-			int changed2 = dbm.updateTable(request.getTableName(), ((UpdateRequest)request).getSet(), ((UpdateRequest)request).getWhere());
+			int changed2 = dbm.updateTable(request.getTableName(), ((SqlUpdate)request).getSet(), ((SqlUpdate)request).getWhere());
 			sendHttpResponse(ctx, simpleJsonObject("result", ""+changed2));
 			break;
 		}

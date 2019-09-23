@@ -4,21 +4,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Access {
-	private List<String> allowedPathes;
-	private List<String> forbiddenRequestsList;
+	private List<String> permittedPathes;
+	private List<String> requestsForDiscard;
 	public final static String contentAccessKey = "vjsYeNp4ZsGtPcHLz4AfghqMkTPwCjA4";
 	public final static String boostPurchaseToken = "vjsYeNp4ZsGtPcHLz4AfghqMkTPwCjA4";
 	
 	public Access() {
-		allowedPathes = new ArrayList<String>();
-		allowedPathes.add("/html");
+		permittedPathes = new ArrayList<String>();
+		permittedPathes.add("/html");
 		
-		forbiddenRequestsList = new ArrayList<String>();
-		forbiddenRequestsList.add("/favicon.ico");
+		requestsForDiscard = new ArrayList<String>();
+		requestsForDiscard.add("/favicon.ico");
 	}
 	
-	public boolean isAllowedPath(String urlPath) {
-		for (String allowedPath : allowedPathes) {
+	public boolean isPermittedPath(String urlPath) {
+		for (String allowedPath : permittedPathes) {
 			if(urlPath.startsWith(allowedPath)) {
 				return true;
 			}
@@ -26,8 +26,8 @@ public class Access {
 		return false;
 	}
 	
-	public boolean isForbidden(String urlPath) {
-		for(String s : forbiddenRequestsList) {
+	public boolean isDiscardRequest(String urlPath) {
+		for(String s : requestsForDiscard) {
 			if(urlPath.equals(s)) {
 				return true;
 			}

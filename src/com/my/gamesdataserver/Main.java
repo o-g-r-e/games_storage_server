@@ -3,9 +3,12 @@ import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.cert.CertificateException;
 import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import javax.net.ssl.SSLEngine;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
@@ -16,13 +19,16 @@ import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class Main {
 	
 	private static DataBaseManager dbManager;
 	private static Settings settings;
 	
-	public static void main(String[] args) throws IOException, NumberFormatException, InterruptedException {
+	public static void main(String[] args) throws IOException, NumberFormatException, InterruptedException, CertificateException {
 		settings = new Settings();
 		
 		if(args.length < 1) {
@@ -41,6 +47,8 @@ public class Main {
 			
 			EventLoopGroup bossGroup = new NioEventLoopGroup();
 	        EventLoopGroup workerGroup = new NioEventLoopGroup();
+	        SelfSignedCertificate ssc = new SelfSignedCertificate();
+	        SslContext sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
 	        try {
 	            ServerBootstrap b = new ServerBootstrap();
 	            b.group(bossGroup, workerGroup)
@@ -49,6 +57,7 @@ public class Main {
 	                 @Override
 	                 public void initChannel(SocketChannel ch) throws Exception {
 	                	 ch.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(2048));
+	                	 ch.pipeline().addLast(sslCtx.newHandler(ch.alloc()));
 	                     ch.pipeline().addLast(new ClientHandler(dbManager));
 	                 }
 	             });
