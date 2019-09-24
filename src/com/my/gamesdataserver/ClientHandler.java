@@ -98,7 +98,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		return null;
 	}
 	
-	<T extends AbstractSqlRequest> void executeRequest(T request, ChannelHandlerContext ctx) throws SQLException {
+	void executeRequest(AbstractSqlRequest request, ChannelHandlerContext ctx) throws SQLException {
 		
 		if(!request.validate()) {
 			sendHttpResponse(ctx, simpleJsonObject("Request error", "Request failed validation"));
