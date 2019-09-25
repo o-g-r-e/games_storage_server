@@ -71,7 +71,7 @@ public class DataBaseManager {
 		fieldsNames.append(")");
 		fieldsValues.append(")");
 		
-		StringBuilder sqlInsert = new StringBuilder("INSERT INTO ");
+		/*StringBuilder sqlInsert = new StringBuilder("INSERT INTO ");
 		sqlInsert.append(tableName);
 		sqlInsert.append(" ");
 		sqlInsert.append(fieldsNames);
@@ -80,9 +80,9 @@ public class DataBaseManager {
 		for (int i = 1; i < values.size(); i++) {
 			sqlInsert.append(",");
 			sqlInsert.append(fieldsValues);
-		}
+		}*/
 		
-		PreparedStatement pstmt = con.prepareStatement(sqlInsert.toString());
+		PreparedStatement pstmt = con.prepareStatement(String.format("INSERT INTO %s %s VALUES %s", tableName, fieldsNames, fieldsValues));
 		
 		for (int i = 0; i < values.size(); i++) {
 			List<DataCell> row = values.get(i);
@@ -117,7 +117,7 @@ public class DataBaseManager {
 		}
 		sqlUpdate.append(")");
 		
-		PreparedStatement pstmt = con.prepareStatement(sqlUpdate.toString());
+		PreparedStatement pstmt = con.prepareStatement(String.format("UDPATE %s SET %s WHERE %s", tableName, ));
 		
 		for (int i = 0; i < set.size(); i++) {
 			setQueryValue(pstmt, set.get(i), i+1);

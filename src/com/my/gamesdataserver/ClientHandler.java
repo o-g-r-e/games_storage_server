@@ -105,16 +105,14 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			return;
 		}
 		
-		int changed;
-		
 		if(request instanceof SqlInsert) {
 			
-			changed = dbm.insertToTable(request.getTableName(), ((SqlInsert)request).getData());
+			int changed = dbm.insertToTable(request.getTableName(), ((SqlInsert)request).getData());
 			sendHttpResponse(ctx, simpleJsonObject("Row's added", ""+changed));
 			
 		} else if (request instanceof SqlUpdate) {
 			
-			changed = dbm.updateTable(request.getTableName(), ((SqlUpdate)request).getSet(), ((SqlUpdate)request).getWhere());
+			int changed = dbm.updateTable(request.getTableName(), ((SqlUpdate)request).getSet(), ((SqlUpdate)request).getWhere());
 			sendHttpResponse(ctx, simpleJsonObject("Row's updated", ""+changed));
 			
 		}
