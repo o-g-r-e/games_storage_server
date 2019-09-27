@@ -93,6 +93,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			
 		case UPDATE_TABLE:
 			return new SqlUpdate(httpRequest);
+			
+		case SELECT:
+			return new SqlSelect(httpRequest);
 		}
 		
 		return null;
@@ -115,6 +118,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			int changed = dbm.updateTable(request.getTableName(), ((SqlUpdate)request).getSet(), ((SqlUpdate)request).getWhere());
 			sendHttpResponse(ctx, simpleJsonObject("Row's updated", ""+changed));
 			
+		} else if(request instanceof SqlSelect) {
+			int result = dbm.selectAll(request.getTableName());
+			sendHttpResponse(ctx, simpleJsonObject("Result", ""+result));
 		}
 	}
 

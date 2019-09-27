@@ -13,27 +13,44 @@ import com.my.gamesdataserver.dbmodels.BoostEntity;
 import com.my.gamesdataserver.dbmodels.GameEntity;
 import com.my.gamesdataserver.dbmodels.GameOwnerEntity;
 import com.my.gamesdataserver.dbmodels.SaveEntity;
+import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 import com.my.gamesdataserver.dbmodels.PlayerEntity;
 
 public class DataBaseManager {
-	private Connection con;
+	private Connection driverManagerConnection;
+	private MysqlDataSource mysqlDataSource;
 	private boolean printQuery = true;
 
 	public DataBaseManager(DataBaseConnectionParameters dbConnectionParameters) throws SQLException {
-		con = DriverManager.getConnection(dbConnectionParameters.getUrl(), dbConnectionParameters.getUser(), dbConnectionParameters.getPassword());
+		
+		driverManagerConnection = DriverManager.getConnection(dbConnectionParameters.getUrl(), dbConnectionParameters.getUser(), dbConnectionParameters.getPassword());
+		
+		/*mysqlDataSource = new MysqlDataSource();
+		mysqlDataSource.setUser(dbConnectionParameters.getUser());
+		mysqlDataSource.setPassword(dbConnectionParameters.getPassword());
+		mysqlDataSource.setDatabaseName("games_data");
+		mysqlDataSource.setUseSSL(false);*/
+		//d.setUrl("jdbc:mysql://localhost:3306/games_data");
+		
+		/*ConnectionFactory connectionFactory = new DriverManagerConnectionFactory("jdbc://localhost", null);
+	    PoolableConnectionFactory poolableConnectionFactory = new PoolableConnectionFactory(connectionFactory, null);
+	    ObjectPool<PoolableConnection> connectionPool = new GenericObjectPool<>(poolableConnectionFactory);
+	    poolableConnectionFactory.setPool(connectionPool);
+	    PoolingDataSource<PoolableConnection> dataSource = new PoolingDataSource<>(connectionPool);*/
 	}
 
-	public Connection getCon() {
-		return con;
+	private Connection getCon() throws SQLException {
+		return driverManagerConnection;
+		//return mysqlDataSource.getConnection();
 	}
 	
-	public void closeConnection() {
+	/*public void closeConnection() {
 		try {
 			con.close();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-	}
+	}*/
 	
 	public void createTable(String name, MyField[] fields) {
 		String query = "CREATE TABLE "+name+" (id INT NOT NULL,";
@@ -82,7 +99,7 @@ public class DataBaseManager {
 			sqlInsert.append(fieldsValues);
 		}*/
 		
-		PreparedStatement pstmt = con.prepareStatement(String.format("INSERT INTO %s %s VALUES %s", tableName, fieldsNames, fieldsValues));
+		PreparedStatement pstmt = getCon().prepareStatement(String.format("INSERT INTO %s %s VALUES %s", tableName, fieldsNames, fieldsValues));
 		
 		for (int i = 0; i < values.size(); i++) {
 			List<DataCell> row = values.get(i);
@@ -117,7 +134,7 @@ public class DataBaseManager {
 		}
 		sqlUpdate.append(")");
 		
-		PreparedStatement pstmt = con.prepareStatement(String.format("UDPATE %s SET %s WHERE %s", tableName, ));
+		PreparedStatement pstmt = null;//con.prepareStatement(String.format("UDPATE %s SET %s WHERE %s", tableName, ));
 		
 		for (int i = 0; i < set.size(); i++) {
 			setQueryValue(pstmt, set.get(i), i+1);
@@ -128,6 +145,18 @@ public class DataBaseManager {
 		}
 		
 		return pstmt.executeUpdate();
+	}
+	
+	public int selectAll(String tableName) throws SQLException {
+		String sleep = "select sleep(1)";
+		String normal = String.format("SELECT * FROM %s", tableName);
+		PreparedStatement pstmt = getCon().prepareStatement(normal);
+		int result = 0;
+		ResultSet resultSet = pstmt.executeQuery();
+		while(resultSet.next()) {
+			result++;
+		}
+		return result;
 	}
 	
 	private void setQueryValue(PreparedStatement pstmt, DataCell d, int index) throws SQLException {
@@ -145,7 +174,7 @@ public class DataBaseManager {
 	}
 	
 	GameEntity selectGameByApiKey(String gameApiKey) throws SQLException {
-		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM games WHERE games.key LIKE ?");
+		PreparedStatement pstmt = getCon().prepareStatement("SELECT * FROM games WHERE games.key LIKE ?");
 		pstmt.setString(1, gameApiKey);
 		ResultSet resultSet = pstmt.executeQuery();
 		
@@ -162,7 +191,7 @@ public class DataBaseManager {
 	
 	PlayerEntity selectPlayer(String playerSecretId, int gameId) throws SQLException {
 		
-		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM players WHERE players.player_uniqe_id LIKE ? AND players.game_id = ?");
+		PreparedStatement pstmt = getCon().prepareStatement("SELECT * FROM players WHERE players.player_uniqe_id LIKE ? AND players.game_id = ?");
 		
 		pstmt.setString(1, playerSecretId);
 		pstmt.setInt(2, gameId);
@@ -180,7 +209,7 @@ public class DataBaseManager {
 	}
 	
 	int insertPlayer(String name, String playerid, int gameId) throws SQLException {
-		PreparedStatement pstmt = con.prepareStatement("INSERT INTO players (name, player_uniqe_id, game_id) VALUES (?, ?, ?)");
+		PreparedStatement pstmt = getCon().prepareStatement("INSERT INTO players (name, player_uniqe_id, game_id) VALUES (?, ?, ?)");
 		pstmt.setString(1, name);
 		pstmt.setString(2, playerid);
 		pstmt.setInt(3, gameId);
@@ -188,20 +217,20 @@ public class DataBaseManager {
 	}
 	
 	int insertOwner(String name) throws SQLException {
-		PreparedStatement pstmt1 = con.prepareStatement("SELECT game_owners.name FROM game_owners WHERE game_owners.name=?");
+		PreparedStatement pstmt1 = getCon().prepareStatement("SELECT game_owners.name FROM game_owners WHERE game_owners.name=?");
 		pstmt1.setString(1, name);
 		ResultSet resultSet = pstmt1.executeQuery();
 		if(resultSet.first()) {
 			return 0;
 		}
-		PreparedStatement pstmt2 = con.prepareStatement("INSERT INTO game_owners (name) VALUES (?)");
+		PreparedStatement pstmt2 = getCon().prepareStatement("INSERT INTO game_owners (name) VALUES (?)");
 		pstmt2.setString(1, name);
 		return pstmt2.executeUpdate();
 	}
 	
 	public GameOwnerEntity selectOwnerByName(String name) throws SQLException {
 		ResultSet resultSet = null;
-		PreparedStatement pstmt1 = con.prepareStatement("SELECT * FROM game_owners WHERE game_owners.name=?");
+		PreparedStatement pstmt1 = getCon().prepareStatement("SELECT * FROM game_owners WHERE game_owners.name=?");
 		pstmt1.setString(1, name);
 		resultSet = pstmt1.executeQuery();
 		if(resultSet.next()) {
@@ -214,7 +243,7 @@ public class DataBaseManager {
 	}
 	
 	int insertGame(int ownerId, String gameName, String key) throws SQLException {
-		PreparedStatement pstmt = con.prepareStatement("INSERT INTO games (`name`, owner_id, `key`) VALUES (?, ?, ?)");
+		PreparedStatement pstmt = getCon().prepareStatement("INSERT INTO games (`name`, owner_id, `key`) VALUES (?, ?, ?)");
 		pstmt.setString(1, gameName);
 		pstmt.setInt(2, ownerId);
 		pstmt.setString(3, key);
@@ -222,7 +251,7 @@ public class DataBaseManager {
 	}
 	
 	SaveEntity selectSave(int gameId, int playerId) throws SQLException {
-		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM saves WHERE saves.game_id=? AND saves.player_id=?");
+		PreparedStatement pstmt = getCon().prepareStatement("SELECT * FROM saves WHERE saves.game_id=? AND saves.player_id=?");
 		pstmt.setInt(1, gameId);
 		pstmt.setInt(2, playerId);
 
@@ -241,21 +270,21 @@ public class DataBaseManager {
 	}
 	
 	int updateSave(int id, String saveData) throws SQLException {
-		PreparedStatement pstmt = con.prepareStatement("UPDATE saves SET save_data = ? WHERE (id = ?)");
+		PreparedStatement pstmt = getCon().prepareStatement("UPDATE saves SET save_data = ? WHERE (id = ?)");
 		pstmt.setString(1, saveData);
 		pstmt.setInt(2, id);
 		return pstmt.executeUpdate();
 	}
 	
 	int updateBoost(int id, String boostData) throws SQLException {
-		PreparedStatement pstmt = con.prepareStatement("UPDATE saves SET boost_data = ? WHERE (id = ?)");
+		PreparedStatement pstmt = getCon().prepareStatement("UPDATE saves SET boost_data = ? WHERE (id = ?)");
 		pstmt.setString(1, boostData);
 		pstmt.setInt(2, id);
 		return pstmt.executeUpdate();
 	}
 	
 	int insertSave(int gameId, int playerId, String saveData, String boostData) throws SQLException {
-		PreparedStatement pstmt = con.prepareStatement("INSERT INTO saves (game_id, player_id, save_data, boost_data) VALUES (?, ?, ?, ?)");
+		PreparedStatement pstmt = getCon().prepareStatement("INSERT INTO saves (game_id, player_id, save_data, boost_data) VALUES (?, ?, ?, ?)");
 		pstmt.setInt(1, gameId);
 		pstmt.setInt(2, playerId);
 		pstmt.setString(3, saveData);
@@ -266,7 +295,7 @@ public class DataBaseManager {
 	List<BoostEntity> selectFromBoosts() throws SQLException {
 		List<BoostEntity> result = new ArrayList<BoostEntity>();
 		
-		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM boosts");
+		PreparedStatement pstmt = getCon().prepareStatement("SELECT * FROM boosts");
 		ResultSet resultSet = pstmt.executeQuery();
 		while(resultSet.next()) {
 			List<BoostEntity> row = new ArrayList<BoostEntity>();
@@ -278,7 +307,7 @@ public class DataBaseManager {
 	List<GameOwnerEntity> selectOwners() throws SQLException {
 		List<GameOwnerEntity> result = new ArrayList<GameOwnerEntity>();
 		
-		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM game_owners");
+		PreparedStatement pstmt = getCon().prepareStatement("SELECT * FROM game_owners");
 		ResultSet resultSet = pstmt.executeQuery();
 		while(resultSet.next()) {
 			result.add(new GameOwnerEntity(resultSet.getInt(1), resultSet.getString(2)));
@@ -289,7 +318,7 @@ public class DataBaseManager {
 	List<GameEntity> selectGames() throws SQLException {
 		List<GameEntity> result = new ArrayList<GameEntity>();
 		
-		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM games");
+		PreparedStatement pstmt = getCon().prepareStatement("SELECT * FROM games");
 		ResultSet resultSet = pstmt.executeQuery();
 		while(resultSet.next()) {
 			String key = resultSet.getString(4);
@@ -304,7 +333,7 @@ public class DataBaseManager {
 	List<PlayerEntity> selectPlayers() throws SQLException {
 		List<PlayerEntity> result = new ArrayList<PlayerEntity>();
 		
-		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM players");
+		PreparedStatement pstmt = getCon().prepareStatement("SELECT * FROM players");
 		ResultSet resultSet = pstmt.executeQuery();
 		while(resultSet.next()) {
 			result.add(new PlayerEntity(resultSet.getInt(1), resultSet.getString(2), resultSet.getString(3), resultSet.getInt(4)));
@@ -315,7 +344,7 @@ public class DataBaseManager {
 	List<SaveEntity> selectSaves() throws SQLException {
 		List<SaveEntity> result = new ArrayList<SaveEntity>();
 		
-		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM saves");
+		PreparedStatement pstmt = getCon().prepareStatement("SELECT * FROM saves");
 		ResultSet resultSet = pstmt.executeQuery();
 		while(resultSet.next()) {
 			result.add(new SaveEntity(resultSet.getInt(1), resultSet.getInt(2), resultSet.getInt(3), resultSet.getString(4), resultSet.getString(5)));

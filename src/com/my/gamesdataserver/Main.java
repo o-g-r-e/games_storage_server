@@ -10,6 +10,17 @@ import java.util.concurrent.Executors;
 
 import javax.net.ssl.SSLEngine;
 
+import org.apache.commons.dbcp2.ConnectionFactory;
+import org.apache.commons.dbcp2.DriverManagerConnectionFactory;
+import org.apache.commons.dbcp2.PoolableConnection;
+import org.apache.commons.dbcp2.PoolableConnectionFactory;
+import org.apache.commons.dbcp2.PoolingDataSource;
+import org.apache.commons.pool2.ObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPool;
+
+import com.mysql.jdbc.Connection;
+import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
+
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -29,6 +40,7 @@ public class Main {
 	private static Settings settings;
 	
 	public static void main(String[] args) throws IOException, NumberFormatException, InterruptedException, CertificateException {
+		
 		settings = new Settings();
 		
 		if(args.length < 1) {
@@ -57,7 +69,7 @@ public class Main {
 	                 @Override
 	                 public void initChannel(SocketChannel ch) throws Exception {
 	                	 ch.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(2048));
-	                	 ch.pipeline().addLast(sslCtx.newHandler(ch.alloc()));
+	                	 //ch.pipeline().addLast(sslCtx.newHandler(ch.alloc()));
 	                     ch.pipeline().addLast(new ClientHandler(dbManager));
 	                 }
 	             });

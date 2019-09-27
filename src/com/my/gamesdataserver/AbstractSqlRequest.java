@@ -13,6 +13,7 @@ import org.json.JSONObject;
 
 public abstract class AbstractSqlRequest {
 	protected static final Pattern TABLE_NAME_PATTERN = Pattern.compile("^\\/[\\w-]+\\/([\\w-]+)");
+	private static final Pattern COMMAND_PATTERN = Pattern.compile("^\\/([^\\/]+)");
 	//protected Type commandType;
 	protected Map<String, String> parameters;
 	//protected String[] validationSchema;
@@ -27,7 +28,8 @@ public abstract class AbstractSqlRequest {
 					  UPDATE_BOOST,
 					  MONITOR_DATA,
 					  INSERT_INTO_TABLE,
-					  UPDATE_TABLE}
+					  UPDATE_TABLE,
+					  SELECT}
 	
 	public abstract boolean validate();
 	
@@ -51,51 +53,49 @@ public abstract class AbstractSqlRequest {
 	}*/
 	
 	public static AbstractSqlRequest.Type parseCommand(String urlRequest) {
-		{
-			Pattern p = Pattern.compile("^\\/([^\\/]+)");
-			Matcher m = p.matcher(urlRequest);
-			
-			if(m.find()) {
-				String com = m.group(1);
-				switch (com) {
-				case "readSave":
+		Matcher m = COMMAND_PATTERN.matcher(urlRequest);
+		if(m.find()) {
+			String command = m.group(1);
+			switch (command) {
+			case "readSave":
 					//commandType = Type.READ_SAVE;
 					return Type.READ_SAVE;
 					//validationSchema = new String[] {"game_api_key", "player_id"};
-				case "regPlayer":
+			case "regPlayer":
 					//commandType = Type.REGISTER_PLAYER;
 					return Type.REGISTER_PLAYER;
 					//validationSchema = new String[] {"player_name", "player_id", "game_api_key"};
-				case "addGame":
+			case "addGame":
 					//commandType = Type.ADD_GAME;
 					return Type.ADD_GAME;
 					//validationSchema = new String[] {"name", "owner_name"};
-				case "updateSave":
+			case "updateSave":
 					//commandType = Type.UPDATE_SAVE;
 					return Type.UPDATE_SAVE;
 					//validationSchema = new String[] {"game_api_key", "player_id", "save_data"};
-				case "regOwner":
+			case "regOwner":
 					//commandType = Type.REGISTER_OWNER;
 					return Type.REGISTER_OWNER;
 					//validationSchema = new String[] {"name"};
-				case "updateBoost":
+			case "updateBoost":
 					//commandType = Type.UPDATE_BOOST;
 					return Type.UPDATE_BOOST;
 					//validationSchema = new String[] {"game_api_key", "player_id", "boost_data"};
-				case "monitor_data":
+			case "monitor_data":
 					//commandType = Type.MONITOR_DATA;
 					return Type.MONITOR_DATA;
 					//validationSchema = new String[] {"key"};
-				case "insert_into":
+			case "insert_into":
 					//commandType = Type.INSERT_INTO_TABLE;
 					return Type.INSERT_INTO_TABLE;
-				case "update":
+			case "update":
 					return Type.UPDATE_TABLE;
-				}
+			case "select":
+					return Type.SELECT;
 			}
-			
-			return null;
 		}
+			
+		return null;
 	}
 	
 	public static DataCell parseCellData(String type, String name, String value) {
