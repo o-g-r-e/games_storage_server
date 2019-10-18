@@ -13,18 +13,15 @@ public class RandomKeyGenerator {
 
     private static final String symbols = upper + lower + digits;
 
-    private Random random;
+    private static final char[] chars = symbols.toCharArray();
 
-    private final char[] chars = symbols.toCharArray();
+    private static Random random;
 
-    private char[] buf;
-
-    public RandomKeyGenerator() {
-        this.random = Objects.requireNonNull(new SecureRandom());
-    }
+    private static char[] buf;
     
-    public String nextString(int length) {
-		this.buf = new char[length];
+    public static String nextString(int length) {
+    	random = new SecureRandom();
+		buf = new char[length];
         for (int idx = 0; idx < buf.length; ++idx) {
             buf[idx] = chars[random.nextInt(chars.length)];
         }

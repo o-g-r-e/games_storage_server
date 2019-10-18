@@ -1,0 +1,8 @@
+Cannot create game set
+Request from nnn.nnn.nnn.nnn
+POST /system/register_game HTTP/1.1
+HTTP response to: nnn.nnn.nnn.nnn
+HTTP/1.1 200 OK
+Content-Length: 14
+
+Internal error

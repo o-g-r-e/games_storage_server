@@ -17,13 +17,8 @@ public class Access {
 		requestsForDiscard.add("/favicon.ico");
 	}
 	
-	public boolean isPermittedPath(String urlPath) {
-		for (String allowedPath : permittedPathes) {
-			if(urlPath.startsWith(allowedPath)) {
-				return true;
-			}
-		}
-		return false;
+	public boolean isWrongSymbols(String urlPath) {
+		return urlPath.contains("./") || urlPath.contains(".\\") || urlPath.contains("..");
 	}
 	
 	public boolean isDiscardRequest(String urlPath) {

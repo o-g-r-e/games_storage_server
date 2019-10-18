@@ -1,16 +1,22 @@
-package com.my.gamesdataserver.dbmodels;
+package com.my.gamesdataserver.gamesdbmanager;
 
 public class GameEntity {
 	private int id;
 	private String name;
+	private String javaPackage;
 	private int ownerId;
 	private String key;
+	private String tables;
+	private String prefix;
 	
-	public GameEntity(int id, String name, int ownerId, String key) {
+	public GameEntity(int id, String name, String javaPackage, int ownerId, String key, String tables, String prefix) {
 		this.id = id;
 		this.name = name;
+		this.javaPackage = javaPackage;
 		this.ownerId = ownerId;
 		this.key = key;
+		this.tables = tables;
+		this.prefix = prefix;
 	}
 	
 	public int getId() {
@@ -32,5 +38,17 @@ public class GameEntity {
 	public String toJson() {
 		StringBuilder result = new StringBuilder();
 		return result.append("[").append(id).append(",\"").append(name).append("\",").append(ownerId).append(",\"").append(key).append("\"]").toString();
+	}
+
+	public String getTables() {
+		return tables;
+	}
+
+	public String getPrefix() {
+		return prefix;
+	}
+
+	public String getJavaPackage() {
+		return javaPackage;
 	}
 }

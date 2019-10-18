@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.dbmodels;
+package com.my.gamesdataserver.gamesdbmanager;
 
 public class GameOwnerEntity {
 	private int id;

@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.dbmodels;
+package com.my.gamesdataserver.gamesdbmanager;
 
 public class BoostEntity {
 	private int id;

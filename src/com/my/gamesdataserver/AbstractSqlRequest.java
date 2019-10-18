@@ -11,6 +11,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.my.gamesdataserver.rawdbmanager.CellData;
+
 public abstract class AbstractSqlRequest {
 	protected static final Pattern TABLE_NAME_PATTERN = Pattern.compile("^\\/[\\w-]+\\/([\\w-]+)");
 	private static final Pattern COMMAND_PATTERN = Pattern.compile("^\\/([^\\/]+)");
@@ -98,20 +100,20 @@ public abstract class AbstractSqlRequest {
 		return null;
 	}
 	
-	public static DataCell parseCellData(String type, String name, String value) {
+	public static CellData parseCellData(String type, String name, String value) {
 		switch (type) {
 		case "INTEGER":
-			return new DataCell(Types.INTEGER, name, Integer.parseInt(value));
+			return new CellData(Types.INTEGER, name, Integer.parseInt(value));
 		case "STRING":
-			return new DataCell(Types.VARCHAR, name, value);
+			return new CellData(Types.VARCHAR, name, value);
 		case "FLOAT":
-			return new DataCell(Types.FLOAT, name, Float.parseFloat(value));
+			return new CellData(Types.FLOAT, name, Float.parseFloat(value));
 		}
 		return null;
 	}
 	
-	public static List<DataCell> dataCellRow(JSONArray jsonArray) throws JSONException {
-		List<DataCell> result = new ArrayList<DataCell>();
+	public static List<CellData> dataCellRow(JSONArray jsonArray) throws JSONException {
+		List<CellData> result = new ArrayList<CellData>();
 		for (int i = 0; i < jsonArray.length(); i++) {
 			JSONObject o = (JSONObject) jsonArray.get(i);
 		

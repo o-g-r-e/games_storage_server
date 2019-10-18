@@ -8,9 +8,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.my.gamesdataserver.rawdbmanager.CellData;
+
 public class SqlUpdate extends AbstractSqlRequest {
-	private List<DataCell> set = new ArrayList<DataCell>();
-	private List<DataCell> where = new ArrayList<DataCell>();
+	private List<CellData> set = new ArrayList<CellData>();
+	private List<CellData> where = new ArrayList<CellData>();
 	
 	public SqlUpdate(HttpRequest httpRequest) throws JSONException {
 		super(httpRequest);
@@ -29,11 +31,11 @@ public class SqlUpdate extends AbstractSqlRequest {
 		return true;
 	}
 
-	public List<DataCell> getSet() {
+	public List<CellData> getSet() {
 		return set;
 	}
 
-	public List<DataCell> getWhere() {
+	public List<CellData> getWhere() {
 		return where;
 	}
 }

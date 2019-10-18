@@ -19,13 +19,14 @@ public class HttpRequest {
 		if(matcher.find()) {
 			type = matcher.group(1);
 			url = matcher.group(2);
-			String p = matcher.group(4);
-			if(p != null) {
-				String[] parameters = p.split("&");
+			String parametersInUrl = matcher.group(4);
+			/*if(parametersInUrl != null) {
+				String[] parameters = parametersInUrl.split("&");
 				for (int i = 0; i < parameters.length; i++) {
 					urlParameters.put(parameters[i].substring(0, parameters[i].indexOf("=")),parameters[i].substring(parameters[i].indexOf("=")+1));
 				}
-			}
+			}*/
+			urlParameters = parseParameters(parametersInUrl);
 			content = matcher.group(6);
 		}
 	}
@@ -44,5 +45,32 @@ public class HttpRequest {
 	
 	public String getType() {
 		return type;
+	}
+	
+	private Map<String, String> parseParameters(String input) {
+		Map<String, String> reuslt = new HashMap<>();
+		if(input == null) {
+			return reuslt;
+		}
+		
+		if(input.contains("&")) {
+			String[] arr = input.split("&");
+			for(String s : arr) {
+				reuslt.put(s.split("=")[0], s.split("=")[1]);
+			}
+		} else if (input.contains("=")) {
+			reuslt = Parse.spltBy(input, "=");
+		}
+		return reuslt;
+	}
+	
+	public Map<String, String> parseContentWithParameters() {
+		/*String[] s1 = getContent().split("&");
+		Map<String, String> m = new HashMap<>();
+		for(String s : s1) {
+			String[] s2 = s.split("=");
+			m.put(s2[0], s2[1]);
+		}*/
+		return parseParameters(getContent());
 	}
 }

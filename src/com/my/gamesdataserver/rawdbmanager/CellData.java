@@ -1,11 +1,11 @@
-package com.my.gamesdataserver;
+package com.my.gamesdataserver.rawdbmanager;
 
-public class DataCell {
+public class CellData {
 	private int type;
 	private String name;
 	private Object value;
 	
-	public DataCell(int type, String name, Object value) {
+	public CellData(int type, String name, Object value) {
 		this.type = type;
 		this.name = name;
 		this.value = value;

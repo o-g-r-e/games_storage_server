@@ -10,10 +10,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.my.gamesdataserver.rawdbmanager.CellData;
+
 public class SqlInsert extends AbstractSqlRequest {
 	
 
-	private List<List<DataCell>> data = new ArrayList<List<DataCell>>();
+	private List<List<CellData>> data = new ArrayList<List<CellData>>();
 	
 	public SqlInsert(HttpRequest httpRequest) throws JSONException {
 		super(httpRequest);
@@ -31,7 +33,7 @@ public class SqlInsert extends AbstractSqlRequest {
 		return parameters.containsKey("game_api_key") && parameters.containsKey("player_id");
 	}
 
-	public List<List<DataCell>> getData() {
+	public List<List<CellData>> getData() {
 		return data;
 	}
 }
