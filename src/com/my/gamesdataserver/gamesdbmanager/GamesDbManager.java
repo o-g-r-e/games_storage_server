@@ -45,16 +45,24 @@ public class GamesDbManager extends DataBaseInterface {
 									new ColData(Types.INTEGER, "level"),
 									new ColData(Types.INTEGER, "score"),
 									new ColData(Types.INTEGER, "stars")};
-		createTable(prefix+"_ScoreLevel", scoreLevelCols);
+		createTable(prefix+"ScoreLevel", scoreLevelCols);
 		
-		ColData[] levelCols = {new ColData(Types.INTEGER, "playerId"), new ColData(Types.INTEGER, "level")};
-		createTable(prefix+"_Level", levelCols);
+		ColData[] playerslCols = {new ColData(Types.INTEGER, "playerId")};
+		createTable(prefix+"Players", playerslCols);
 		
 		ColData[] boostsCols = {new ColData(Types.INTEGER, "playerId"), new ColData(Types.VARCHAR, "name"), new ColData(Types.INTEGER, "count")};
-		createTable(prefix+"_Boosts", boostsCols);
+		createTable(prefix+"Boosts", boostsCols);
 	}
 	
-	
+	/*public void createGameTables(GameTemplate gameTemplate, String prefix) {
+		for(GameTable gt : gameTemplate.getTables) {
+			List<ColData> cols =  new ArrayList<>();
+			for(ColData col : gt.getCols) {
+				cols.add(col);
+			}
+			createTable(prefix+"_"+gt.getName(), cols);
+		}
+	}*/
 	
 	public boolean checkPlayer(String playerId) throws SQLException {
 		return selectAllWhere("players", "player_uniqe_id="+playerId).size() > 0;
@@ -73,8 +81,8 @@ public class GamesDbManager extends DataBaseInterface {
 		return 0;
 	}
 	
-	public void updateGame(String name, String gameJavaPackage) {
-		
+	public int updateGame(String name, String gameJavaPackage) {
+		return 0;
 	}
 	
 	
@@ -89,15 +97,15 @@ public class GamesDbManager extends DataBaseInterface {
 	public int regOwner(String ownerEmail) throws SQLException {
 		List<CellData> row = new ArrayList<>();
 		row.add(new CellData(Types.VARCHAR, "email", ownerEmail));
-		return insertIntoTable("game_owners", row);
+		return insertIntoTable("owners", row);
 	}
 	
 	public boolean checkOwnerByEmail(String ownerEmail) throws SQLException {
-		return selectAllWhere("game_owners", "email="+ownerEmail).size() > 0;
+		return selectAllWhere("owners", "email="+ownerEmail).size() > 0;
 	}
 	
 	public int getOwnerIdByEmail(String ownerEmail) throws SQLException {
-		List<List<CellData>> owners = selectAllWhere("game_owners", "email="+ownerEmail);
+		List<List<CellData>> owners = selectAllWhere("owners", "email="+ownerEmail);
 		
 		if(owners.size() > 0) {
 			return (int)owners.get(0).get(0).getValue();
@@ -107,7 +115,7 @@ public class GamesDbManager extends DataBaseInterface {
 	}
 	
 	
-	public boolean checkGamesKeys(String apiKey) throws SQLException {
+	public boolean checkGameByKey(String apiKey) throws SQLException {
 		
 		if(tablesData.containsKey(apiKey)) {
 			return true;
@@ -116,6 +124,35 @@ public class GamesDbManager extends DataBaseInterface {
 		return selectAllWhere("games", "api_key="+apiKey).size() > 0;
 	}
 	
+	public GameEntity getGameByKey(String apiKey) throws SQLException {
+		
+		List<List<CellData>> games = selectAllWhere("games", "api_key="+apiKey);
+		if(games.size() < 1 || games.get(0).size() < 1) {
+			return null;
+		}
+		
+		return new GameEntity((int)games.get(0).get(0).getValue(), 
+				(String)games.get(0).get(1).getValue(), 
+				(String)games.get(0).get(2).getValue(), 
+				(int)games.get(0).get(3).getValue(), 
+				(String)games.get(0).get(4).getValue(), 
+				(String)games.get(0).get(5).getValue());
+	}
+	
+	public boolean deleteGameByApiKey(String apiKey) throws SQLException {
+		GameEntity game = getGameByKey(apiKey);
+		
+		if(game == null) {
+			return false;
+		}
+		String[] tables = game.getTables().split(",");
+		for(String table : tables) {
+			dropTable(table);
+		}
+		deleteFrom("games", "api_key='"+apiKey+"'");
+		return true;
+	}
+
 	public int readOwnerIdFromApiKeys(String apiKey) throws SQLException {
 		List<List<CellData>> res = selectAllWhere("api_keys", "api_key="+apiKey);
 		
@@ -127,7 +164,7 @@ public class GamesDbManager extends DataBaseInterface {
 	}
 	
 	public void removeApiKey(String apiKey) throws SQLException {
-		deleteFrom("api_keys", "api_key="+apiKey);
+		deleteFrom("api_keys", "api_key='"+apiKey+"'");
 	}
 	
 	/*GameEntity selectGameByApiKey(String gameApiKey) throws SQLException {
@@ -172,14 +209,13 @@ public class GamesDbManager extends DataBaseInterface {
 		return null;
 	}
 	
-	private int insertGame(String gameName, String gameJavaPackage, int ownerId, String key, String tables, String prefix) throws SQLException {
-		PreparedStatement pstmt = getCon().prepareStatement("INSERT INTO games (`name`, `package`, `owner_id`, `api_key`, `tables`, `prefix`) VALUES (?, ?, ?, ?, ?, ?)");
+	private int insertGame(String gameName, String gameJavaPackage, int ownerId, String key, String tables) throws SQLException {
+		PreparedStatement pstmt = getCon().prepareStatement("INSERT INTO games (`name`, `package`, `owner_id`, `api_key`, `tables`) VALUES (?, ?, ?, ?, ?)");
 		pstmt.setString(1, gameName);
 		pstmt.setString(2, gameJavaPackage);
 		pstmt.setInt(3, ownerId);
 		pstmt.setString(4, key);
 		pstmt.setString(5, tables);
-		pstmt.setString(6, prefix);
 		return pstmt.executeUpdate();
 	}
 	
@@ -195,20 +231,22 @@ public class GamesDbManager extends DataBaseInterface {
 					(String)r.get(2).getValue(),
 					(int)   r.get(3).getValue(), 
 					(String)r.get(4).getValue(), 
-					(String)r.get(5).getValue(), 
-					(String)r.get(6).getValue()));
+					(String)r.get(5).getValue()));
 		}
 		return result;
 	}
 
-	public int initGameSet(String gameName, String gameJavaPackage, int ownerId, String apiKey, String[] tableNameSet, String prefix) throws SQLException {
+	public int insertGame(String gameName, String gameJavaPackage, int ownerId, String apiKey, String[] tableNameSet, String prefix) throws SQLException {
 		
 		StringBuilder tables = new StringBuilder();
 		
-		for(String tableNameFromSet : tableNameSet) {
-			tables.append(prefix).append("_").append(tableNameFromSet);
+		for (int i = 0; i < tableNameSet.length; i++) {
+			tables.append(prefix).append(tableNameSet[i]);
+			if(i < tableNameSet.length-1) {
+				tables.append(",");
+			}
 		}
 		
-		return insertGame(gameName, gameJavaPackage, ownerId, apiKey, tables.toString(), prefix);
+		return insertGame(gameName, gameJavaPackage, ownerId, apiKey, tables.toString());
 	}
 }

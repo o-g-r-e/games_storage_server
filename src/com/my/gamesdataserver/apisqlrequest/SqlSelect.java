@@ -1,8 +1,10 @@
-package com.my.gamesdataserver;
+package com.my.gamesdataserver.apisqlrequest;
+
+import com.my.gamesdataserver.HttpRequest;
 
 public class SqlSelect extends AbstractSqlRequest {
 
-	SqlSelect(HttpRequest httpRequest) {
+	public SqlSelect(HttpRequest httpRequest) {
 		super(httpRequest);
 		
 	}

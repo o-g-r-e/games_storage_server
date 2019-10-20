@@ -19,6 +19,7 @@ public class DataBaseInterface {
 	private Connection driverManagerConnection;
 	private MysqlDataSource mysqlDataSource;
 	private boolean printQuery = true;
+	private boolean transaction = false;
 
 	public DataBaseInterface(DataBaseConnectionParameters dbConnectionParameters) throws SQLException {
 		
@@ -43,14 +44,36 @@ public class DataBaseInterface {
 		//return mysqlDataSource.getConnection();
 	}
 	
+	public void enableTransactions() throws SQLException {
+		getCon().setAutoCommit(false);
+		transaction = true;
+	}
+	
+	public void disableTransactions() throws SQLException {
+		getCon().setAutoCommit(true);
+		transaction = false;
+	}
+	
+	public void commit() throws SQLException {
+		getCon().commit();
+	}
+	
+	public void rollback() throws SQLException {
+		getCon().rollback();
+	}
+	
+	public boolean isTransactionsEnabled() throws SQLException {
+		//return getCon().getAutoCommit();
+		return transaction;
+	}
+	
 	public void deleteFrom(String tableName, String where) throws SQLException {
 		
-		String resultWhere = null;
 		if(where.contains("&")) {
-			resultWhere = where.replaceAll("&", " AND ");
+			where = where.replaceAll("&", " AND ");
 		}
 		
-		getCon().prepareStatement("DELETE FROM "+tableName+" WHERE ("+resultWhere+")").execute();
+		getCon().prepareStatement("DELETE FROM `"+tableName+"` WHERE ("+where+")").execute();
 	}
 	
 	public void createTable(String name, ColData[] fields) throws SQLException {
@@ -78,6 +101,10 @@ public class DataBaseInterface {
 		query.append(", PRIMARY KEY (`id`));");
 		
 		getCon().prepareStatement(query.toString()).execute();
+	}
+	
+	public void dropTable(String tableName) throws SQLException {
+		getCon().prepareStatement("DROP TABLE `"+tableName+"`").execute();
 	}
 	
 	public int insertIntoTable(String tableName, List<CellData> row) throws SQLException {

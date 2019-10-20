@@ -7,16 +7,14 @@ public class GameEntity {
 	private int ownerId;
 	private String key;
 	private String tables;
-	private String prefix;
 	
-	public GameEntity(int id, String name, String javaPackage, int ownerId, String key, String tables, String prefix) {
+	public GameEntity(int id, String name, String javaPackage, int ownerId, String key, String tables) {
 		this.id = id;
 		this.name = name;
 		this.javaPackage = javaPackage;
 		this.ownerId = ownerId;
 		this.key = key;
 		this.tables = tables;
-		this.prefix = prefix;
 	}
 	
 	public int getId() {
@@ -42,10 +40,6 @@ public class GameEntity {
 
 	public String getTables() {
 		return tables;
-	}
-
-	public String getPrefix() {
-		return prefix;
 	}
 
 	public String getJavaPackage() {

@@ -1,4 +1,4 @@
-package com.my.gamesdataserver;
+package com.my.gamesdataserver.apisqlrequest;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,6 +11,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.my.gamesdataserver.HttpRequest;
 import com.my.gamesdataserver.rawdbmanager.CellData;
 
 public abstract class AbstractSqlRequest {

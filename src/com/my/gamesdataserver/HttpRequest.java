@@ -13,7 +13,15 @@ public class HttpRequest {
 	private Map<String, String> headers = new HashMap<String, String>();
 	private String content;
 	
+	public HttpRequest() {
+		
+	}
+	
 	public HttpRequest(String httpRequest) {
+		parse(httpRequest);
+	}
+	
+	public void parse(String httpRequest) {
 		Matcher matcher = HTTP_REQUEST_PATTERN.matcher(httpRequest);
 		
 		if(matcher.find()) {

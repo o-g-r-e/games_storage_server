@@ -1,6 +1,8 @@
 package com.my.gamesdataserver;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.security.cert.CertificateException;
 import java.sql.SQLException;
 
@@ -59,7 +61,7 @@ public class Main {
 	                public void initChannel(SocketChannel ch) throws Exception {
 	                	ch.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(2048));
 	                	//ch.pipeline().addLast(sslCtx.newHandler(ch.alloc()));
-	                    ch.pipeline().addLast(new ClientHandler(dbManager, logManager, settings));
+	                    ch.pipeline().addLast(new ClientHandler(dbManager, logManager));
 	                }
 	        	});
 	            
@@ -78,8 +80,11 @@ public class Main {
 		    	System.out.println("Server closed.");
 		    }*/
 	      
-		} catch (SQLException | IOException | CertificateException | NumberFormatException | InterruptedException e) {
-			logManager.log("system", e.getMessage());
+		} catch (SQLException | IOException | CertificateException | InterruptedException e) {
+			StringWriter sw = new StringWriter();
+			PrintWriter pw = new PrintWriter(sw);
+			e.printStackTrace(pw);
+			logManager.log("initialization_error", sw.toString());
 		} finally {
             if(workerGroup != null) workerGroup.shutdownGracefully();
             if(bossGroup != null) bossGroup.shutdownGracefully();
