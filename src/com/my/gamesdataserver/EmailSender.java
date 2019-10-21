@@ -21,7 +21,7 @@ public class EmailSender {
     private static final String EMAIL_FROM = "info@candy-smith.com";
     private static final String EMAIL_TO_CC = "";
     
-	public static void sendTo(String emailTo, String subject, String content) throws MessagingException {
+	private static void sendTo(String emailTo, String subject, String content) throws MessagingException {
 		Properties prop = System.getProperties();
         prop.put("mail.smtp.host", SMTP_SERVER); //optional, defined in SMTPTransport
         prop.put("mail.smtp.auth", "true");
@@ -74,11 +74,11 @@ public class EmailSender {
 			
 			@Override
 			public void run() {
-				try {
+				/*try {
 					sendTo(emailTo, subject, content);
 				} catch (MessagingException e) {
 					e.printStackTrace();
-				}
+				}*/
 			}
 		}).start();
 	}

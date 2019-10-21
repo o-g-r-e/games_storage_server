@@ -24,7 +24,7 @@ public class Settings {
 		}
 	}
 
-	public String getParameter(String parameterName) {
+	public String get(String parameterName) {
 		return parameters.get(parameterName);
 	}
 }

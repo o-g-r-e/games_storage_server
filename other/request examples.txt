@@ -1,19 +1,20 @@
-localhost:3636/regOwner?name=Yuriy
-localhost:3636/addGame?owner_name=Yuriy&name=Helicopters battle
+GENERATE API KEY AND REGISTER OWNER:
 
-localhost:3636/regPlayer?player_name=Johny&player_id=k48gj38d39w2t&game_api_key=QDxk9K4H987UvrISZAivM2At26KnLgmdEbCQdefJOjmuP
+localhost:3636/system/generate_api_key
 
-localhost:3636/updateSave?game_api_key=QDxk9K4H987UvrISZAivM2At26KnLgmdEbCQdefJOjmuP&player_id=k48gj38d39w2t&save_data=[2,3,1,1,2,1,2,2,3]
-localhost:3636/readSave?game_api_key=QDxk9K4H987UvrISZAivM2At26KnLgmdEbCQdefJOjmuP&player_id=k48gj38d39w2t
-
-localhost:3636/updateBoost?game_api_key=QDxk9K4H987UvrISZAivM2At26KnLgmdEbCQdefJOjmuP&player_id=k48gj38d39w2t&boost_data={"rocket":3,"bomb":4}
-
-localhost:3636/monitor/monitor.html?key=vjsYeNp4ZsGtPcHLz4AfghqMkTPwCjA4
+email=my@mail.net
 
 
-INSERT EXAMPLE:
+REGISTER GAME WITH API KEY:
 
-localhost:3636/insert_into/saves?game_api_key=QDxk9K4H987UvrISZAivM2At26KnLgmdEbCQdefJOjmuP&player_id=k48gj38d39w2t
+localhost:3636/system/register_game
+
+api_key=QDxk9K4H9&game_name=webGame&game_package=com.ru.net&game_type=match3
+
+
+INSERT INTO TABLE EXAMPLE:
+
+localhost:3636/insert_into/table_name?api_key=QDxk9K4H9
 
 [
     [
@@ -62,9 +63,10 @@ localhost:3636/insert_into/saves?game_api_key=QDxk9K4H987UvrISZAivM2At26KnLgmdEb
     ]
 ]
 
-localhost:3636/update/saves?game_api_key=QDxk9K4H987UvrISZAivM2At26KnLgmdEbCQdefJOjmuP&player_id=k48gj38d39w2t
 
-UPDATE EXAMPLE:
+UPDATE TABLE EXAMPLE:
+
+localhost:3636/update/table_name?api_key=QDxk9K4H9
 
 {
 	set : 
@@ -94,3 +96,6 @@ UPDATE EXAMPLE:
         		}
             ]
 }
+
+
+LEVEL COMPLETE:

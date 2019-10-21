@@ -10,6 +10,11 @@ public class CellData {
 		this.name = name;
 		this.value = value;
 	}
+	
+	public CellData(String name, Object value) {
+		this.name = name;
+		this.value = value;
+	}
 
 	public int getType() {
 		return type;

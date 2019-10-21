@@ -6,7 +6,7 @@ import java.io.StringWriter;
 import java.security.cert.CertificateException;
 import java.sql.SQLException;
 
-import com.my.gamesdataserver.gamesdbmanager.GamesDbManager;
+import com.my.gamesdataserver.gamesdbmanager.DatabaseEngine;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
@@ -21,7 +21,7 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class Main {
 	
-	private static GamesDbManager dbManager;
+	private static DatabaseEngine dbManager;
 	private static Settings settings;
 	private static LogManager logManager;
 	
@@ -31,7 +31,7 @@ public class Main {
 		
 		try {
 			
-			String settingsPath = "";
+			String settingsPath = null;
 			if(args.length < 1) {
 				settingsPath = new File(".").getCanonicalPath()+File.separator+"settings"+File.separator+".settings";
 			} else {
@@ -42,11 +42,11 @@ public class Main {
 			
 			settings = new Settings(new File(settingsPath));
 			
-			dbManager = new GamesDbManager(new DataBaseConnectionParameters("jdbc:mysql", settings.getParameter("dbAddr"), 
-																						  settings.getParameter("dbPort"), 
-																						  settings.getParameter("dbName"), 
-																						  settings.getParameter("dbUser"), 
-																						  settings.getParameter("dbPassword")));
+			dbManager = new DatabaseEngine(new DataBaseConnectionParameters("jdbc:mysql", settings.get("dbAddr"), 
+																						  settings.get("dbPort"), 
+																						  settings.get("dbName"), 
+																						  settings.get("dbUser"), 
+																						  settings.get("dbPassword")));
 			
 			bossGroup = new NioEventLoopGroup();
 	        workerGroup = new NioEventLoopGroup();
@@ -65,21 +65,8 @@ public class Main {
 	                }
 	        	});
 	            
-	        b.bind(Integer.parseInt(settings.getParameter("serverPort"))).sync().channel().closeFuture().sync();
-			/*ServerSocket serverSocket = new ServerSocket(Integer.parseInt(settings.getServerPort()));
-			ExecutorService executorService = Executors.newFixedThreadPool(8);
-			System.out.println("Server started.");
-		    try {
-		    	while (true) {
-		    		Socket socket = serverSocket.accept(); //wait for new connection
-		            executorService.submit(new ClientProcessor(socket, dbManager));
-		    	}
-		    } finally {
-		    	serverSocket.close();
-		    	dbManager.closeConnection();
-		    	System.out.println("Server closed.");
-		    }*/
-	      
+	        b.bind(Integer.parseInt(settings.get("serverPort"))).sync().channel().closeFuture().sync();
+	        
 		} catch (SQLException | IOException | CertificateException | InterruptedException e) {
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);

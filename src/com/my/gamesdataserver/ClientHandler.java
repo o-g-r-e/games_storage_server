@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,9 +22,13 @@ import com.my.gamesdataserver.apisqlrequest.AbstractSqlRequest;
 import com.my.gamesdataserver.apisqlrequest.SqlInsert;
 import com.my.gamesdataserver.apisqlrequest.SqlSelect;
 import com.my.gamesdataserver.apisqlrequest.SqlUpdate;
-import com.my.gamesdataserver.gamesdbmanager.GameEntity;
-import com.my.gamesdataserver.gamesdbmanager.GamesDbManager;
+import com.my.gamesdataserver.gamesdbmanager.Game;
+import com.my.gamesdataserver.gamesdbmanager.Match3DatabaseEngine;
+import com.my.gamesdataserver.gamesdbmanager.Match3PlayerData;
+import com.my.gamesdataserver.gamesdbmanager.ApiKey;
+import com.my.gamesdataserver.gamesdbmanager.DatabaseEngine;
 import com.my.gamesdataserver.rawdbmanager.CellData;
+import com.my.gamesdataserver.rawdbmanager.ColData;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -34,20 +39,19 @@ import io.netty.util.ReferenceCountUtil;
 
 public class ClientHandler extends ChannelInboundHandlerAdapter {
 	
-	private GamesDbManager dbm;
-	private Access access;
+	private DatabaseEngine dbManager;
 	private LogManager logManager;
+	private Access access = new Access();
 	private StringBuilder errorLogMessage = new StringBuilder();
-	private HttpRequest inputHttpRequest = new HttpRequest();
-	private HttpResponse httpResponse = new HttpResponse("1.1", 200, "");
+	private static HttpRequest inputHttpRequest = new HttpRequest();
+	private static HttpResponse httpResponse = new HttpResponse("1.1", 200, "");
 	private String logPrefix = "error";
-	private static final String[] MATH_3_TABLE_SET = {"ScoreLevel", "Level", "Boosts"};
+	private static final GameTemplate match3Template = createMatch3Template();
 	
 	private enum RequestGroup {API, SYSTEM, CONTENT, BAD};
 	
-	public ClientHandler(GamesDbManager dbm, LogManager logManager) throws IOException {
-		this.dbm = dbm;
-		this.access = new Access();
+	public ClientHandler(DatabaseEngine dbm, LogManager logManager) throws IOException {
+		this.dbManager = dbm;
 		this.logManager = logManager;
 	}
 	
@@ -66,9 +70,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	@Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
 		
-		String inputString;
-	    
-	    inputString = ((ByteBuf)msg).toString(CharsetUtil.UTF_8);
+		String inputString = ((ByteBuf)msg).toString(CharsetUtil.UTF_8);
 	    ReferenceCountUtil.release(msg);
 	    
 	    inputHttpRequest.parse(inputString);
@@ -95,7 +97,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 				break;
 				
 			default:
-				httpResponse.setContent(simpleJsonObject("Internal error", "Bad request group"));
+				httpResponse.setContent(simpleJsonObject("Error", "Bad request group"));
 				sendHttpResponse(ctx, httpResponse);
 			}
 			
@@ -108,8 +110,8 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			PrintWriter pw = new PrintWriter(sw);
 			
 			try {
-				if(dbm.isTransactionsEnabled()) {
-					dbm.rollback();
+				if(dbManager.isTransactionsEnabled()) {
+					dbManager.rollback();
 				}
 			} catch (SQLException e1) {
 				e1.printStackTrace(pw);
@@ -126,7 +128,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		AbstractSqlRequest.Type command = AbstractSqlRequest.parseCommand(httpRequest.getUrl());
 		
 		if(command == null) {
-			httpResponse.setContent(simpleJsonObject("Internal error", "Cannot recognize command"));
+			httpResponse.setContent(simpleJsonObject("Error", "Cannot recognize command"));
 			sendHttpResponse(ctx, httpResponse);
 			return;
 		}
@@ -134,7 +136,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		AbstractSqlRequest request = initRequest(command, httpRequest);
 			
 		if(request == null) {
-			httpResponse.setContent(simpleJsonObject("Internal error", "Cannot create request"));
+			httpResponse.setContent(simpleJsonObject("Error", "Cannot create request"));
 			sendHttpResponse(ctx, httpResponse);
 			return;
 		}
@@ -149,6 +151,28 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			sendHttpResponse(ctx, simpleJsonObject("Request error", "Request failed validation"));
 			return;
 		}*/
+	}
+	
+	void executeApiRequest(AbstractSqlRequest request, ChannelHandlerContext ctx) throws SQLException {
+		
+		if(!request.validate()) {
+			httpResponse.setContent(simpleJsonObject("Error", "Request failed validation"));
+		} else if(request instanceof SqlInsert) {
+			
+			//int changed = dbm.insertIntoTable(request.getTableName(), ((SqlInsert)request).getData());
+			//httpResponse.setContent(simpleJsonObject("Row's added", ""+changed));
+			
+		} else if (request instanceof SqlUpdate) {
+			
+			int changed = dbManager.updateTable(request.getTableName(), ((SqlUpdate)request).getSet(), ((SqlUpdate)request).getWhere());
+			httpResponse.setContent(simpleJsonObject("Row's updated", ""+changed));
+			
+		} else if(request instanceof SqlSelect) {
+			List<List<CellData>> result = dbManager.selectAll(request.getTableName());
+			httpResponse.setContent(simpleJsonObject("Result", ""+result.size()));
+		}
+		
+		sendHttpResponse(ctx, httpResponse);
 	}
 	
 	private void handleSystemRequest(ChannelHandlerContext ctx, HttpRequest httpRequest) throws SQLException, MessagingException {
@@ -199,23 +223,22 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		} else*/if(httpRequest.getUrl().startsWith("/system/generate_api_key")) {
 			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
 			
-			if(!contentParameters.containsKey("email")) {
-				httpResponse.setContent("Parameters validation failed");
-				sendHttpResponse(ctx, httpResponse);
+			if(!containsValidation(new String[] {"email"}, contentParameters)) {
+				sendValidationFailResponse(ctx);
 				return;
 			}
 			
 			String inputEmail = contentParameters.get("email");
 			
-			if(!dbm.checkOwnerByEmail(inputEmail)) {
-				int result = dbm.regOwner(inputEmail);
+			if(!dbManager.checkOwnerByEmail(inputEmail)) {
+				int result = dbManager.regOwner(inputEmail);
 				if(result <= 0) {
 					errorLogMessage.append("registration fail");
 				}
 			}
 			
 			String newApiKey = RandomKeyGenerator.nextString(45);
-			int added = dbm.writeNewApiKey(inputEmail, newApiKey);
+			int added = dbManager.writeNewApiKey(inputEmail, newApiKey);
 			
 			if(added > 0) {
 				EmailSender.send(contentParameters.get("email"), "New API key generation", "Your API key generated: "+newApiKey);
@@ -228,12 +251,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			}
 		} else if(httpRequest.getUrl().startsWith("/system/register_game")) {
 			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
-			if(!contentParameters.containsKey("api_key") || 
-					!contentParameters.containsKey("game_name") ||
-						!contentParameters.containsKey("game_package") ||
-							!contentParameters.containsKey("game_type")) {
-				httpResponse.setContent("Parameters validation failed");
-				sendHttpResponse(ctx, httpResponse);
+			
+			if(!containsValidation(new String[] {"api_key", "game_name", "game_package", "game_type"}, contentParameters)) {
+				sendValidationFailResponse(ctx);
 				return;
 			}
 			
@@ -242,41 +262,41 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			String gameJavaPackage = contentParameters.get("game_package");
 			String gameType = contentParameters.get("game_type");
 			
-			if(dbm.checkGameByKey(apiKey)) {
+			if(dbManager.checkGameByKey(apiKey)) {
 				httpResponse.setContent("Game alredy exists");
 				sendHttpResponse(ctx, httpResponse);
 				return;
 			}
 			
-			int ownerId = dbm.readOwnerIdFromApiKeys(apiKey);
-				
+			int ownerId = dbManager.getApiKey(apiKey).getOwnerId();
+			
 			if(ownerId < 1) {
 				errorLogMessage.append("Cannot find game api key");
 				httpResponse.setContent("Internal error");
 				sendHttpResponse(ctx, httpResponse);
 				return;
 			}
-				
-			dbm.enableTransactions();
-			String prefix = gameName.replaceAll(" ", "_")+"_"+apiKey.substring(0, 4)+"_";
-			int added = dbm.insertGame(gameName, gameJavaPackage, ownerId, apiKey, MATH_3_TABLE_SET, prefix);
-				
+			
+			dbManager.enableTransactions();
+			String prefix = DatabaseEngine.generateTablePrefix(gameName, apiKey);
+			int added = dbManager.insertGame(gameName, gameJavaPackage, ownerId, apiKey, gameType, prefix);
+			
 			if(added < 1) {
-				dbm.rollback();
+				dbManager.rollback();
 				errorLogMessage.append("Cannot write to games");
 				httpResponse.setContent("Internal error");
 				sendHttpResponse(ctx, httpResponse);
 				return;
 			}
 			
-			dbm.removeApiKey(apiKey);
+			dbManager.removeApiKey(apiKey);
 			
-			dbm.commit();
-			dbm.disableTransactions();
+			dbManager.commit();
+			dbManager.disableTransactions();
 			
 			switch (gameType) {
 			case "match3":
-				dbm.createMatch3TableSet(prefix); //throw exception if not successfully
+				dbManager.createGameTables(match3Template, prefix); //throw exception if not successfully
 				break;
 			}
 			
@@ -287,13 +307,12 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		} else if(httpRequest.getUrl().startsWith("/system/udpate_game_data")) {
 			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
 			
-			if(!contentParameters.containsKey("api_key")) {
-				httpResponse.setContent("Parameters validation failed");
-				sendHttpResponse(ctx, httpResponse);
+			if(!containsValidation(new String[] {"api_key"}, contentParameters)) {
+				sendValidationFailResponse(ctx);
 				return;
 			}
 			
-			int updated = dbm.updateGame(contentParameters.get("new_game_name"), contentParameters.get("new_game_package"));
+			int updated = dbManager.updateGame(contentParameters.get("new_game_name"), contentParameters.get("new_game_package"));
 			if(updated > 0) {
 				EmailSender.send(contentParameters.get("email"), "Your game registerd", "Your game data "+contentParameters.get("api_key")+" updated");
 			}
@@ -301,18 +320,116 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		} else if(httpRequest.getUrl().startsWith("/system/delete_game")) {
 			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
 			
-			if(!contentParameters.containsKey("api_key")) {
-				httpResponse.setContent("Parameters validation failed");
-				sendHttpResponse(ctx, httpResponse);
+			if(!containsValidation(new String[] {"api_key", "game_type"}, contentParameters)) {
+				sendValidationFailResponse(ctx);
 				return;
 			}
 			
-			if(dbm.deleteGameByApiKey(contentParameters.get("api_key"))) {
-				httpResponse.setContent("Game deleted");
-			} else {
+			String apiKey = contentParameters.get("api_key");
+			String gameType = contentParameters.get("game_type");
+			
+			Game game = dbManager.deleteGame(apiKey);
+			if(game == null) {
 				httpResponse.setContent("Game delete failed");
+				return;
 			}
+			
+			switch (gameType) {
+			case "match3":
+				dbManager.deleteGameTables(game.getPrefix(), match3Template.getTableNames());
+				break;
+			}
+			
 			sendHttpResponse(ctx, httpResponse);
+		} else if(httpRequest.getUrl().startsWith("/system/read_all")) {
+			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
+			
+			if(!containsValidation(new String[] {"player_id", "api_key"}, contentParameters)) {
+				sendValidationFailResponse(ctx);
+				return;
+			}
+			
+			String playerId = contentParameters.get("player_id");
+			String apiKey = contentParameters.get("api_key");
+			String gameType = contentParameters.get("game_type");
+			
+			Match3DatabaseEngine match3DbManager;
+			
+			switch (gameType) {
+			case "match3":
+				match3DbManager = (Match3DatabaseEngine) dbManager;
+				break;
+			}
+			
+			Game game = match3DbManager.getGameByKey(apiKey);
+			
+			if(game == null) {
+				return;
+			}
+			
+			if(match3DbManager.getPlayer(playerId, game.getPrefix()) == null) {
+				match3DbManager.addPlayer(playerId, game.getPrefix());
+			}
+			
+			Match3PlayerData playerData = match3DbManager.readPlayerData(playerId, apiKey);
+			
+			if(playerData == null) {
+				httpResponse.setContent("Player or game not found");
+			} else {
+				httpResponse.setContent(playerData.toJson());
+			}
+			
+			sendHttpResponse(ctx, httpResponse);
+		} else if(httpRequest.getUrl().startsWith("/system/level_complete")) {
+			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
+			
+			if(!containsValidation(new String[] {"player_id", "api_key", "level", "stars", "scores"}, contentParameters)) {
+				sendValidationFailResponse(ctx);
+				return;
+			}
+			
+			String playerId = contentParameters.get("player_id");
+			String apiKey = contentParameters.get("api_key");
+			int level = Integer.parseInt(contentParameters.get("level"));
+			int stars = Integer.parseInt(contentParameters.get("stars"));
+			int scores = Integer.parseInt(contentParameters.get("scores"));
+			
+			if(dbManager.getPlayer(playerId, apiKey) == null) {
+				dbManager.addPlayer(playerId, apiKey);
+			}
+			
+		} else if(httpRequest.getUrl().startsWith("/system/add_boost")) {
+			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
+			
+			if(!containsValidation(new String[] {"player_id", "api_key", "boost_name"}, contentParameters)) {
+				sendValidationFailResponse(ctx);
+				return;
+			}
+			
+			String playerId = contentParameters.get("player_id");
+			String apiKey = contentParameters.get("api_key");
+			String boostName = contentParameters.get("boost_name");
+			
+			if(dbManager.getPlayer(playerId, apiKey) == null) {
+				dbManager.addPlayer(playerId, apiKey);
+			}
+			
+		} else if(httpRequest.getUrl().startsWith("/system/spend_boost")) {
+			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
+			
+			if(!containsValidation(new String[] {"player_id", "api_key", "boost_name"}, contentParameters)) {
+				sendValidationFailResponse(ctx);
+				return;
+			}
+			
+			String playerId = contentParameters.get("player_id");
+			String apiKey = contentParameters.get("api_key");
+			String boostName = contentParameters.get("boost_name");
+			
+			if(dbManager.getPlayer(playerId, apiKey) == null) {
+				dbManager.addPlayer(playerId, apiKey);
+			}
+			
 		} /*else if(httpRequest.getUrl().startsWith("/add_game")) {
 			systemRequestsType = SystemRequestsType.ADD_GAME;
 			
@@ -357,6 +474,37 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		
 	}
 	
+	private static GameTemplate createMatch3Template() {
+		
+		List<TableTemplate> tt = new ArrayList<>();
+		tt.add(new TableTemplate("scorelevel", new ColData[] {new ColData(Types.INTEGER, "playerId"),
+															  new ColData(Types.INTEGER, "level"),
+															  new ColData(Types.INTEGER, "score"),
+															  new ColData(Types.INTEGER, "stars")}));
+		
+		tt.add(new TableTemplate("players", new ColData[] {new ColData(Types.INTEGER, "playerId"), new ColData(Types.INTEGER, "max_level")}));
+		
+		tt.add(new TableTemplate("boosts", new ColData[] {new ColData(Types.INTEGER, "playerId"), 
+														  new ColData(Types.VARCHAR, "name"), 
+														  new ColData(Types.INTEGER, "count")}));
+		
+		return new GameTemplate(GameTemplate.Types.MATCH3, tt);
+	}
+	
+	private boolean containsValidation(String[] names, Map<String, String> parameters) {
+		for(String name : names) {
+			if(!parameters.containsKey(name)) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	private void sendValidationFailResponse(ChannelHandlerContext ctx) {
+		httpResponse.setContent("Parameters validation failed");
+		sendHttpResponse(ctx, httpResponse);
+	}
+	
 	private AbstractSqlRequest initRequest(AbstractSqlRequest.Type command, HttpRequest httpRequest) throws JSONException {
 		switch (command) {
 		case INSERT_INTO_TABLE:
@@ -370,28 +518,6 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		}
 		
 		return null;
-	}
-	
-	void executeApiRequest(AbstractSqlRequest request, ChannelHandlerContext ctx) throws SQLException {
-		
-		if(!request.validate()) {
-			httpResponse.setContent(simpleJsonObject("Request error", "Request failed validation"));
-		} else if(request instanceof SqlInsert) {
-			
-			//int changed = dbm.insertIntoTable(request.getTableName(), ((SqlInsert)request).getData());
-			//httpResponse.setContent(simpleJsonObject("Row's added", ""+changed));
-			
-		} else if (request instanceof SqlUpdate) {
-			
-			int changed = dbm.updateTable(request.getTableName(), ((SqlUpdate)request).getSet(), ((SqlUpdate)request).getWhere());
-			httpResponse.setContent(simpleJsonObject("Row's updated", ""+changed));
-			
-		} else if(request instanceof SqlSelect) {
-			List<List<CellData>> result = dbm.selectAll(request.getTableName());
-			httpResponse.setContent(simpleJsonObject("Result", ""+result.size()));
-		}
-		
-		sendHttpResponse(ctx, httpResponse);
 	}
 
     @Override
