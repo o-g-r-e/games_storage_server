@@ -1,11 +1,23 @@
 package com.my.gamesdataserver.gamesdbmanager;
 
+import java.util.List;
+
 public class Match3PlayerData {
 	private int maxLevel;
-	private Match3PlayerData.PlayerLevel[] levels;
-	private Match3PlayerData.PlayerBoost[] boosts;
+	/*private Match3PlayerData.PlayerLevel[] levels;
+	private Match3PlayerData.PlayerBoost[] boosts;*/
+	private List<Match3Level> levels;
+	private List<Match3Boost> boosts;
 	
-	private static class PlayerLevel {
+	public Match3PlayerData(int maxLevel, List<Match3Level> levels, List<Match3Boost> boosts) {
+		this.maxLevel = maxLevel;
+		this.levels = levels;
+		this.boosts = boosts;
+	}
+
+
+
+	/*private static class PlayerLevel {
 		private int scores;
 		private int stars;
 		
@@ -39,7 +51,7 @@ public class Match3PlayerData {
 		public int getCount() {
 			return count;
 		}
-	}
+	}*/
 	
 	public String toJson() {
 		StringBuilder result = new StringBuilder();

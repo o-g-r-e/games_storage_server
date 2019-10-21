@@ -353,7 +353,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			String apiKey = contentParameters.get("api_key");
 			String gameType = contentParameters.get("game_type");
 			
-			Match3DatabaseEngine match3DbManager;
+			Match3DatabaseEngine match3DbManager = null;
 			
 			switch (gameType) {
 			case "match3":
@@ -364,6 +364,8 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			Game game = match3DbManager.getGameByKey(apiKey);
 			
 			if(game == null) {
+				httpResponse.setContent(simpleJsonObject("Error", "Game not found"));
+				sendHttpResponse(ctx, httpResponse);
 				return;
 			}
 			
@@ -394,9 +396,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			int stars = Integer.parseInt(contentParameters.get("stars"));
 			int scores = Integer.parseInt(contentParameters.get("scores"));
 			
-			if(dbManager.getPlayer(playerId, apiKey) == null) {
+			/*if(dbManager.getPlayer(playerId, apiKey) == null) {
 				dbManager.addPlayer(playerId, apiKey);
-			}
+			}*/
 			
 		} else if(httpRequest.getUrl().startsWith("/system/add_boost")) {
 			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
@@ -410,9 +412,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			String apiKey = contentParameters.get("api_key");
 			String boostName = contentParameters.get("boost_name");
 			
-			if(dbManager.getPlayer(playerId, apiKey) == null) {
+			/*if(dbManager.getPlayer(playerId, apiKey) == null) {
 				dbManager.addPlayer(playerId, apiKey);
-			}
+			}*/
 			
 		} else if(httpRequest.getUrl().startsWith("/system/spend_boost")) {
 			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
@@ -426,9 +428,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			String apiKey = contentParameters.get("api_key");
 			String boostName = contentParameters.get("boost_name");
 			
-			if(dbManager.getPlayer(playerId, apiKey) == null) {
+			/*if(dbManager.getPlayer(playerId, apiKey) == null) {
 				dbManager.addPlayer(playerId, apiKey);
-			}
+			}*/
 			
 		} /*else if(httpRequest.getUrl().startsWith("/add_game")) {
 			systemRequestsType = SystemRequestsType.ADD_GAME;

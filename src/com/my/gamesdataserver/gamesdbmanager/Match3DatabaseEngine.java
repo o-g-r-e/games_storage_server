@@ -15,6 +15,8 @@ public class Match3DatabaseEngine extends DatabaseEngine {
 	}
 	
 	public Match3PlayerData readPlayerData(String playerId, String apiKey) {
+		List<Match3Level> levels;
+		List<Match3Boost> boosts;
 		Match3PlayerData result = null;
 		
 		return result;

@@ -14,7 +14,7 @@ public class Access {
 		permittedPathes.add("/html");
 		
 		requestsForDiscard = new ArrayList<String>();
-		requestsForDiscard.add("/favicon.ico");
+		//requestsForDiscard.add("/favicon.ico");
 	}
 	
 	public boolean isWrongSymbols(String urlPath) {
