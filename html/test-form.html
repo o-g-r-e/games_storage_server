@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Test Form</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' media='screen' href='main.css'>
+    <script src='main.js'></script>
+</head>
+<body>
+    <form>
+        <fieldset>
+            <legend>Connect</legend>
+            <label>Host:<input type="text"/></label><br/>
+            <label>Port:<input type="text"/></label><br/>
+        </fieldset>
+        <fieldset>
+            <legend>Generate API key</legend>
+            <label>Email:<input type="text"/></label><br/>
+            <input type="button" value="Generate API key"/>
+        </fieldset>
+        <fieldset>
+            <legend>Register game</legend>
+            <label>API key:<input type="text"/></label><br/>
+            <label>Game name:<input type="text"/></label><br/>
+            <label>Game package:<input type="text"/></label><br/>
+            <label>Game type:
+                    <select>
+                        <option value="match3">Match 3</option>
+                    </select>
+            </label><br/>
+            <input type="button" value="Register game"/>
+        </fieldset>
+        
+        <label>Response:</label><br/><textarea name="" id="" cols="30" rows="10"></textarea>
+    </form>
+</body>
+</html>
