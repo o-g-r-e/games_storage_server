@@ -6,7 +6,8 @@ import java.io.StringWriter;
 import java.security.cert.CertificateException;
 import java.sql.SQLException;
 
-import com.my.gamesdataserver.gamesdbmanager.DatabaseEngine;
+import com.my.gamesdataserver.gamesdbclasses.DatabaseEngine;
+import com.my.gamesdataserver.rawdbclasses.DataBaseInterface;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
@@ -21,7 +22,7 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class Main {
 	
-	private static DatabaseEngine dbManager;
+	private static DataBaseInterface dbInterface;
 	private static Settings settings;
 	private static LogManager logManager;
 	
@@ -42,11 +43,11 @@ public class Main {
 			
 			settings = new Settings(new File(settingsPath));
 			
-			dbManager = new DatabaseEngine(new DataBaseConnectionParameters("jdbc:mysql", settings.get("dbAddr"), 
-																						  settings.get("dbPort"), 
-																						  settings.get("dbName"), 
-																						  settings.get("dbUser"), 
-																						  settings.get("dbPassword")));
+			dbInterface = new DataBaseInterface(new DataBaseConnectionParameters("jdbc:mysql", settings.get("dbAddr"), 
+																							   settings.get("dbPort"), 
+																							   settings.get("dbName"), 
+																							   settings.get("dbUser"), 
+																							   settings.get("dbPassword")));
 			
 			bossGroup = new NioEventLoopGroup();
 	        workerGroup = new NioEventLoopGroup();
@@ -61,7 +62,7 @@ public class Main {
 	                public void initChannel(SocketChannel ch) throws Exception {
 	                	ch.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(2048));
 	                	//ch.pipeline().addLast(sslCtx.newHandler(ch.alloc()));
-	                    ch.pipeline().addLast(new ClientHandler(dbManager, logManager));
+	                    ch.pipeline().addLast(new ClientHandler(dbInterface, logManager));
 	                }
 	        	});
 	            

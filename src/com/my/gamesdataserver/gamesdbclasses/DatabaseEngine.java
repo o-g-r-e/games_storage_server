@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.gamesdbmanager;
+package com.my.gamesdataserver.gamesdbclasses;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,39 +17,21 @@ import com.my.gamesdataserver.ClientHandler;
 import com.my.gamesdataserver.DataBaseConnectionParameters;
 import com.my.gamesdataserver.GameTemplate;
 import com.my.gamesdataserver.TableTemplate;
-import com.my.gamesdataserver.rawdbmanager.CellData;
-import com.my.gamesdataserver.rawdbmanager.ColData;
-import com.my.gamesdataserver.rawdbmanager.DataBaseInterface;
+import com.my.gamesdataserver.rawdbclasses.CellData;
+import com.my.gamesdataserver.rawdbclasses.ColData;
+import com.my.gamesdataserver.rawdbclasses.DataBaseInterface;
 
-public class DatabaseEngine extends DataBaseInterface {
+public class DatabaseEngine  {
 	
-	private Map<String, Set<String>> tablesData = new HashMap<>(); //<game api key, coressponding tables names>
-	
-	public Map<String, Set<String>> getTablesData() {
-		return tablesData;
-	}
+	private DataBaseInterface dataBaseInterface;
 
-	public DatabaseEngine(DataBaseConnectionParameters dbConnectionParameters) throws SQLException {
-		super(dbConnectionParameters);
+	public DatabaseEngine(DataBaseInterface dataBaseInterface) {
+		this.dataBaseInterface = dataBaseInterface;
 	}
-	
-	/*public void createTableSet(String prefix, String[] match3TableNameSet) throws SQLException {
-		ColData[] scoreLevelCols = {new ColData(Types.INTEGER, "playerId"),
-									new ColData(Types.INTEGER, "level"),
-									new ColData(Types.INTEGER, "score"),
-									new ColData(Types.INTEGER, "stars")};
-		createTable(prefix+match3TableNameSet[0], scoreLevelCols);
-		
-		ColData[] playerslCols = {new ColData(Types.INTEGER, "playerId"), new ColData(Types.INTEGER, "max_level")};
-		createTable(prefix+match3TableNameSet[1], playerslCols);
-		
-		ColData[] boostsCols = {new ColData(Types.INTEGER, "playerId"), new ColData(Types.VARCHAR, "name"), new ColData(Types.INTEGER, "count")};
-		createTable(prefix+match3TableNameSet[2], boostsCols);
-	}*/
 	
 	public void createGameTables(GameTemplate gameTemplate, String prefix) throws SQLException {
 		for(TableTemplate tt : gameTemplate.getTables()) {
-			createTable(prefix+tt.getName(), tt.getCols());
+			dataBaseInterface.createTable(prefix+tt.getName(), tt.getCols());
 		}
 	}
 	
@@ -60,7 +42,7 @@ public class DatabaseEngine extends DataBaseInterface {
 		if(ownerId > 0) {
 			row.add(new CellData(Types.VARCHAR, "owner_id", ownerId));
 			row.add(new CellData(Types.VARCHAR, "api_key", apiKey));
-			return insertIntoTable("api_keys", row);
+			return dataBaseInterface.insertIntoTable("api_keys", row);
 		}
 		
 		return 0;
@@ -80,16 +62,16 @@ public class DatabaseEngine extends DataBaseInterface {
 	public int regOwner(String email) throws SQLException {
 		List<CellData> row = new ArrayList<>();
 		row.add(new CellData(Types.VARCHAR, "email", email));
-		return insertIntoTable("owners", row);
+		return dataBaseInterface.insertIntoTable("owners", row);
 	}
 	
 	public boolean checkOwnerByEmail(String ownerEmail) throws SQLException {
-		return selectAllWhere("owners", "email="+ownerEmail).size() > 0;
+		return dataBaseInterface.selectAllWhere("owners", "email="+ownerEmail).size() > 0;
 	}
 	
 	public Owner getOwnerByEmail(String email) throws SQLException {
 		Owner owner = null;
-		List<List<CellData>> rows = selectAllWhere("owners", "email="+email);
+		List<List<CellData>> rows = dataBaseInterface.selectAllWhere("owners", "email="+email);
 		
 		if(rows.size() > 0) {
 			owner = new Owner((int)rows.get(0).get(0).getValue(), (String)rows.get(0).get(1).getValue());
@@ -99,16 +81,12 @@ public class DatabaseEngine extends DataBaseInterface {
 	}
 	public boolean checkGameByKey(String apiKey) throws SQLException {
 		
-		if(tablesData.containsKey(apiKey)) {
-			return true;
-		}
-		
-		return selectAllWhere("games", "api_key="+apiKey).size() > 0;
+		return dataBaseInterface.selectAllWhere("games", "api_key="+apiKey).size() > 0;
 	}
 	
 	public Game getGameByKey(String apiKey) throws SQLException {
 		Game game = null;
-		List<List<CellData>> rows = selectAllWhere("games", "api_key="+apiKey);
+		List<List<CellData>> rows = dataBaseInterface.selectAllWhere("games", "api_key="+apiKey);
 		
 		if(rows.size() > 0) {
 			game = new Game((int)rows.get(0).get(0).getValue(), 
@@ -127,7 +105,7 @@ public class DatabaseEngine extends DataBaseInterface {
 		Game game = getGameByKey(apiKey);
 		
 		if(game != null) {
-			deleteFrom("games", "api_key='"+apiKey+"'");
+			dataBaseInterface.deleteFrom("games", "api_key='"+apiKey+"'");
 			return game;
 		}
 		
@@ -136,14 +114,14 @@ public class DatabaseEngine extends DataBaseInterface {
 	
 	public void deleteGameTables(String prefix, String[] templateNames) throws SQLException {
 		for(String tableName : templateNames) {
-			dropTable(prefix+tableName);
+			dataBaseInterface.dropTable(prefix+tableName);
 		}
 	}
 
 	public ApiKey getApiKey(String apiKey) throws SQLException {
 		ApiKey result = null;
 		
-		List<List<CellData>> rows = selectAllWhere("api_keys", "api_key="+apiKey);
+		List<List<CellData>> rows = dataBaseInterface.selectAllWhere("api_keys", "api_key="+apiKey);
 		
 		if(rows.size() > 0) {
 			result = new ApiKey((int)rows.get(0).get(0).getValue(), (int)rows.get(0).get(1).getValue(), (String)rows.get(0).get(2).getValue());
@@ -153,13 +131,13 @@ public class DatabaseEngine extends DataBaseInterface {
 	}
 	
 	public void removeApiKey(String apiKey) throws SQLException {
-		deleteFrom("api_keys", "api_key='"+apiKey+"'");
+		dataBaseInterface.deleteFrom("api_keys", "api_key='"+apiKey+"'");
 	}
 	
 	List<Game> selectGames() throws SQLException {
 		List<Game> result = new ArrayList<Game>();
 		
-		List<List<CellData>> rows = selectAll("games");
+		List<List<CellData>> rows = dataBaseInterface.selectAll("games");
 		for(List<CellData> row : rows) {
 			result.add(new Game((int)row.get(0).getValue(), 
 					(String)row.get(1).getValue(), 
@@ -173,14 +151,17 @@ public class DatabaseEngine extends DataBaseInterface {
 	}
 	
 	public int insertGame(String gameName, String gameJavaPackage, int ownerId, String key, String type, String prefix) throws SQLException {
-		PreparedStatement pstmt = getCon().prepareStatement("INSERT INTO games (`name`, `package`, `owner_id`, `api_key`, `type`, `prefix`) VALUES (?, ?, ?, ?, ?, ?)");
-		pstmt.setString(1, gameName);
-		pstmt.setString(2, gameJavaPackage);
-		pstmt.setInt(3, ownerId);
-		pstmt.setString(4, key);
-		pstmt.setString(5, type);
-		pstmt.setString(6, prefix);
-		return pstmt.executeUpdate();
+		
+		List<CellData> row = new ArrayList<>();
+		
+		row.add(new CellData("name", gameName));
+		row.add(new CellData("package", gameJavaPackage));
+		row.add(new CellData("owner_id", ownerId));
+		row.add(new CellData("api_key", key));
+		row.add(new CellData("type", type));
+		row.add(new CellData("prefix", prefix));
+		
+		return dataBaseInterface.insertIntoTable("games", row);
 	}
 	
 	public static String generateTablePrefix(String gameName, String apiKey) {

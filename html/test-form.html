@@ -6,19 +6,20 @@
     <title>Test Form</title>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
     <link rel='stylesheet' type='text/css' media='screen' href='main.css'>
-    <script src='main.js'></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    
 </head>
 <body>
     <form>
         <fieldset>
-            <legend>Connect</legend>
-            <label>Host:<input type="text"/></label><br/>
-            <label>Port:<input type="text"/></label><br/>
+            <legend>Server</legend>
+            <label>Host:<input id="host" type="text"/></label><br/>
+            <label>Port:<input id="port" type="text"/></label><br/>
         </fieldset>
         <fieldset>
             <legend>Generate API key</legend>
             <label>Email:<input type="text"/></label><br/>
-            <input type="button" value="Generate API key"/>
+            <input id="gen-api-key" type="button" value="Generate API key"/>
         </fieldset>
         <fieldset>
             <legend>Register game</legend>
@@ -33,7 +34,20 @@
             <input type="button" value="Register game"/>
         </fieldset>
         
-        <label>Response:</label><br/><textarea name="" id="" cols="30" rows="10"></textarea>
+        <label>Response:</label><br/><textarea name="" id="response-area" cols="30" rows="10"></textarea>
     </form>
+    <script>
+            function sendAjax(url, postData) {
+                $.post(url, postData, 
+                    function(returnedData){
+                        console.log(returnedData);
+                        $("#response-area").text(returnedData);
+                });
+            }
+    
+            $('#gen-api-key').on('click', function() {
+                sendAjax($("#host").val()+":"+$("#port").val()+"/system/generate_api_key", {"email":"mail@mail.fake"});
+            });
+        </script>
 </body>
 </html>

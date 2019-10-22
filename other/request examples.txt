@@ -69,30 +69,30 @@ UPDATE TABLE EXAMPLE:
 localhost:3636/update/table_name?api_key=QDxk9K4H9
 
 {
-	set : 
+	"set" : 
 			[
 				{
-					type : "STRING",
-            		name : "boost_data",
-            		value : "ULTRA BOOOOOOST"
+					"type" : "STRING",
+            		"name" : "boost_data",
+            		"value" : "ULTRA BOOOOOOST"
         		},
         		{
-            		type : "STRING",
-            		name : "save_data",
-            		value : "SAVE_DATA"
+            		"type" : "STRING",
+            		"name" : "save_data",
+            		"value" : "SAVE_DATA"
         		}
 			],
-	where : 
+	"where" : 
 			[
 				{
-            		type : "INTEGER",
-            		name : "id",
-            		value : "4"
+            		"type" : "INTEGER",
+            		"name" : "id",
+            		"value" : "4"
         		},
         		{
-            		type : "INTEGER",
-            		name : "player_id",
-            		value : "5004"
+            		"type" : "INTEGER",
+            		"name" : "player_id",
+            		"value" : "5004"
         		}
             ]
 }

@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.rawdbmanager;
+package com.my.gamesdataserver.rawdbclasses;
 
 public class CellData {
 	private int type;

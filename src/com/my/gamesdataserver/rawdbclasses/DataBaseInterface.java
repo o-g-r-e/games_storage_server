@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.rawdbmanager;
+package com.my.gamesdataserver.rawdbclasses;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -169,7 +169,7 @@ public class DataBaseInterface {
 		}
 		sqlUpdate.append(")");
 		
-		PreparedStatement pstmt = null;//con.prepareStatement(String.format("UDPATE %s SET %s WHERE %s", tableName, ));
+		PreparedStatement pstmt = getCon().prepareStatement(sqlUpdate.toString());//con.prepareStatement(String.format("UDPATE %s SET %s WHERE %s", tableName, ));
 		
 		for (int i = 0; i < set.size(); i++) {
 			setQueryValue(pstmt, set.get(i), i+1);

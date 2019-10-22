@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.gamesdbmanager;
+package com.my.gamesdataserver.match3dbclasses;
 
 import java.util.List;
 
@@ -57,13 +57,13 @@ public class Match3PlayerData {
 		StringBuilder result = new StringBuilder();
 		StringBuilder levelsJson = new StringBuilder("[");
 		
-		for (int i = 0; i < levels.length; i++) {
-			Match3PlayerData.PlayerLevel level = levels[i];
+		for (int i = 0; i < levels.size(); i++) {
+			Match3Level level = levels.get(i);
 			
-			levelsJson.append("{\"scores\":").append(level.getScores());
+			levelsJson.append("{\"scores\":").append(level.getScore());
 			levelsJson.append(",\"stars\":").append(level.getStars()).append("}");
 			
-			if(i < levels.length-1) {
+			if(i < levels.size()-1) {
 				levelsJson.append(",");
 			}
 		}
@@ -72,13 +72,13 @@ public class Match3PlayerData {
 		
 		StringBuilder boostsJson = new StringBuilder("[");
 		
-		for (int i = 0; i < boosts.length; i++) {
-			Match3PlayerData.PlayerBoost boost = boosts[i];
+		for (int i = 0; i < boosts.size(); i++) {
+			Match3Boost boost = boosts.get(i);
 			
 			boostsJson.append("{\"name\":\"").append(boost.getName()).append("\"");
 			boostsJson.append(",\"count\":").append(boost.getCount()).append("}");
 			
-			if(i < boosts.length-1) {
+			if(i < boosts.size()-1) {
 				boostsJson.append(",");
 			}
 		}

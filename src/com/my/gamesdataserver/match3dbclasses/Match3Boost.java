@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.gamesdbmanager;
+package com.my.gamesdataserver.match3dbclasses;
 
 public class Match3Boost {
 	private int id;
