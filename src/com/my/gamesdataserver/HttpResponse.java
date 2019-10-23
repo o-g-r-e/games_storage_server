@@ -1,11 +1,14 @@
 package com.my.gamesdataserver;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class HttpResponse {
 	private String version;
 	private int statusCode;
+	private Map<String, String> headers = new HashMap<>();;
 	
 	private String content;
 	
@@ -13,6 +16,10 @@ public class HttpResponse {
 		this.version = version;
 		this.statusCode = statusCode;
 		this.content = content;
+	}
+	
+	public void addHeader(String name, String value) {
+		headers.put(name, value);
 	}
 	
 	public String getStatusTextValue() {
@@ -83,10 +90,14 @@ public class HttpResponse {
 	
 	@Override
 	public String toString() {
-		String result = "HTTP/"+version+" "+statusCode+" "+getStatusTextValue();
+		StringBuilder result = new StringBuilder("HTTP/"+version+" "+statusCode+" "+getStatusTextValue());
 		if(content != null && content.length() > 0) {
-			result += "\r\nContent-Length: "+content.length()+"\r\n\r\n"+content;
+			result.append("\r\nContent-Length: "+content.length()+"\r\n");
 		}
-		return result;
+		for(Map.Entry<String, String> header : headers.entrySet()) {
+			result.append(header.getKey()).append(": ").append(header.getValue()).append("\r\n");
+		}
+		result.append("\r\n"+content);
+		return result.toString();
 	}
 }

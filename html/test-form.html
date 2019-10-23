@@ -13,14 +13,16 @@
     <form>
         <fieldset>
             <legend>Server</legend>
-            <label>Host:<input id="host" type="text"/></label><br/>
+            <label>Host:<input id="host" type="text" value="http://"/></label><br/>
             <label>Port:<input id="port" type="text"/></label><br/>
         </fieldset>
+        <br/>
         <fieldset>
             <legend>Generate API key</legend>
-            <label>Email:<input type="text"/></label><br/>
+            <label>Email:<input id="owner-email" type="text"/></label><br/>
             <input id="gen-api-key" type="button" value="Generate API key"/>
         </fieldset>
+        <br/>
         <fieldset>
             <legend>Register game</legend>
             <label>API key:<input type="text"/></label><br/>
@@ -31,22 +33,78 @@
                         <option value="match3">Match 3</option>
                     </select>
             </label><br/>
-            <input type="button" value="Register game"/>
+            <input id="reg-game" type="button" value="Register game"/>
         </fieldset>
-        
+        <br/>
+        <fieldset>
+            <legend>Delete game</legend>
+            <label>API key:<input type="text"/></label><br/>
+            <input id="del-game" type="button" value="Delete game"/>
+        </fieldset>
+        <br/>
+        <fieldset>
+            <legend>Read player data / Register player</legend>
+            <label>API key:<input type="text"/></label><br/>
+            <label>Player id:<input type="text"/></label><br/>
+            <input id="read-player-data" type="button" value="Request"/>
+        </fieldset>
+        <br/>
+        <fieldset>
+            <legend>Complete level</legend>
+            <label>API key:<input type="text"/></label><br/>
+            <label>Player id:<input type="text"/></label><br/>
+            <label>Level:<input type="text"/></label><br/>
+            <label>Stars:<input type="text"/></label><br/>
+            <label>Scores:<input type="text"/></label><br/>
+            <input id="level-complete" type="button" value="Send"/>
+        </fieldset>
+        <br/>
         <label>Response:</label><br/><textarea name="" id="response-area" cols="30" rows="10"></textarea>
     </form>
     <script>
             function sendAjax(url, postData) {
-                $.post(url, postData, 
+                /*$.post(url, postData, 
                     function(returnedData){
                         console.log(returnedData);
                         $("#response-area").text(returnedData);
+                });*/
+
+                $.ajax({
+                    url: url,
+                    type: "POST",
+                    crossDomain: true,
+                    data: postData,
+                    dataType: "json",
+                    success: function (response) {
+                        //var resp = JSON.parse(response)
+                        //alert(resp.status);
+                        //console.log(response);
+                        $("#response-area").text(JSON.stringify(response));
+                    },
+                    error: function (xhr, status) {
+                        alert("error "+status);
+                    }
                 });
             }
     
             $('#gen-api-key').on('click', function() {
-                sendAjax($("#host").val()+":"+$("#port").val()+"/system/generate_api_key", {"email":"mail@mail.fake"});
+                sendAjax($("#host").val()+":"+$("#port").val()+"/system/generate_api_key", {"email":$('#owner-email').val()});
+            });
+    
+            $('#reg-game').on('click', function() {
+                sendAjax($("#host").val()+":"+$("#port").val()+"/system/register_game", {"api_key":$('#').val(), "game_name":$('#').val(), "game_package":$('#').val(), "game_type":$('#').val()});
+            });
+    
+            $('#del-game').on('click', function() {
+                sendAjax($("#host").val()+":"+$("#port").val()+"/system/delete_game", {"api_key":$('#').val()});
+            });
+    
+            $('#read-player-data').on('click', function() {
+                sendAjax($("#host").val()+":"+$("#port").val()+"/api/read_all", {"api_key":$('#').val(), "player_id":$('#').val()});
+            });
+    
+            $('#level-complete').on('click', function() {
+                sendAjax($("#host").val()+":"+$("#port").val()+"/api/level_complete", {"api_key":$('#').val(), "player_id":$('#').val()});
             });
         </script>
 </body>

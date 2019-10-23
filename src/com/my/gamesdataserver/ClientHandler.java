@@ -101,7 +101,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			}
 			
 			if(errorLogMessage.length() > 0) {
-				logManager.log(logPrefix, inputString+"\n\n"+errorLogMessage+"\n\n"+getHttpResponseLog(httpResponse, false));
+				logManager.log(errorLogFilePrefix, inputString+"\n\n"+errorLogMessage+"\n\n"+getHttpResponseLog(httpResponse, false));
 			}
 		
 		} catch (SQLException | MessagingException e) {
@@ -117,8 +117,8 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			}
 			
 			e.printStackTrace(pw);
-			logManager.log(logPrefix, inputString+"\n\n"+errorLogMessage+"\n\n"+sw.toString()+"\n\n"+getHttpResponseLog(httpResponse, false));
-			httpResponse.setContent("Internal error");
+			logManager.log(errorLogFilePrefix, inputString+"\n\n"+errorLogMessage+"\n\n"+sw.toString()+"\n\n"+getHttpResponseLog(httpResponse, false));
+			httpResponse.setContent(simpleJsonObject("Error", "An error occurred during processing"));
 			sendHttpResponse(ctx, httpResponse);
 		}
     }
@@ -130,7 +130,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			
 			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
 			
-			if(!containsValidation(new String[] {"email"}, contentParameters)) {
+			if(!simpleValidation(new String[] {"email"}, contentParameters)) {
 				sendValidationFailResponse(ctx);
 				return;
 			}
@@ -149,17 +149,16 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			
 			if(added > 0) {
 				EmailSender.send(contentParameters.get("email"), "New API key generation", "Your API key generated: "+newApiKey);
-				httpResponse.setContent("API key generated successfully");
-				sendHttpResponse(ctx, httpResponse);
+				httpResponse.setContent(simpleJsonObject("Success", "API key generated successfully"));
 			} else {
 				errorLogMessage.append("Cannot write new api key");
-				httpResponse.setContent("Internal error");
-				sendHttpResponse(ctx, httpResponse);
+				httpResponse.setContent(simpleJsonObject("Error", "An error occurred while creating the key"));
 			}
+			sendHttpResponse(ctx, httpResponse);
 		} else if(httpRequest.getUrl().startsWith("/system/register_game")) {
 			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
 			
-			if(!containsValidation(new String[] {"api_key", "game_name", "game_package", "game_type"}, contentParameters)) {
+			if(!simpleValidation(new String[] {"api_key", "game_name", "game_package", "game_type"}, contentParameters)) {
 				sendValidationFailResponse(ctx);
 				return;
 			}
@@ -170,7 +169,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			String gameType = contentParameters.get("game_type");
 			
 			if(dbManager.checkGameByKey(apiKey)) {
-				httpResponse.setContent("Game alredy exists");
+				httpResponse.setContent(simpleJsonObject("Error", "Game alredy exists"));
 				sendHttpResponse(ctx, httpResponse);
 				return;
 			}
@@ -179,7 +178,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			
 			if(ownerId < 1) {
 				errorLogMessage.append("Cannot find game api key");
-				httpResponse.setContent("Internal error");
+				httpResponse.setContent(simpleJsonObject("Error", "An error occurred while searching for the key"));
 				sendHttpResponse(ctx, httpResponse);
 				return;
 			}
@@ -191,7 +190,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			if(added < 1) {
 				dbInterface.rollback();
 				errorLogMessage.append("Cannot write to games");
-				httpResponse.setContent("Internal error");
+				httpResponse.setContent(simpleJsonObject("Error", "An error occurred while adding the game"));
 				sendHttpResponse(ctx, httpResponse);
 				return;
 			}
@@ -208,13 +207,13 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			}
 			
 			EmailSender.send(contentParameters.get("email"), "Your game registerd", "Your game "+apiKey+" registered");
-			httpResponse.setContent("Register success");
+			httpResponse.setContent(simpleJsonObject("Success", "Register successed"));
 			sendHttpResponse(ctx, httpResponse);
 			
 		} else if(httpRequest.getUrl().startsWith("/system/udpate_game_data")) {
 			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
 			
-			if(!containsValidation(new String[] {"api_key"}, contentParameters)) {
+			if(!simpleValidation(new String[] {"api_key"}, contentParameters)) {
 				sendValidationFailResponse(ctx);
 				return;
 			}
@@ -228,19 +227,20 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		} else if(httpRequest.getUrl().startsWith("/system/delete_game")) {
 			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
 			
-			if(!containsValidation(new String[] {"api_key", "game_type"}, contentParameters)) {
+			if(!simpleValidation(new String[] {"api_key", "game_type"}, contentParameters)) {
 				sendValidationFailResponse(ctx);
 				return;
 			}
 			
 			String apiKey = contentParameters.get("api_key");
-			String gameType = contentParameters.get("game_type");
 			
 			Game game = dbManager.deleteGame(apiKey);
 			if(game == null) {
-				httpResponse.setContent("Game delete failed");
+				httpResponse.setContent(simpleJsonObject("Error", "An error occurred while deleting the game"));
 				return;
 			}
+			
+			String gameType = game.getType();
 			
 			switch (gameType) {
 			case "match3":
@@ -260,7 +260,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		if(httpRequest.getUrl().startsWith("/api/read_all")) {
 			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
 			
-			if(!containsValidation(new String[] {"player_id", "api_key"}, contentParameters)) {
+			if(!simpleValidation(new String[] {"player_id", "api_key"}, contentParameters)) {
 				sendValidationFailResponse(ctx);
 				return;
 			}
@@ -297,7 +297,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		} else if(httpRequest.getUrl().startsWith("/api/level_complete")) {
 			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
 			
-			if(!containsValidation(new String[] {"player_id", "api_key", "level", "stars", "scores"}, contentParameters)) {
+			if(!simpleValidation(new String[] {"player_id", "api_key", "level", "stars", "scores"}, contentParameters)) {
 				sendValidationFailResponse(ctx);
 				return;
 			}
@@ -354,7 +354,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		} else if(httpRequest.getUrl().startsWith("/api/add_boost")) {
 			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
 			
-			if(!containsValidation(new String[] {"player_id", "api_key", "boost_name"}, contentParameters)) {
+			if(!simpleValidation(new String[] {"player_id", "api_key", "boost_name"}, contentParameters)) {
 				sendValidationFailResponse(ctx);
 				return;
 			}
@@ -370,7 +370,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		} else if(httpRequest.getUrl().startsWith("/api/spend_boost")) {
 			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
 			
-			if(!containsValidation(new String[] {"player_id", "api_key", "boost_name"}, contentParameters)) {
+			if(!simpleValidation(new String[] {"player_id", "api_key", "boost_name"}, contentParameters)) {
 				sendValidationFailResponse(ctx);
 				return;
 			}
@@ -403,9 +403,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		return new GameTemplate(GameTemplate.Types.MATCH3, tt);
 	}
 	
-	private boolean containsValidation(String[] names, Map<String, String> parameters) {
+	private boolean simpleValidation(String[] names, Map<String, String> parameters) {
 		for(String name : names) {
-			if(!parameters.containsKey(name)) {
+			if(!parameters.containsKey(name) || "".equals(parameters.get(name))) {
 				return false;
 			}
 		}
@@ -413,7 +413,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	}
 	
 	private boolean validateApi(String[] names, Map<String, String> parameters, String apiKeyVarName) throws SQLException {
-		if(!containsValidation(new String[] {"player_id", "api_key"}, parameters)) {
+		if(!simpleValidation(new String[] {"player_id", "api_key"}, parameters)) {
 			return false;
 		}
 		
@@ -442,6 +442,11 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	}
     
 	void sendHttpResponse(ChannelHandlerContext ctx, HttpResponse httpResponse) {
+		httpResponse.addHeader("Access-Control-Allow-Origin", "*");
+		httpResponse.addHeader("Content-type", "application/json");
+		/*httpResponse.addHeader("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS");
+		httpResponse.addHeader("Access-Control-Max-Age", "1000");
+		httpResponse.addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");*/
 		ctx.writeAndFlush(Unpooled.copiedBuffer(httpResponse.toString(), CharsetUtil.UTF_8));
 	}
 	
