@@ -33,7 +33,7 @@ public class SqlRequest {
 		List<CellData> result = new ArrayList<>();
 		JSONArray jsonArray = new JSONArray(jsonCallDataArray);
 		for (int i = 0; i < jsonArray.length(); i++) {
-			JSONObject cellObject = new JSONObject(jsonArray.get(i));
+			JSONObject cellObject = jsonArray.getJSONObject(i);
 			if(cellObject.has("type")) {
 				result.add(new CellData(DataBaseInterface.parseDataType(cellObject.getString("type")), cellObject.getString("name"), cellObject.getString("value")));
 			} else {

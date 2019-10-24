@@ -16,6 +16,7 @@ import java.util.Set;
 
 import javax.mail.MessagingException;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -77,7 +78,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		String inputString = ((ByteBuf)msg).toString(CharsetUtil.UTF_8);
 	    ReferenceCountUtil.release(msg);
 	    
-	    inputHttpRequest.parse(inputString);
+	    inputHttpRequest.parse(inputString, true);
 	    
 		if(access.isDiscardRequest(inputHttpRequest.getUrl()) || access.isWrongSymbols(inputHttpRequest.getUrl()))  {
 			logManager.log("access", inputString+"\n\n"+"Suppressed because not accessible");
@@ -130,15 +131,12 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		if(httpRequest.getUrl().startsWith("/system/generate_api_key")) {
 			
 			DatabaseEngine dbManager = new DatabaseEngine(dbInterface);
-			
-			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
-			
-			if(!simpleValidation(new String[] {"email"}, contentParameters)) {
+			if(!simpleValidation(new String[] {"email"}, httpRequest.getUrlParametrs())) {
 				sendValidationFailResponse(ctx);
 				return;
 			}
 			
-			String inputEmail = contentParameters.get("email");
+			String inputEmail = httpRequest.getUrlParametrs().get("email");
 			
 			if(!dbManager.checkOwnerByEmail(inputEmail)) {
 				int result = dbManager.regOwner(inputEmail);
@@ -151,7 +149,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			int added = dbManager.writeNewApiKey(inputEmail, newApiKey);
 			
 			if(added > 0) {
-				EmailSender.send(contentParameters.get("email"), "New API key generation", "Your API key generated: "+newApiKey);
+				EmailSender.send(inputEmail, "New API key generation", "Your API key generated: "+newApiKey);
 				httpResponse.setContent(simpleJsonObject("Success", "API key generated successfully"));
 			} else {
 				errorLogMessage.append("Cannot write new api key");
@@ -159,7 +157,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			}
 			sendHttpResponse(ctx, httpResponse);
 		} else if(httpRequest.getUrl().startsWith("/system/register_game")) {
-			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
+			Map<String, String> contentParameters = httpRequest.parseContentWithParameters(true);
 			
 			if(!simpleValidation(new String[] {"api_key", "game_name", "game_package", "game_type"}, contentParameters)) {
 				sendValidationFailResponse(ctx);
@@ -214,7 +212,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			sendHttpResponse(ctx, httpResponse);
 			
 		} else if(httpRequest.getUrl().startsWith("/system/udpate_game_data")) {
-			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
+			Map<String, String> contentParameters = httpRequest.parseContentWithParameters(true);
 			
 			if(!simpleValidation(new String[] {"api_key"}, contentParameters)) {
 				sendValidationFailResponse(ctx);
@@ -228,14 +226,12 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			}
 			
 		} else if(httpRequest.getUrl().startsWith("/system/delete_game")) {
-			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
-			
-			if(!simpleValidation(new String[] {"api_key", "game_type"}, contentParameters)) {
+			if(!simpleValidation(new String[] {"api_key"}, httpRequest.getUrlParametrs())) {
 				sendValidationFailResponse(ctx);
 				return;
 			}
 			
-			String apiKey = contentParameters.get("api_key");
+			String apiKey = httpRequest.getUrlParametrs().get("api_key");
 			
 			Game game = dbManager.deleteGame(apiKey);
 			if(game == null) {
@@ -243,14 +239,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 				return;
 			}
 			
-			String gameType = game.getType();
+			dbManager.deleteGameTables(game.getPrefix(), match3Template.getTableNames());
 			
-			switch (gameType) {
-			case "match3":
-				dbManager.deleteGameTables(game.getPrefix(), match3Template.getTableNames());
-				break;
-			}
-			
+			httpResponse.setContent(simpleJsonObject("Success", "Deletion was successful"));
 			sendHttpResponse(ctx, httpResponse);
 		} else {
 			httpResponse.setContent(simpleJsonObject("Error", "Bad command"));
@@ -263,9 +254,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		return httpRequest.getUrlParametrs().get("table");
 	}
 	
-	private SqlRequest parseRequest(HttpRequest httpRequest) throws JSONException {
+	private SqlRequest parseRequest(HttpRequest httpRequest, String tableNamePrefix) throws JSONException {
 		SqlRequest result = null;
-		String tableName = httpRequest.getUrlParametrs().get("table");
+		String tableName = tableNamePrefix+httpRequest.getUrlParametrs().get("table");
 		
 		if(httpRequest.getUrl().startsWith("/api/select")) {
 			String json = httpRequest.getContent();
@@ -279,9 +270,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		} else if(httpRequest.getUrl().startsWith("/api/update")) {
 			String jsonUpdateData = httpRequest.getContent();
 			JSONObject updateData = new JSONObject(jsonUpdateData);
-			String jsonWhereData = updateData.getString("where");
-			String jsonSetData = updateData.getString("set");
-			result = new SqlUpdate(tableName, jsonWhereData, jsonSetData);
+			JSONArray jsonWhereData = updateData.getJSONArray("where");
+			JSONArray jsonSetData = updateData.getJSONArray("set");
+			result = new SqlUpdate(tableName, jsonWhereData.toString(), jsonSetData.toString());
 		}
 			
 		return result;
@@ -317,14 +308,12 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	
 	private void handleApiRequest(ChannelHandlerContext ctx, HttpRequest httpRequest) throws SQLException, JSONException {
 		
-		Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
-		
-		if(!simpleValidation(new String[] {"player_id", "api_key"}, contentParameters)) {
+		if(!simpleValidation(new String[] {"player_id", "api_key", "table"}, httpRequest.getUrlParametrs())) {
 			sendValidationFailResponse(ctx);
 			return;
 		}
 		
-		String apiKey = contentParameters.get("api_key");
+		String apiKey = httpRequest.getUrlParametrs().get("api_key");
 		
 		Game game = dbManager.getGameByKey(apiKey);
 		
@@ -334,7 +323,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			return;
 		}
 		
-		SqlRequest sqlRequest = parseRequest(httpRequest);
+		SqlRequest sqlRequest = parseRequest(httpRequest, game.getPrefix());
 		
 		if(sqlRequest instanceof SqlSelect) {
 			List<List<CellData>> rows = dbInterface.executeSelect((SqlSelect) sqlRequest);
@@ -525,7 +514,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	}
 	
 	private void sendValidationFailResponse(ChannelHandlerContext ctx) {
-		httpResponse.setContent("Parameters validation failed");
+		httpResponse.setContent(simpleJsonObject("Error", "Parameters validation failed"));
 		sendHttpResponse(ctx, httpResponse);
 	}
 
