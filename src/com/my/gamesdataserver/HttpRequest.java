@@ -13,6 +13,7 @@ public class HttpRequest {
 	private String type;
 	private String url;
 	private Map<String, String> urlParameters = new HashMap<String, String>();
+	private Map<String, String> contentParameters = new HashMap<String, String>();
 	private Map<String, String> headers = new HashMap<String, String>();
 	private String content;
 	
@@ -37,11 +38,14 @@ public class HttpRequest {
 					urlParameters.put(parameters[i].substring(0, parameters[i].indexOf("=")),parameters[i].substring(parameters[i].indexOf("=")+1));
 				}
 			}*/
-			urlParameters = parseParameters(parametersInUrl, decode);
+			urlParameters = parseParameters(parametersInUrl);
 			content = matcher.group(6);
 			
 			if(decode) {
 				content = content.replaceAll("\\+", " ").replaceAll("%40", "@");
+				for(Map.Entry<String, String> en : urlParameters.entrySet()) {
+					en.setValue(en.getValue().replaceAll("\\+", " ").replaceAll("%40", "@"));
+				}
 			}
 		}
 	}
@@ -62,36 +66,34 @@ public class HttpRequest {
 		return type;
 	}
 	
-	private Map<String, String> parseParameters(String input, boolean decode) {
+	private Map<String, String> parseParameters(String input) {
 		Map<String, String> reuslt = new HashMap<>();
 		if(input == null) {
 			return reuslt;
 		}
 		
-		if(input.contains("&")) {
-			String[] arr = input.split("&");
-			for(String s : arr) {
-				String key = s.split("=")[0];
-				String value = s.split("=")[1];
-				if(decode) {
-					key = key.replaceAll("\\+", " ").replaceAll("%40", "@");
-					value = value.replaceAll("\\+", " ").replaceAll("%40", "@");
-				}
-				reuslt.put(key, value);
-			}
-		} else if (input.contains("=")) {
-			reuslt = Parse.spltBy(input, "=");
+		String[] pairs = input.split("&");
+		
+		if(pairs.length < 2 && !input.contains("=")) {
+			return reuslt;
 		}
+		
+		for(String pair : pairs) {
+			String[] params = pair.split("=");
+			
+			if(params.length < 2) {
+				continue;
+			}
+			reuslt.put(params[0], params[1]);
+		}
+		
 		return reuslt;
 	}
 	
-	public Map<String, String> parseContentWithParameters(boolean decode) {
-		/*String[] s1 = getContent().split("&");
-		Map<String, String> m = new HashMap<>();
-		for(String s : s1) {
-			String[] s2 = s.split("=");
-			m.put(s2[0], s2[1]);
-		}*/
-		return parseParameters(getContent(), decode);
+	public Map<String, String> parseContentWithParameters() {
+		if(contentParameters.size() <= 0) {
+			contentParameters = parseParameters(getContent());
+		}
+		return contentParameters;
 	}
 }

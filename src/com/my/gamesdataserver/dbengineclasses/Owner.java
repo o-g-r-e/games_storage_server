@@ -2,11 +2,11 @@ package com.my.gamesdataserver.dbengineclasses;
 
 public class Owner {
 	private int id;
-	private String name;
+	private String email;
 	
-	public Owner(int id, String name) {
+	public Owner(int id, String email) {
 		this.id = id;
-		this.name = name;
+		this.email = email;
 	}
 	
 	public int getId() {
@@ -14,11 +14,11 @@ public class Owner {
 	}
 	
 	public String getName() {
-		return name;
+		return email;
 	}
 	
 	public String toJson() {
 		StringBuilder result = new StringBuilder();
-		return result.append("[").append(id).append(",\"").append(name).append("\"]").toString();
+		return result.append("[").append(id).append(",\"").append(email).append("\"]").toString();
 	}
 }

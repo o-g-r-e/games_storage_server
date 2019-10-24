@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.my.gamesdataserver.DataBaseConnectionParameters;
-import com.my.gamesdataserver.Parse;
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
 public class DataBaseInterface {
@@ -231,28 +230,23 @@ public class DataBaseInterface {
 	public List<List<CellData>> selectAllWhere(String tableName, String where) throws SQLException {
 		
 		List<CellData> whereData = new ArrayList<>();
-		Map<String, String> p = new HashMap<>();
+		Map<String, String> wherePairs = new HashMap<>();
 		List<List<CellData>> result = new ArrayList<>();
 		
-		if(where.contains("&")) {
-			String[] arr = where.split("&");
-			for(String s : arr) {
-				p.put(s.split("=")[0], s.split("=")[1]);
+		String[] pairs = where.split("&");
+		
+		if(pairs.length >= 2 || where.contains("=")) {
+			for(String pair : pairs) {
+				String[] params = pair.split("=");
+				
+				if(params.length < 2) {
+					continue;
+				}
+				wherePairs.put(params[0], params[1]);
 			}
-		} else if (where.contains("=")) {
-			p = Parse.spltBy(where, "=");
-		} else {
-			return result;
 		}
 		
-		/*Map<String, String> p = new HashMap<>();
-		String[] s1 = where.split("&");
-		for(String s : s1) {
-			String[] s2 = s.split("=");
-			p.put(s2[0], s2[1]);
-		}*/
-		
-		for(Map.Entry<String, String> e : p.entrySet()) {
+		for(Map.Entry<String, String> e : wherePairs.entrySet()) {
 			whereData.add(new CellData(0, e.getKey(), e.getValue()));
 		}
 		

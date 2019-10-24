@@ -157,7 +157,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			}
 			sendHttpResponse(ctx, httpResponse);
 		} else if(httpRequest.getUrl().startsWith("/system/register_game")) {
-			Map<String, String> contentParameters = httpRequest.parseContentWithParameters(true);
+			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
 			
 			if(!simpleValidation(new String[] {"api_key", "game_name", "game_package", "game_type"}, contentParameters)) {
 				sendValidationFailResponse(ctx);
@@ -201,18 +201,14 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			dbInterface.commit();
 			dbInterface.disableTransactions();
 			
-			switch (gameType) {
-			case "match3":
-				dbManager.createGameTables(match3Template, prefix); //throw exception if not successfully
-				break;
-			}
+			dbManager.createGameTables(match3Template, prefix); //throw exception if not successfully
 			
 			EmailSender.send(contentParameters.get("email"), "Your game registerd", "Your game "+apiKey+" registered");
 			httpResponse.setContent(simpleJsonObject("Success", "Register successed"));
 			sendHttpResponse(ctx, httpResponse);
 			
 		} else if(httpRequest.getUrl().startsWith("/system/udpate_game_data")) {
-			Map<String, String> contentParameters = httpRequest.parseContentWithParameters(true);
+			Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
 			
 			if(!simpleValidation(new String[] {"api_key"}, contentParameters)) {
 				sendValidationFailResponse(ctx);
