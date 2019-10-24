@@ -1,13 +1,13 @@
-package com.my.gamesdataserver.match3dbclasses;
+package com.my.gamesdataserver.defaultgameclasses;
 
-public class Match3Level {
+public class Level {
 	private int id;
 	private int playerId;
 	private int level;
 	private int score;
 	private int stars;
 	
-	public Match3Level(int id, int playerId, int level, int score, int stars) {
+	public Level(int id, int playerId, int level, int score, int stars) {
 		this.id = id;
 		this.playerId = playerId;
 		this.level = level;

@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.gamesdbclasses;
+package com.my.gamesdataserver.dbengineclasses;
 
 public class Owner {
 	private int id;

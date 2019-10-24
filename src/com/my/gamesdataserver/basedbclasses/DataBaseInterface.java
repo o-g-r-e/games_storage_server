@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.rawdbclasses;
+package com.my.gamesdataserver.basedbclasses;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -20,9 +20,10 @@ public class DataBaseInterface {
 	private MysqlDataSource mysqlDataSource;
 	private boolean printQuery = true;
 	private boolean transaction = false;
+	private DataBaseConnectionParameters dbConnectionParameters;
 
 	public DataBaseInterface(DataBaseConnectionParameters dbConnectionParameters) throws SQLException {
-		
+		this.dbConnectionParameters = dbConnectionParameters;
 		driverManagerConnection = DriverManager.getConnection(dbConnectionParameters.getUrl(), dbConnectionParameters.getUser(), dbConnectionParameters.getPassword());
 		
 		/*mysqlDataSource = new MysqlDataSource();
@@ -260,6 +261,18 @@ public class DataBaseInterface {
 		return result;
 	}
 	
+	public static int parseDataType(String type) {
+		switch (type) {
+		case "INTEGER":
+			return Types.INTEGER;
+		case "STRING":
+			return Types.VARCHAR;
+		case "FLOAT":
+			return Types.FLOAT;
+		}
+		return -1;
+	}
+	
 	private void setQueryValue(PreparedStatement pstmt, CellData d, int index) throws SQLException {
 		switch (d.getType()) {
 		case Types.INTEGER:
@@ -275,5 +288,29 @@ public class DataBaseInterface {
 			pstmt.setObject(index, d.getValue());
 			break;
 		}
+	}
+	
+	public String[] findTablesByPrefix(String tableNamePrefix) throws SQLException {
+		PreparedStatement pstmt = getCon().prepareStatement("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '?' AND TABLE_NAME LIKE '?%'");
+		pstmt.setString(1, dbConnectionParameters.getDataBaseName());
+		pstmt.setString(2, tableNamePrefix);
+		ResultSet resultSet = pstmt.executeQuery();
+		List<String> tableNames = new ArrayList<>();
+		while(resultSet.next()) {
+			tableNames.add(resultSet.getString(1));
+		}
+		return tableNames.toArray(new String[] {});
+	}
+	
+	public List<List<CellData>> executeSelect(SqlSelect sqlSelect) throws SQLException {
+		return selectAllWhere(sqlSelect.getTableName(), sqlSelect.getWhereExpression());
+	}
+	
+	public int executeInsert(SqlInsert sqlInsert) throws SQLException {
+		return insertIntoTable(sqlInsert.getTableName(), sqlInsert.getRowToInsert());
+	}
+	
+	public int executeUpdate(SqlUpdate sqlUpdate) throws SQLException {
+		return updateTable(sqlUpdate.getTableName(), sqlUpdate.getUpdatesData(), sqlUpdate.getWhereExpression());
 	}
 }

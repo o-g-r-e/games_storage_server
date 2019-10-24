@@ -1,11 +1,11 @@
-package com.my.gamesdataserver.match3dbclasses;
+package com.my.gamesdataserver.defaultgameclasses;
 
-public class Match3Player {
+public class Player {
 	private int id;
 	private String playerId;
 	private int maxLevel;
 
-	public Match3Player(int id, String playerId, int maxLevel) {
+	public Player(int id, String playerId, int maxLevel) {
 		this.id = id;
 		this.playerId = playerId;
 		this.maxLevel = maxLevel;

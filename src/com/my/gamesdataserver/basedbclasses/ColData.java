@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.rawdbclasses;
+package com.my.gamesdataserver.basedbclasses;
 
 public class ColData {
 	private int type;

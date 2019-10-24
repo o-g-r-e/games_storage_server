@@ -3,7 +3,7 @@ package com.my.gamesdataserver;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.my.gamesdataserver.rawdbclasses.ColData;
+import com.my.gamesdataserver.basedbclasses.ColData;
 
 public class TableTemplate {
 	String name;

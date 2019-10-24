@@ -1,12 +1,12 @@
-package com.my.gamesdataserver.match3dbclasses;
+package com.my.gamesdataserver.defaultgameclasses;
 
-public class Match3Boost {
+public class Boost {
 	private int id;
 	private int playerId;
 	private String name;
 	private int count;
 	
-	public Match3Boost(int id, int playerId, String name, int count) {
+	public Boost(int id, int playerId, String name, int count) {
 		this.id = id;
 		this.playerId = playerId;
 		this.name = name;

@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.gamesdbclasses;
+package com.my.gamesdataserver.dbengineclasses;
 
 import java.util.Set;
 

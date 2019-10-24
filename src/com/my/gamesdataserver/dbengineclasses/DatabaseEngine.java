@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.gamesdbclasses;
+package com.my.gamesdataserver.dbengineclasses;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,9 +17,9 @@ import com.my.gamesdataserver.ClientHandler;
 import com.my.gamesdataserver.DataBaseConnectionParameters;
 import com.my.gamesdataserver.GameTemplate;
 import com.my.gamesdataserver.TableTemplate;
-import com.my.gamesdataserver.rawdbclasses.CellData;
-import com.my.gamesdataserver.rawdbclasses.ColData;
-import com.my.gamesdataserver.rawdbclasses.DataBaseInterface;
+import com.my.gamesdataserver.basedbclasses.CellData;
+import com.my.gamesdataserver.basedbclasses.ColData;
+import com.my.gamesdataserver.basedbclasses.DataBaseInterface;
 
 public class DatabaseEngine  {
 	
@@ -166,5 +166,9 @@ public class DatabaseEngine  {
 	
 	public static String generateTablePrefix(String gameName, String apiKey) {
 		return (gameName.replaceAll(" ", "_")+"_"+apiKey.substring(0, 8)+"_").toLowerCase();
+	}
+	
+	public String[] getTablesNamesOfGame(String prefix) throws SQLException {
+		return dataBaseInterface.findTablesByPrefix(prefix);
 	}
 }

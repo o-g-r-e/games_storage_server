@@ -6,8 +6,8 @@ import java.io.StringWriter;
 import java.security.cert.CertificateException;
 import java.sql.SQLException;
 
-import com.my.gamesdataserver.gamesdbclasses.DatabaseEngine;
-import com.my.gamesdataserver.rawdbclasses.DataBaseInterface;
+import com.my.gamesdataserver.basedbclasses.DataBaseInterface;
+import com.my.gamesdataserver.dbengineclasses.DatabaseEngine;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;

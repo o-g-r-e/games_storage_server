@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.rawdbclasses;
+package com.my.gamesdataserver.basedbclasses;
 
 public class CellData {
 	private int type;
@@ -14,6 +14,7 @@ public class CellData {
 	public CellData(String name, Object value) {
 		this.name = name;
 		this.value = value;
+		this.type = -1;
 	}
 
 	public int getType() {
