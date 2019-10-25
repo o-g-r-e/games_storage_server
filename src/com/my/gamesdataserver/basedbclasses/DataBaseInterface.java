@@ -199,18 +199,24 @@ public class DataBaseInterface {
 	}
 	
 	public List<List<CellData>> selectAllWhere(String tableName, List<CellData> where) throws SQLException {
-		StringBuilder sqlWhere = new StringBuilder();
-		for (int i = 0; i < where.size(); i++) {
-			CellData d = where.get(i);
-			sqlWhere.append(d.getName());
-			sqlWhere.append("=?");
-			if(i < where.size()-1) {
-				sqlWhere.append(" AND ");
+		
+		StringBuilder sql = new StringBuilder("SELECT * FROM "+tableName);
+		
+		if(where.size() > 0) {
+			
+			sql.append(" WHERE ");
+			
+			for (int i = 0; i < where.size(); i++) {
+				CellData d = where.get(i);
+				sql.append(d.getName());
+				sql.append("=?");
+				if(i < where.size()-1) {
+					sql.append(" AND ");
+				}
 			}
 		}
 		
-		String sql = String.format("SELECT * FROM %s WHERE %s", tableName, sqlWhere);
-		PreparedStatement pstmt = getCon().prepareStatement(sql);
+		PreparedStatement pstmt = getCon().prepareStatement(sql.toString());
 		for (int i = 0; i < where.size(); i++) {
 			setQueryValue(pstmt, where.get(i), i+1);
 		}

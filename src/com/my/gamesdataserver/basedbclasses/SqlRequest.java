@@ -34,6 +34,9 @@ public class SqlRequest {
 		JSONArray jsonArray = new JSONArray(jsonCallDataArray);
 		for (int i = 0; i < jsonArray.length(); i++) {
 			JSONObject cellObject = jsonArray.getJSONObject(i);
+			if(!cellObject.has("name") || !cellObject.has("value")) {
+				continue;
+			}
 			if(cellObject.has("type")) {
 				result.add(new CellData(DataBaseInterface.parseDataType(cellObject.getString("type")), cellObject.getString("name"), cellObject.getString("value")));
 			} else {

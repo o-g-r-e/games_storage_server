@@ -16,9 +16,9 @@ public class LogManager {
 	class LogService implements Runnable {
 		private String userId;
 		private String logPart;
-		LogService(String userId, String logPart) {
+		LogService(String userId, String logMessage) {
 			this.userId = userId;
-			this.logPart = logPart;
+			this.logPart = logMessage;
 		}
 		
 		@Override
@@ -54,7 +54,7 @@ public class LogManager {
 		boolean isLogsDir = logsDirectory.exists()?true:logsDirectory.mkdirs();
 	}
 
-	public void log(String userId, String logPart) {
-		executorService.submit(new LogService(userId,  logPart));
+	public void log(String filePrefix, String input, String errorMessage, String output) {
+		executorService.submit(new LogService(filePrefix,  input+"\n\n"+errorMessage+"\n\n"+output+"\n\n"));
 	}
 }

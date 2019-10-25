@@ -25,7 +25,7 @@
 </head>
 <body>
     <form>
-        <fieldset style="float: left; margin-right: 8px;">
+        <fieldset style="float: left; margin-right: 8px; height:100px;">
             <legend>Server</legend>
             <label>Host:<input id="host" type="text" value="http://"/></label><br/>
             <label>Port:<input id="port" type="text"/></label><br/>
@@ -33,12 +33,14 @@
         <fieldset style="float: left; margin-right: 8px;">
             <legend>Generate API key / Register owner</legend>
             <label>Email:<input style="width: 250px;" id="owner-email" type="text"/></label><br/>
-            <input id="gen-api-key" type="button" value="Generate API key"/>
+            <input id="gen-api-key" type="button" value="Generate API key"/><br/>
+            <input class="clear-fields" type="button" value="Clear fileds"/>
         </fieldset>
         <fieldset class="area-of-delete-game">
             <legend>Delete game</legend>
             <label>API key:<input class="api-key-field" type="text"/></label><br/>
-            <input id="del-game" type="button" value="Delete game"/>
+            <input id="del-game" type="button" value="Delete game"/><br/>
+            <input class="clear-fields" type="button" value="Clear fileds"/>
         </fieldset>
         <br/>
         <fieldset style="float: left; margin-right: 8px;" class="reg-game-area">
@@ -47,7 +49,8 @@
             <label>Game name:<input class="game-name-field" type="text"/></label><br/>
             <label>Game package:<input class="game-package-field" type="text"/></label><br/>
             <label>Game type:<input class="game-type-field" type="text"/></label><br/>
-            <input id="reg-game" type="button" value="Register game"/><span class="desc">Register game and create tables "players", "scorelevel", "boosts"</span>
+            <input id="reg-game" type="button" value="Register game"/><span class="desc">Register game and create tables "players", "scorelevel", "boosts"</span><br/>
+            <input class="clear-fields" type="button" value="Clear fileds"/>
         </fieldset>
         <fieldset class="area-of-select">
             <legend>Select data</legend>
@@ -55,7 +58,8 @@
             <label>Player id:<input class="player-id-field" type="text"/></label><br/>
             <label>Table:<input class="table-field" type="text"/></label><br/>
             <label>Where:<input class="data-field" type="text"/></label><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-            <input id="select" type="button" value="Request"/>
+            <input id="select" type="button" value="Request"/><br/>
+            <input class="clear-fields" type="button" value="Clear fileds"/>
         </fieldset>
         <br/>
         <fieldset style="float: left; margin-right: 8px;" class="area-of-insert">
@@ -64,7 +68,8 @@
             <label>Player id:<input class="player-id-field" type="text"/></label><br/>
             <label>Table:<input class="table-field" type="text"/></label><br/>
             <label>Data:<input class="data-field" type="text"/></label><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-            <input id="insert" type="button" value="Send"/>
+            <input id="insert" type="button" value="Send"/><br/>
+            <input class="clear-fields" type="button" value="Clear fileds"/>
         </fieldset>
         <fieldset class="area-of-update">
             <legend>Update data</legend>
@@ -73,7 +78,8 @@
             <label>Table:<input class="table-field" type="text"/></label><br/>
             <label>Set:<input class="data-field" type="text"/></label><span class="desc">param1=valueA&amp;param2=valueB</span>
             <label>Where:<input class="where-field"/></label><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-            <input id="update" type="button" value="Send"/>
+            <input id="update" type="button" value="Send"/><br/>
+            <input class="clear-fields" type="button" value="Clear fileds"/>
         </fieldset>
         <br/>
         <label>Response:</label><br/><textarea name="" id="response-area" cols="30" rows="10"></textarea>
@@ -86,6 +92,7 @@
                         $("#response-area").text(returnedData);
                 });*/
                 //alert(JSON.stringify(postData));
+                $("#response-area").text("Wait response");
                 $.ajax({
                     url: url,
                     type: "POST",
@@ -99,7 +106,7 @@
                         $("#response-area").text(JSON.stringify(response));
                     },
                     error: function (xhr, status) {
-                        alert("error "+status);
+                        $("#response-area").text("Error status: \""+status+"\"");
                     }
                 });
             }
@@ -149,6 +156,11 @@
                 
               return result;  
             }
+
+            $('.clear-fields').on('click', function() {
+                var parent = $(this).parent();
+                $('input[type=text]', parent).val("");
+            });
         </script>
 </body>
 </html>

@@ -21,32 +21,19 @@ public class HttpRequest {
 		
 	}
 	
-	public HttpRequest(String httpRequest, boolean decode) {
-		parse(httpRequest, decode);
+	public HttpRequest(String httpRequest) {
+		parse(httpRequest);
 	}
 	
-	public void parse(String httpRequest, boolean decode) {
+	public void parse(String httpRequest) {
 		Matcher matcher = HTTP_REQUEST_PATTERN.matcher(httpRequest);
 		
 		if(matcher.find()) {
 			type = matcher.group(1);
 			url = matcher.group(2);
-			String parametersInUrl = matcher.group(4);
-			/*if(parametersInUrl != null) {
-				String[] parameters = parametersInUrl.split("&");
-				for (int i = 0; i < parameters.length; i++) {
-					urlParameters.put(parameters[i].substring(0, parameters[i].indexOf("=")),parameters[i].substring(parameters[i].indexOf("=")+1));
-				}
-			}*/
-			urlParameters = parseParameters(parametersInUrl);
-			content = matcher.group(6);
-			
-			if(decode) {
-				content = content.replaceAll("\\+", " ").replaceAll("%40", "@");
-				for(Map.Entry<String, String> en : urlParameters.entrySet()) {
-					en.setValue(en.getValue().replaceAll("\\+", " ").replaceAll("%40", "@"));
-				}
-			}
+			String parametersInUrl = matcher.group(4)==null?"":matcher.group(4);
+			urlParameters = parseParameters(parametersInUrl.replaceAll("\\+", " ").replaceAll("%40", "@"));
+			content = matcher.group(6).replaceAll("\\+", " ").replaceAll("%40", "@");
 		}
 	}
 	
@@ -82,6 +69,7 @@ public class HttpRequest {
 			String[] params = pair.split("=");
 			
 			if(params.length < 2) {
+				reuslt.put(params[0], "");
 				continue;
 			}
 			reuslt.put(params[0], params[1]);
@@ -95,5 +83,14 @@ public class HttpRequest {
 			contentParameters = parseParameters(getContent());
 		}
 		return contentParameters;
+	}
+
+	public void clear() {
+		type = "";
+		url = "";
+		urlParameters.clear();
+		contentParameters.clear();
+		headers.clear();
+		content = "";
 	}
 }
