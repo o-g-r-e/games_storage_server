@@ -50,7 +50,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	private String errorLogFilePrefix = "error";
 	private static final GameTemplate gameTemplate = createGameTemplate();
 	
-	private enum RequestGroup {BASE, API};
+	private enum RequestGroup {BASE, API, BAD};
 	
 	static {
 		defaultResponseHeaders.put("Access-Control-Allow-Origin", "*");
@@ -72,7 +72,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		} else if(httpRequest.getUrl().startsWith("/system")) {
 			return RequestGroup.BASE;
 		} else {
-			return null;
+			return RequestGroup.BAD;
 		}
 	}
 	
@@ -110,7 +110,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 				handleApiRequest(ctx, inputHttpRequest);
 				break;
 				
-			default:
+			case BAD:
 				httpResponse.setContent(simpleJsonObject("Error", "Bad request group"));
 				sendHttpResponse(ctx, httpResponse);
 			}

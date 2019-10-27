@@ -16,53 +16,42 @@ INSERT INTO TABLE EXAMPLE:
 
 localhost:3636/insert_into/table_name?api_key=QDxk9K4H9
 
-[
-    [
-        {
-            type : "INTEGER",
-            name : "game_id",
-            value : "2223"
-        },
-        {
-            type : "INTEGER",
-            name : "player_id",
-            value : "7775"
-        },
-        {
-            type : "STRING",
-            name : "save_data",
-            value : "biiiiiiig data"
-        },
-        {
-            type : "STRING",
-            name : "boost_data",
-            value : "SMALL BOOST"
-        }
-    ],
-    [
-        {
-            type : "INTEGER",
-            name : "game_id",
-            value : "9990"
-        },
-        {
-            type : "INTEGER",
-            name : "player_id",
-            value : "8887"
-        },
-        {
-            type : "STRING",
-            name : "save_data",
-            value : "loooooool"
-        },
-        {
-            type : "STRING",
-            name : "boost_data",
-            value : "MEGA BOOST"
-        }
+[<br/>&emsp;
+        [<br/>&emsp;&emsp;
+            {<br/>&emsp;&emsp;&emsp;
+                type : "INTEGER",<br/>&emsp;&emsp;&emsp;
+                name : "field_name1",<br/>&emsp;&emsp;&emsp;
+                value : 3050<br/>&emsp;&emsp;
+            },<br/>&emsp;&emsp;
+            {<br/>&emsp;&emsp;&emsp;
+                type : "FLOAT",
+                name : "field_name2",
+                value : 7.55
+            },
+            {
+                type : "STRING",
+                name : "field_name3",
+                value : "hahaha"
+            }
+        ],
+        [
+            {
+                type : "INTEGER",
+                name : "field_name1",
+                value : 3300
+            },
+            {
+                type : "FLOAT",
+                name : "field_name2",
+                value : 8.0
+            },
+            {
+                type : "STRING",
+                name : "field_name3",
+                value : "what?"
+            }
+        ]
     ]
-]
-
 
 UPDATE TABLE EXAMPLE:
 
