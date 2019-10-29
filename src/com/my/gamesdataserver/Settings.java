@@ -25,6 +25,6 @@ public class Settings {
 	}
 
 	public String get(String parameterName) {
-		return parameters.get(parameterName);
+		return parameters.get(parameterName)==null?"":parameters.get(parameterName);
 	}
 }

@@ -16,8 +16,11 @@ import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class Main {
@@ -25,6 +28,7 @@ public class Main {
 	private static DataBaseInterface dbInterface;
 	private static Settings settings;
 	private static LogManager logManager;
+	private static SslContext sslCtx;
 	
 	public static void main(String[] args) {
 		EventLoopGroup bossGroup = null;
@@ -51,9 +55,14 @@ public class Main {
 			
 			bossGroup = new NioEventLoopGroup();
 	        workerGroup = new NioEventLoopGroup();
-	        SelfSignedCertificate ssc = new SelfSignedCertificate();
-	        SslContext sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
 	        
+	        boolean sslEnable = "Yes".equals(settings.get("enableSsl"));
+	        
+	        if(sslEnable) {
+	        	File tlsCert = new File(settings.get("cert"));
+	        	File tlsPrivateKey = new File(settings.get("privateKey"));
+	        	sslCtx = SslContextBuilder.forServer(tlsCert, tlsPrivateKey).sslProvider(SslProvider.OPENSSL).clientAuth(ClientAuth.NONE).build();
+	        }
 	        ServerBootstrap b = new ServerBootstrap();
 	        b.group(bossGroup, workerGroup)
 	        	.channel(NioServerSocketChannel.class)
@@ -61,14 +70,14 @@ public class Main {
 	        		@Override
 	                public void initChannel(SocketChannel ch) throws Exception {
 	                	ch.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(2048));
-	                	//ch.pipeline().addLast(sslCtx.newHandler(ch.alloc()));
+	                	if(sslEnable) ch.pipeline().addLast(sslCtx.newHandler(ch.alloc()));
 	                    ch.pipeline().addLast(new ClientHandler(dbInterface, logManager));
 	                }
 	        	});
 	            
 	        b.bind(Integer.parseInt(settings.get("serverPort"))).sync().channel().closeFuture().sync();
 	        
-		} catch (SQLException | IOException | CertificateException | InterruptedException e) {
+		} catch (SQLException | IOException /*| CertificateException*/ | InterruptedException e) {
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
 			e.printStackTrace(pw);

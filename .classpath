@@ -4,9 +4,10 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="lib" path="src/mysql-connector-java-5.1.47.jar"/>
 	<classpathentry kind="lib" path="lib/java-json.jar"/>
-	<classpathentry kind="lib" path="lib/netty-all-4.1.41.Final.jar"/>
 	<classpathentry kind="lib" path="lib/commons-dbcp2-2.7.0.jar"/>
 	<classpathentry kind="lib" path="lib/commons-pool2-2.7.0.jar"/>
 	<classpathentry kind="lib" path="lib/javax.mail.jar"/>
+	<classpathentry kind="lib" path="lib/netty-all-4.1.41.Final.jar"/>
+	<classpathentry kind="lib" path="lib/netty-tcnative-boringssl-static-2.0.25.Final.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
