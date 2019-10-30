@@ -52,15 +52,16 @@
             <input id="reg-game" type="button" value="Register game"/><span class="desc">Register game and create tables "players", "scorelevel", "boosts"</span><br/>
             <input class="clear-fields" type="button" value="Clear fileds"/>
         </fieldset>
-        <fieldset style="float: left; margin-right: 8px;" class="area-of-select">
+        <div>
+            <fieldset style="float: left; margin-right: 8px;" class="area-of-select">
             <legend>Select data</legend>
             <label>API key:<input class="api-key-field" type="text"/></label><br/>
             <label>Table:<input class="table-field" type="text"/></label><br/>
             <label>Where:<input class="data-field" type="text"/></label><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
             <input id="select" type="button" value="Request"/><br/>
             <input class="clear-fields" type="button" value="Clear fileds"/>
-        </fieldset>
-        <fieldset style="float: left; margin-right: 8px;" class="area-of-insert">
+            </fieldset>
+            <fieldset style="float: left; margin-right: 8px;" class="area-of-insert">
             <legend>Insert data</legend>
             <label>API key:<input class="api-key-field" type="text"/></label><br/>
             <label>Table:<input class="table-field" type="text"/></label><br/>
@@ -69,8 +70,8 @@
             <span style="display:none" id="check-fields-label"><label>Check fields:<input id="check-fields" type="text"/></label><span class="desc">fieldName1,fieldName2,fieldName3</span></span><br/>
             <input id="insert" type="button" value="Send"/><br/>
             <input class="clear-fields" type="button" value="Clear fileds"/>
-        </fieldset>
-        <fieldset class="area-of-update">
+            </fieldset>
+            <fieldset class="area-of-update">
             <legend>Update data</legend>
             <label>API key:<input class="api-key-field" type="text"/></label><br/>
             <label>Table:<input class="table-field" type="text"/></label><br/>
@@ -78,12 +79,14 @@
             <label>Where:<input class="where-field"/></label><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
             <input id="update" type="button" value="Send"/><br/>
             <input class="clear-fields" type="button" value="Clear fileds"/>
-        </fieldset>
-        <br/>
-        <label>Response:</label><br/><textarea name="" id="response-area" cols="30" rows="10"></textarea>
+            </fieldset>
+        </div>
+        <div style="margin-top: 22px;">
+            <label>Response:</label><br/><textarea name="" id="response-area" cols="30" rows="10"></textarea>
+        </div>
     </form>
     <b>Generate API key / Register owner:</b><br/>
-    https://candy-smith.info:3636/system/generate_api_key?email=fake@fake.net<br/><br/><br/>
+    https://candy-smith.info:3636/system/generate_api_key?<b>email</b>=fake@fake.net<br/><br/><br/>
     
     <b>Register game:</b><br/>
     https://candy-smith.info:3636/system/register_game<br/>
@@ -91,16 +94,16 @@
     api_key=348t7hre48eruif78e74g4&game_name=Magic Forest&game_package=com.magicgames.magicforest&game_type=assetname<br/><br/>
     
     <b>Delete game:</b><br/>
-    https://candy-smith.info:3636/system/delete_game?api_key=348t7hre48eruif78e74g4<br/><br/><br/>
+    https://candy-smith.info:3636/system/delete_game?<b>api_key</b>=348t7hre48eruif78e74g4<br/><br/><br/>
 
     <b>Insert data:</b><br/>
-    https://candy-smith.info:3636/api/insert?api_key=348t7hre48eruif78e74g4&player_id=123456&table=tablename<br/><br/>
+    https://candy-smith.info:3636/api/insert?<b>api_key</b>=348t7hre48eruif78e74g4&<b>table</b>=tablename<br/><br/>
 
     <span style="color: rgb(28, 143, 85);">Эти данные отправляются в теле POST запроса. В данном примере отправляются 2 строки данных.</span><br/>
     [<br/>&emsp;
         [<br/>&emsp;&emsp;
             {<br/>&emsp;&emsp;&emsp;
-                type : "INTEGER",<span style="color: rgb(28, 143, 85);">&emsp;&emsp;&emsp;&emsp;&lt;-- Параметр type не обязательный, так как работает автоматическое приведение типов</span><br/>&emsp;&emsp;&emsp; 
+                type : "INTEGER",<span style="color: rgb(28, 143, 85);">&emsp;&emsp;&emsp;&emsp;&lt;-- Параметр <b>type</b> не обязательный, так как работает автоматическое приведение типов</span><br/>&emsp;&emsp;&emsp; 
                 name : "field_name1",<br/>&emsp;&emsp;&emsp;
                 value : 3050<br/>&emsp;&emsp;
             },<br/>&emsp;&emsp;
@@ -133,9 +136,31 @@
             }<br/>&emsp;
         ]<br/>
     ]<br/><br/><br/>
+
+    <b>Insert data and update if exists:</b><br/>
+    
+    https://candy-smith.info:3636/api/insert?<b>api_key</b>=348t7hre48eruif78e74g4&<b>table</b>=tablename&<b>updateIfExists=true&checkField1=field_name1&checkField2=field_name2</b><br/><br/>
+    
+    [<br/>&emsp;
+        {<br/>&emsp;&emsp;
+            type : "INTEGER",<br/>&emsp;&emsp;
+            name : "field_name1",<br/>&emsp;&emsp;
+            value : 3050<br/>&emsp;
+        },<br/>&emsp;
+        {<br/>&emsp;&emsp;
+            type : "FLOAT",<br/>&emsp;&emsp;
+            name : "field_name2",<br/>&emsp;&emsp;
+            value : 7.55<br/>&emsp;
+        },<br/>&emsp;
+        {<br/>&emsp;&emsp;
+            type : "STRING",<br/>&emsp;&emsp;
+            name : "field_name3",<br/>&emsp;&emsp;
+            value : "hahaha"<br/>&emsp;
+        }<br/>
+    ]<br/><br/><br/>
     
     <b>Select data:</b><br/>
-    https://candy-smith.info:3636/api/select?api_key=348t7hre48eruif78e74g4&player_id=123456&table=tablename<br/><br/>
+    https://candy-smith.info:3636/api/select?<b>api_key</b>=348t7hre48eruif78e74g4&<b>table</b>=tablename<br/><br/>
     <span style="color: rgb(28, 143, 85);">Условие WHERE, SQL запроса, ревращается в field_name1=330 AND field_name2=8.0 AND field_name3='what?'</span><br/>
     [<br/>&emsp;&emsp;
         {<br/>&emsp;&emsp;&emsp;
@@ -156,7 +181,7 @@
     ]<br/><br/><br/>
 
     <b>Update data:</b><br/>
-    https://candy-smith.info:3636/api/update?api_key=348t7hre48eruif78e74g4&player_id=123456&table=tablename<br/><br/>
+    https://candy-smith.info:3636/api/update?<b>api_key</b>=348t7hre48eruif78e74g4&<b>table</b>=tablename<br/><br/>
     <span style="color: rgb(28, 143, 85);">Блоки данных SET и WHERE, SQL запроса UPDATE:</span><br/>
     {<br/>&emsp;
         set :<br/>&emsp;&emsp;
@@ -198,12 +223,6 @@
     }<br/><br/><br/>
     <script>
             function sendAjax(url, postData) {
-                /*$.post(url, postData, 
-                    function(returnedData){
-                        console.log(returnedData);
-                        $("#response-area").text(returnedData);
-                });*/
-                //alert(JSON.stringify(postData));
                 $("#response-area").text("Wait response");
                 $.ajax({
                     url: url,
@@ -212,9 +231,6 @@
                     data: postData,
                     //dataType: "json",
                     success: function (response) {
-                        //var resp = JSON.parse(response)
-                        //alert(resp.status);
-                        //console.log(response);
                         $("#response-area").text(JSON.stringify(response));
                     },
                     error: function (xhr, status) {
