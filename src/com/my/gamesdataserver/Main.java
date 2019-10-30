@@ -56,6 +56,8 @@ public class Main {
 			bossGroup = new NioEventLoopGroup();
 	        workerGroup = new NioEventLoopGroup();
 	        
+	        EmailSender.enabled = "Yes".equals(settings.get("sendEmail"));
+	        
 	        boolean sslEnable = "Yes".equals(settings.get("enableSsl"));
 	        
 	        if(sslEnable) {

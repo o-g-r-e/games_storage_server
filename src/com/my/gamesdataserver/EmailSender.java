@@ -21,6 +21,8 @@ public class EmailSender {
     private static final String EMAIL_FROM = "info@candy-smith.com";
     private static final String EMAIL_TO_CC = "";
     
+    public static boolean enabled = false;
+    
 	private static void sendTo(String emailTo, String subject, String content) throws MessagingException {
 		Properties prop = System.getProperties();
         prop.put("mail.smtp.host", SMTP_SERVER); //optional, defined in SMTPTransport
@@ -74,11 +76,11 @@ public class EmailSender {
 			
 			@Override
 			public void run() {
-				/*try {
-					sendTo(emailTo, subject, content);
+				try {
+					if(enabled) sendTo(emailTo, subject, content);
 				} catch (MessagingException e) {
 					e.printStackTrace();
-				}*/
+				}
 			}
 		}).start();
 	}
