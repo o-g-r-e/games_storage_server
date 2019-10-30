@@ -20,12 +20,15 @@ import com.my.gamesdataserver.TableTemplate;
 import com.my.gamesdataserver.basedbclasses.CellData;
 import com.my.gamesdataserver.basedbclasses.ColData;
 import com.my.gamesdataserver.basedbclasses.DataBaseInterface;
+import com.my.gamesdataserver.basedbclasses.SqlInsert;
+import com.my.gamesdataserver.basedbclasses.SqlSelect;
+import com.my.gamesdataserver.basedbclasses.SqlUpdate;
 
-public class DatabaseEngine  {
+public class GamesDbEngine  {
 	
 	private DataBaseInterface dataBaseInterface;
 
-	public DatabaseEngine(DataBaseInterface dataBaseInterface) {
+	public GamesDbEngine(DataBaseInterface dataBaseInterface) {
 		this.dataBaseInterface = dataBaseInterface;
 	}
 	
@@ -33,19 +36,16 @@ public class DatabaseEngine  {
 		for(TableTemplate tt : gameTemplate.getTables()) {
 			dataBaseInterface.createTable(prefix+tt.getName(), tt.getCols());
 		}
+		dataBaseInterface.createIndex("playerId_boostName", prefix+"boosts", new String[] {"playerId", "name"}, true);
+		dataBaseInterface.createIndex("playerId_unique", prefix+"players", new String[] {"playerId"}, true);
+		dataBaseInterface.createIndex("playerId_level", prefix+"scorelevel", new String[] {"playerId", "level"}, true);
 	}
 	
-	public int writeNewApiKey(String ownerEmail, String apiKey) throws SQLException {
+	public int writeNewApiKey(int ownerId, String apiKey) throws SQLException {
 		List<CellData> row = new ArrayList<>();
-		int ownerId = getOwnerByEmail(ownerEmail).getId();
-		
-		if(ownerId > 0) {
-			row.add(new CellData(Types.VARCHAR, "owner_id", ownerId));
-			row.add(new CellData(Types.VARCHAR, "api_key", apiKey));
-			return dataBaseInterface.insertIntoTable("api_keys", row);
-		}
-		
-		return 0;
+		row.add(new CellData(Types.VARCHAR, "owner_id", ownerId));
+		row.add(new CellData(Types.VARCHAR, "api_key", apiKey));
+		return dataBaseInterface.insertIntoTable("api_keys", row);
 	}
 	
 	public int updateGame(String name, String gameJavaPackage) {
@@ -63,10 +63,6 @@ public class DatabaseEngine  {
 		List<CellData> row = new ArrayList<>();
 		row.add(new CellData(Types.VARCHAR, "email", email));
 		return dataBaseInterface.insertIntoTable("owners", row);
-	}
-	
-	public boolean checkOwnerByEmail(String ownerEmail) throws SQLException {
-		return dataBaseInterface.selectAllWhere("owners", "email="+ownerEmail).size() > 0;
 	}
 	
 	public Owner getOwnerByEmail(String email) throws SQLException {
@@ -170,5 +166,42 @@ public class DatabaseEngine  {
 	
 	public String[] getTablesNamesOfGame(String prefix) throws SQLException {
 		return dataBaseInterface.findTablesByPrefix(prefix);
+	}
+
+	public boolean isTransactionsEnabled() throws SQLException {
+		return dataBaseInterface.isTransactionsEnabled();
+	}
+
+	public void rollback() throws SQLException {
+		dataBaseInterface.rollback();
+	}
+
+	public void enableTransactions() throws SQLException {
+		dataBaseInterface.enableTransactions();
+	}
+
+	public void commit() throws SQLException {
+		dataBaseInterface.commit();
+	}
+
+	public void disableTransactions() throws SQLException {
+		dataBaseInterface.disableTransactions();
+	}
+
+	public List<List<CellData>> executeSelect(SqlSelect sqlRequest) throws SQLException {
+		return dataBaseInterface.executeSelect(sqlRequest);
+	}
+
+	public int executeInsert(SqlInsert sqlRequest) throws SQLException {
+		
+		if(sqlRequest.getRowToInsert().size() > 0) {
+			return dataBaseInterface.executeInsert(sqlRequest);
+		}
+		
+		return 0;
+	}
+
+	public int executeUpdate(SqlUpdate sqlRequest) throws SQLException {
+		return dataBaseInterface.executeUpdate(sqlRequest);
 	}
 }

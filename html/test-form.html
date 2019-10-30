@@ -42,41 +42,39 @@
             <input id="del-game" type="button" value="Delete game"/><br/>
             <input class="clear-fields" type="button" value="Clear fileds"/>
         </fieldset>
-        <br/>
-        <fieldset style="float: left; margin-right: 8px;" class="reg-game-area">
+        <fieldset class="reg-game-area">
             <legend>Register game</legend>
             <label>API key:<input class="api-key-field" type="text"/></label><br/>
             <label>Game name:<input class="game-name-field" type="text"/></label><br/>
             <label>Game package:<input class="game-package-field" type="text"/></label><br/>
             <label>Game type:<input class="game-type-field" type="text"/></label><br/>
+            <input id="fill-test-data" type="button" value="Fill test data"/><br/>
             <input id="reg-game" type="button" value="Register game"/><span class="desc">Register game and create tables "players", "scorelevel", "boosts"</span><br/>
             <input class="clear-fields" type="button" value="Clear fileds"/>
         </fieldset>
-        <fieldset class="area-of-select">
+        <fieldset style="float: left; margin-right: 8px;" class="area-of-select">
             <legend>Select data</legend>
             <label>API key:<input class="api-key-field" type="text"/></label><br/>
-            <label>Player id:<input class="player-id-field" type="text"/></label><br/>
             <label>Table:<input class="table-field" type="text"/></label><br/>
             <label>Where:<input class="data-field" type="text"/></label><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
             <input id="select" type="button" value="Request"/><br/>
             <input class="clear-fields" type="button" value="Clear fileds"/>
         </fieldset>
-        <br/>
         <fieldset style="float: left; margin-right: 8px;" class="area-of-insert">
             <legend>Insert data</legend>
             <label>API key:<input class="api-key-field" type="text"/></label><br/>
-            <label>Player id:<input class="player-id-field" type="text"/></label><br/>
             <label>Table:<input class="table-field" type="text"/></label><br/>
             <label>Data:<input class="data-field" type="text"/></label><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
+            <input id="update-if-exists" type="checkbox" value=""/>Update if exists<br/>
+            <span style="display:none" id="check-fields-label"><label>Check fields:<input id="check-fields" type="text"/></label><span class="desc">fieldName1,fieldName2,fieldName3</span></span><br/>
             <input id="insert" type="button" value="Send"/><br/>
             <input class="clear-fields" type="button" value="Clear fileds"/>
         </fieldset>
         <fieldset class="area-of-update">
             <legend>Update data</legend>
             <label>API key:<input class="api-key-field" type="text"/></label><br/>
-            <label>Player id:<input class="player-id-field" type="text"/></label><br/>
             <label>Table:<input class="table-field" type="text"/></label><br/>
-            <label>Set:<input class="data-field" type="text"/></label><span class="desc">param1=valueA&amp;param2=valueB</span>
+            <label>Set:<input class="data-field" type="text"/></label><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
             <label>Where:<input class="where-field"/></label><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
             <input id="update" type="button" value="Send"/><br/>
             <input class="clear-fields" type="button" value="Clear fileds"/>
@@ -241,17 +239,35 @@
             });
     
             $('#insert').on('click', function() {
-                sendAjax($("#host").val()+":"+$("#port").val()+"/api/insert?api_key="+$('.area-of-insert .api-key-field').val()+"&player_id="+$('.area-of-insert .player-id-field').val()+"&table="+$('.area-of-insert .table-field').val(), 
+                var request = "/api/insert?api_key="+$('.area-of-insert .api-key-field').val()+"&table="+$('.area-of-insert .table-field').val();
+
+                if($('#update-if-exists').is(':checked') && $("#check-fields").val().trim().length > 0) {
+                    request += "&updateIfExists=true";
+                    var fields = $("#check-fields").val().trim().split(",");
+                    fields.forEach(function(el, i) {
+                        request += "&checkField"+(i+1)+"="+el;
+                    });
+                }
+
+                sendAjax($("#host").val()+":"+$("#port").val()+request, 
                 JSON.stringify(dataToJson($('.area-of-insert .data-field').val())));
             });
     
+            $('#update-if-exists').on('click', function() {
+                if($(this).is(':checked')) {
+                    $("#check-fields-label").show();
+                } else {
+                    $("#check-fields-label").hide();
+                }
+            });
+    
             $('#select').on('click', function() {
-                sendAjax($("#host").val()+":"+$("#port").val()+"/api/select?api_key="+$('.area-of-select .api-key-field').val()+"&player_id="+$('.area-of-select .player-id-field').val()+"&table="+$('.area-of-select .table-field').val(), 
+                sendAjax($("#host").val()+":"+$("#port").val()+"/api/select?api_key="+$('.area-of-select .api-key-field').val()+"&table="+$('.area-of-select .table-field').val(), 
                 JSON.stringify(dataToJson($('.area-of-select .data-field').val())));
             });
     
             $('#update').on('click', function() {
-                sendAjax($("#host").val()+":"+$("#port").val()+"/api/update?api_key="+$('.area-of-update .api-key-field').val()+"&player_id="+$('.area-of-update .player-id-field').val()+"&table="+$('.area-of-update .table-field').val(), 
+                sendAjax($("#host").val()+":"+$("#port").val()+"/api/update?api_key="+$('.area-of-update .api-key-field').val()+"&table="+$('.area-of-update .table-field').val(), 
                 JSON.stringify({set : dataToJson($('.area-of-update .data-field').val()), where : dataToJson($('.area-of-update .where-field').val())}));
             });
 
@@ -263,7 +279,7 @@
                         var array2 = item.split("=");
                         result.push({name : array2[0], value : array2[1]});
                     });
-                } else {
+                } else if(data.includes("="))  {
                     var array2 = data.split("=");
                     result.push({name : array2[0], value : array2[1]});
                 }
@@ -274,6 +290,13 @@
             $('.clear-fields').on('click', function() {
                 var parent = $(this).parent();
                 $('input[type=text]', parent).val("");
+            });
+
+            $('#fill-test-data').on('click', function() {
+                var parent = $(this).parent();
+                $('input.game-name-field', parent).val("Magic Forest");
+                $('input.game-package-field', parent).val("com.magicgames.magicforest");
+                $('input.game-type-field', parent).val("quest");
             });
         </script>
 </body>

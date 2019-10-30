@@ -10,8 +10,4 @@ public class SqlSelect extends SqlRequest {
 		super(tableName, whereExpression);
 	}
 	
-	public SqlSelect(String tableName, String json) throws JSONException {
-		super(tableName, json);
-	}
-	
 }

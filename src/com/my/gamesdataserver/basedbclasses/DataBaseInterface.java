@@ -11,6 +11,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import com.my.gamesdataserver.DataBaseConnectionParameters;
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
@@ -83,14 +87,24 @@ public class DataBaseInterface {
 			query.append("`").append(fields[i].getName()).append("` ");
 			switch (fields[i].getType()) {
 			case Types.INTEGER:
-				query.append("INT NULL");
+				query.append("INT");
 				break;
 			case Types.VARCHAR:
-				query.append("VARCHAR(45) NULL");
+				query.append("VARCHAR(45)");
 				break;
 			case Types.FLOAT:
-				query.append("FLOAT NULL");
+				query.append("FLOAT");
 				break;
+			}
+			
+			if(fields[i].isNull()) {
+				query.append(" NULL");
+			} else {
+				query.append(" NOT NULL");
+			}
+			
+			if(fields[i].getDefaultValue() != null && !"".equals(fields[i].getDefaultValue().trim())) {
+				query.append(" DEFAULT ").append(fields[i].getDefaultValue());
 			}
 			
 			if(i < fields.length-1) {
@@ -144,7 +158,9 @@ public class DataBaseInterface {
 		return pstmt.executeUpdate();
 	}
 	
-	
+	public int insertIntoTableMultiRows(String tableName, List<List<CellData>> row) throws SQLException {
+		return 0;
+	}
 	
 	public int updateTable(String tableName, List<CellData> set, List<CellData> where) throws SQLException {
 		StringBuilder sqlUpdate = new StringBuilder("UPDATE ");
@@ -307,10 +323,50 @@ public class DataBaseInterface {
 	}
 	
 	public int executeInsert(SqlInsert sqlInsert) throws SQLException {
-		return insertIntoTable(sqlInsert.getTableName(), sqlInsert.getRowToInsert());
+		return insertIntoTable(sqlInsert.getTableName(), sqlInsert.getRowToInsert().get(0));
+	}
+	
+	public int executeInsertMultiRows(SqlInsert sqlInsert) throws SQLException {
+		return insertIntoTableMultiRows(sqlInsert.getTableName(), sqlInsert.getRowToInsert());
 	}
 	
 	public int executeUpdate(SqlUpdate sqlUpdate) throws SQLException {
 		return updateTable(sqlUpdate.getTableName(), sqlUpdate.getUpdatesData(), sqlUpdate.getWhereExpression());
+	}
+	
+	public static List<CellData> parseCellDataRow(String jsonCallDataArray) throws JSONException {
+		return parseCellDataRow(new JSONArray(jsonCallDataArray));
+	}
+	
+	public static List<List<CellData>> parseCellDataRows(String jsonCallDataArray) throws JSONException {
+		return parseCellDataRows(new JSONArray(jsonCallDataArray));
+	}
+	
+	public static List<CellData> parseCellDataRow(JSONArray rowArray) throws JSONException {
+		List<CellData> result = new ArrayList<>();
+		for (int i = 0; i < rowArray.length(); i++) {
+			JSONObject cellObject = rowArray.getJSONObject(i);
+			if(!cellObject.has("name") || !cellObject.has("value")) {
+				continue;
+			}
+			if(cellObject.has("type")) {
+				result.add(new CellData(DataBaseInterface.parseDataType(cellObject.getString("type")), cellObject.getString("name"), cellObject.getString("value")));
+			} else {
+				result.add(new CellData(cellObject.getString("name"), cellObject.getString("value")));
+			}
+		}
+		return result;
+	}
+	
+	public static List<List<CellData>> parseCellDataRows(JSONArray rowsArray) throws JSONException {
+		List<List<CellData>> result = new ArrayList<>();
+		for (int i = 0; i < rowsArray.length(); i++) {
+			result.add(parseCellDataRow(rowsArray.getJSONArray(i)));
+		}
+		return result;
+	}
+	
+	public void createIndex(String indexName, String tableName, String[] fields, boolean unique) throws SQLException {
+		getCon().prepareStatement(String.format("CREATE %s INDEX %s ON %s(%s)", unique?"UNIQUE":"", indexName, tableName, String.join(",", fields))).execute();
 	}
 }

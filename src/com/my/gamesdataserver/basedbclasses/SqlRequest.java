@@ -19,32 +19,6 @@ public class SqlRequest {
 		this.whereExpression = whereExpression;
 		this.tableName = tableName;
 	}
-	
-	public SqlRequest(String tableName, String json) throws JSONException {
-		parseWhereExpression(json);
-		this.tableName = tableName;
-	}
-	
-	private void parseWhereExpression(String jsonCallDataArray) throws JSONException {
-		whereExpression = parseCellDataRow(jsonCallDataArray);
-	}
-	
-	protected List<CellData> parseCellDataRow(String jsonCallDataArray) throws JSONException {
-		List<CellData> result = new ArrayList<>();
-		JSONArray jsonArray = new JSONArray(jsonCallDataArray);
-		for (int i = 0; i < jsonArray.length(); i++) {
-			JSONObject cellObject = jsonArray.getJSONObject(i);
-			if(!cellObject.has("name") || !cellObject.has("value")) {
-				continue;
-			}
-			if(cellObject.has("type")) {
-				result.add(new CellData(DataBaseInterface.parseDataType(cellObject.getString("type")), cellObject.getString("name"), cellObject.getString("value")));
-			} else {
-				result.add(new CellData(cellObject.getString("name"), cellObject.getString("value")));
-			}
-		}
-		return result;
-	}
 
 	public String getTableName() {
 		return tableName;
