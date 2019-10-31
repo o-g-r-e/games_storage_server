@@ -1,19 +1,17 @@
-package com.my.gamesdataserver.defaultgameclasses;
+package com.my.gamesdataserver.template1classes;
 
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.my.gamesdataserver.DataBaseConnectionParameters;
 import com.my.gamesdataserver.basedbclasses.CellData;
 import com.my.gamesdataserver.basedbclasses.DataBaseInterface;
 
-public class BaseGameDbInterface {
+public class Template1DbEngine {
 	private DataBaseInterface dataBaseInterface;
 	private String tablePrefix;
 	
-	public BaseGameDbInterface(DataBaseInterface dataBaseInterface) {
+	public Template1DbEngine(DataBaseInterface dataBaseInterface) {
 		this.dataBaseInterface = dataBaseInterface;
 	}
 	
@@ -21,15 +19,15 @@ public class BaseGameDbInterface {
 		this.tablePrefix = tablePrefix;
 	}
 	
-	public PlayerData readPlayerData(String playerId/*, String tablePrefix*/) throws SQLException {
-		List<Level> levels = getLevelsOfPlayer(playerId/*, tablePrefix*/);
-		List<Boost> boosts = getBoostsOfPlayer(playerId/*, tablePrefix*/);
+	public PlayerData readPlayerData(String playerId) throws SQLException {
+		List<Level> levels = getLevelsOfPlayer(playerId);
+		List<Boost> boosts = getBoostsOfPlayer(playerId);
 		return new PlayerData(levels.size(), levels, boosts);
 	}
 	
-	public List<Level> getLevelsOfPlayer(String playerId/*, String tablePrefix*/) throws SQLException {
+	public List<Level> getLevelsOfPlayer(String playerId) throws SQLException {
 		List<Level> levels = new ArrayList<Level>();
-		List<List<CellData>> rows = dataBaseInterface.selectAllWhere(tablePrefix+"scorelevel", "playerId="+playerId);
+		List<List<CellData>> rows = dataBaseInterface.selectAllWhere(tablePrefix+"levels", "playerId="+playerId);
 		
 		for(List<CellData> row : rows) {
 			levels.add(new Level((int)row.get(0).getValue(), 
@@ -42,7 +40,7 @@ public class BaseGameDbInterface {
 		return levels;
 	}
 	
-	public List<Boost> getBoostsOfPlayer(String playerId/*, String tablePrefix*/) throws SQLException {
+	public List<Boost> getBoostsOfPlayer(String playerId) throws SQLException {
 		List<Boost> boosts = new ArrayList<Boost>();
 		List<List<CellData>> rows = dataBaseInterface.selectAllWhere(tablePrefix+"boosts", "playerId='"+playerId+"'");
 		
@@ -56,7 +54,7 @@ public class BaseGameDbInterface {
 		return boosts;
 	}
 	
-	public Player getPlayer(String playerId/*, String tablePrefix*/) throws SQLException {
+	public Player getPlayer(String playerId) throws SQLException {
 		
 		List<List<CellData>> rows = dataBaseInterface.selectAllWhere(tablePrefix+"players", "playerId="+playerId);
 		

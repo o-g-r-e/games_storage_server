@@ -1,4 +1,4 @@
-package com.my.gamesdataserver;
+package com.my.gamesdataserver.helpers;
 
 import java.io.File;
 import java.io.FileNotFoundException;

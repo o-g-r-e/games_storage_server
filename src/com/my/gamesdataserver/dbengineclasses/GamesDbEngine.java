@@ -15,14 +15,14 @@ import java.util.Set;
 
 import com.my.gamesdataserver.ClientHandler;
 import com.my.gamesdataserver.DataBaseConnectionParameters;
-import com.my.gamesdataserver.GameTemplate;
-import com.my.gamesdataserver.TableTemplate;
 import com.my.gamesdataserver.basedbclasses.CellData;
 import com.my.gamesdataserver.basedbclasses.ColData;
 import com.my.gamesdataserver.basedbclasses.DataBaseInterface;
 import com.my.gamesdataserver.basedbclasses.SqlInsert;
 import com.my.gamesdataserver.basedbclasses.SqlSelect;
 import com.my.gamesdataserver.basedbclasses.SqlUpdate;
+import com.my.gamesdataserver.basedbclasses.TableIndex;
+import com.my.gamesdataserver.basedbclasses.TableTemplate;
 
 public class GamesDbEngine  {
 	
@@ -33,12 +33,15 @@ public class GamesDbEngine  {
 	}
 	
 	public void createGameTables(GameTemplate gameTemplate, String prefix) throws SQLException {
-		for(TableTemplate tt : gameTemplate.getTables()) {
-			dataBaseInterface.createTable(prefix+tt.getName(), tt.getCols());
+		
+		for(TableTemplate tableTemplate : gameTemplate.getTableTemplates()) {
+			
+			dataBaseInterface.createTable(prefix+tableTemplate.getName(), tableTemplate.getCols());
+			
+			for(TableIndex tIndex : tableTemplate.getIndices()) {
+				dataBaseInterface.createIndex(tIndex.getName(), prefix+tableTemplate.getName(), tIndex.getFields(), tIndex.isUnique());
+			}
 		}
-		dataBaseInterface.createIndex("playerId_boostName", prefix+"boosts", new String[] {"playerId", "name"}, true);
-		dataBaseInterface.createIndex("playerId_unique", prefix+"players", new String[] {"playerId"}, true);
-		dataBaseInterface.createIndex("playerId_level", prefix+"scorelevel", new String[] {"playerId", "level"}, true);
 	}
 	
 	public int writeNewApiKey(int ownerId, String apiKey) throws SQLException {

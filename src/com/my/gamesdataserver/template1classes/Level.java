@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.defaultgameclasses;
+package com.my.gamesdataserver.template1classes;
 
 public class Level {
 	private int id;

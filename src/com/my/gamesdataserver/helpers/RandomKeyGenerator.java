@@ -1,4 +1,4 @@
-package com.my.gamesdataserver;
+package com.my.gamesdataserver.helpers;
 import java.security.SecureRandom;
 import java.util.Locale;
 import java.util.Objects;

@@ -28,10 +28,18 @@ import com.my.gamesdataserver.basedbclasses.SqlInsert;
 import com.my.gamesdataserver.basedbclasses.SqlRequest;
 import com.my.gamesdataserver.basedbclasses.SqlSelect;
 import com.my.gamesdataserver.basedbclasses.SqlUpdate;
+import com.my.gamesdataserver.basedbclasses.TableIndex;
+import com.my.gamesdataserver.basedbclasses.TableTemplate;
 import com.my.gamesdataserver.dbengineclasses.ApiKey;
 import com.my.gamesdataserver.dbengineclasses.GamesDbEngine;
 import com.my.gamesdataserver.dbengineclasses.Owner;
+import com.my.gamesdataserver.helpers.EmailSender;
+import com.my.gamesdataserver.helpers.LogManager;
+import com.my.gamesdataserver.helpers.RandomKeyGenerator;
+import com.my.gamesdataserver.template1classes.Player;
+import com.my.gamesdataserver.template1classes.Template1DbEngine;
 import com.my.gamesdataserver.dbengineclasses.Game;
+import com.my.gamesdataserver.dbengineclasses.GameTemplate;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -44,6 +52,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	
 	//private DataBaseInterface dbInterface;
 	private GamesDbEngine dbManager;
+	private Template1DbEngine template1DbManager;
 	private LogManager logManager;
 	//private Access access = new Access();
 	//private StringBuilder errorLogMessage = new StringBuilder();
@@ -51,9 +60,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	private HttpResponse httpResponse = new HttpResponse("1.1", 200, "");
 	private static Map<String, String> defaultResponseHeaders = new HashMap<>();
 	private String errorLogFilePrefix = "error";
-	private static final GameTemplate gameTemplate = createGameTemplate();
+	private static final GameTemplate gameTemplate = createGameTemplate1();
 	
-	private enum RequestGroup {BASE, API, BAD};
+	private enum RequestGroup {BASE, API, TEMPLATE_API, BAD};
 	
 	static {
 		defaultResponseHeaders.put("Access-Control-Allow-Origin", "*");
@@ -66,12 +75,15 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	public ClientHandler(DataBaseInterface dbInterface, LogManager logManager) throws IOException {
 		//this.dbInterface = dbInterface;
 		this.dbManager = new GamesDbEngine(dbInterface);
+		this.template1DbManager = new Template1DbEngine(dbInterface);
 		this.logManager = logManager;
 	}
 	
 	private RequestGroup recognizeRequestGroup(HttpRequest httpRequest) {
 		if(httpRequest.getUrl().startsWith("/api")) {
 			return RequestGroup.API;
+		} else if(httpRequest.getUrl().startsWith("/api/template1")) {
+			return RequestGroup.TEMPLATE_API;
 		} else if(httpRequest.getUrl().startsWith("/system")) {
 			return RequestGroup.BASE;
 		} else {
@@ -113,9 +125,14 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 				handleApiRequest(ctx, inputHttpRequest);
 				break;
 				
+			case TEMPLATE_API:
+				handleTemplateRequest(ctx, inputHttpRequest);
+				break;
+				
 			case BAD:
 				httpResponse.setContent(simpleJsonObject("Error", "Bad request group"));
 				sendHttpResponse(ctx, httpResponse);
+				break;
 			}
 			
 			/*if(errorLogMessage.length() > 0) {
@@ -141,6 +158,43 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		}
     }
 	
+	private void handleTemplateRequest(ChannelHandlerContext ctx, HttpRequest httpRequest) throws SQLException {
+		String responseContent = "";
+		if(!simpleValidation(new String[] {"api_key", "table", "playerId"}, httpRequest.getUrlParametrs())) {
+			sendValidationFailResponse(ctx, httpResponse);
+			return;
+		}
+		
+		String apiKey = httpRequest.getUrlParametrs().get("api_key");
+		
+		Game game = dbManager.getGameByKey(apiKey);
+		
+		if(game == null) {
+			httpResponse.setContent(simpleJsonObject("Error", "Game not found"));
+			sendHttpResponse(ctx, httpResponse);
+			return;
+		}
+		
+		template1DbManager.setTablePrefix(game.getPrefix());
+		
+		String playerId = httpRequest.getUrlParametrs().get("playerId");
+		
+		Player player = template1DbManager.getPlayer(playerId);
+		
+		if(player == null) {
+			httpResponse.setContent(simpleJsonObject("Error", "Player not found"));
+			sendHttpResponse(ctx, httpResponse);
+			return;
+		}
+		
+		if(httpRequest.getUrl().startsWith("/api/template1/completeLevel")) {
+			
+		}
+		
+		httpResponse.setContent(responseContent);
+		sendHttpResponse(ctx, httpResponse);
+	}
+
 	private void handleSystemRequest(ChannelHandlerContext ctx, HttpRequest httpRequest) throws SQLException, MessagingException {
 		String responseContent = "";
 		if(httpRequest.getUrl().startsWith("/system/generate_api_key")) {
@@ -273,9 +327,6 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		if(httpRequest.getUrl().startsWith("/api/select")) {
 			
 			List<CellData> whereData = DataBaseInterface.parseCellDataRow(httpRequest.getContent());
-			/*if(json.length() <= 0) {
-				json = "[{\"type\":\"STRING\",\"name\":\"playerId\",\"value\":\""+httpRequest.getUrlParametrs().get("player_id")+"\"}]";
-			}*/
 			result = new SqlSelect(tableName, whereData);
 			
 		} else if(httpRequest.getUrl().startsWith("/api/insert")) {
@@ -387,21 +438,32 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		sendHttpResponse(ctx, httpResponse);
 	}
 	
-	private static GameTemplate createGameTemplate() {
+	private static GameTemplate createGameTemplate1() {
 		
-		List<TableTemplate> tt = new ArrayList<>();
-		tt.add(new TableTemplate("scorelevel", new ColData[] {new ColData(Types.INTEGER, "playerId", false),
-															  new ColData(Types.INTEGER, "level", false),
-															  new ColData(Types.INTEGER, "score"),
-															  new ColData(Types.INTEGER, "stars")}));
+		List<TableTemplate> tblTemplates = new ArrayList<>();
+		TableTemplate levelsTemplate = new TableTemplate("levels", new ColData[] {new ColData(Types.INTEGER, "playerId", false),
+				  																		new ColData(Types.INTEGER, "level", false),
+																						new ColData(Types.INTEGER, "score"),
+																						new ColData(Types.INTEGER, "stars")});
 		
-		tt.add(new TableTemplate("players", new ColData[] {new ColData(Types.VARCHAR, "playerId", false), new ColData(Types.INTEGER, "max_level")}));
+		levelsTemplate.addIndex(new TableIndex("playerId_level", new String[] {"playerId", "level"}, true));
 		
-		tt.add(new TableTemplate("boosts", new ColData[] {new ColData(Types.INTEGER, "playerId", false), 
-														  new ColData(Types.VARCHAR, "name", false), 
-														  new ColData(Types.INTEGER, "count", "0")}));
+		TableTemplate playersTemplate = new TableTemplate("players", new ColData[] {new ColData(Types.VARCHAR, "playerId", false), 
+																					new ColData(Types.INTEGER, "max_level")});
 		
-		return new GameTemplate(GameTemplate.Types.MATCH3, tt);
+		playersTemplate.addIndex(new TableIndex("playerId_unique", new String[] {"playerId"}, true));
+				
+		TableTemplate boostsTemplate = new TableTemplate("boosts", new ColData[] {new ColData(Types.INTEGER, "playerId", false), 
+				  																	new ColData(Types.VARCHAR, "name", false), 
+																					new ColData(Types.INTEGER, "count", "0")});
+		
+		boostsTemplate.addIndex(new TableIndex("playerId_boostName", new String[] {"playerId", "name"}, true));
+		
+		tblTemplates.add(levelsTemplate);
+		tblTemplates.add(playersTemplate);
+		tblTemplates.add(boostsTemplate);
+		
+		return new GameTemplate("Template1", tblTemplates);
 	}
 	
 	private boolean simpleValidation(String[] names, Map<String, String> parameters) {
@@ -413,7 +475,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		return true;
 	}
 	
-	private boolean validateApi(String[] names, Map<String, String> parameters, String apiKeyVarName) throws SQLException {
+	/*private boolean validateApi(String[] names, Map<String, String> parameters, String apiKeyVarName) throws SQLException {
 		if(!simpleValidation(new String[] {"player_id", "api_key"}, parameters)) {
 			return false;
 		}
@@ -423,7 +485,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		}
 		
 		return true;
-	}
+	}*/
 	
 	private void sendValidationFailResponse(ChannelHandlerContext ctx, HttpResponse httpResponse) {
 		httpResponse.setContent(simpleJsonObject("Error", "Parameters validation failed"));

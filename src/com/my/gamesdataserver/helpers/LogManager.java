@@ -1,4 +1,4 @@
-package com.my.gamesdataserver;
+package com.my.gamesdataserver.helpers;
 
 import java.io.File;
 import java.io.IOException;
@@ -47,7 +47,7 @@ public class LogManager {
 		}
 	}
 	
-	LogManager(int poolCapacity) throws IOException {
+	public LogManager(int poolCapacity) throws IOException {
 		executorService = Executors.newFixedThreadPool(poolCapacity);
 		logsDirectoryPath = new File(".").getCanonicalPath()+File.separator+"logs";
 		File logsDirectory = new File(logsDirectoryPath);

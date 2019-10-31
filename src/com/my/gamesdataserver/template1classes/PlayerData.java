@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.defaultgameclasses;
+package com.my.gamesdataserver.template1classes;
 
 import java.util.List;
 
