@@ -20,6 +20,10 @@ public class Row {
 		return mapCells.get(fieldName);
 	}
 
+	public boolean containsCell(String fieldName) {
+		return mapCells.containsKey(fieldName);
+	}
+
 	public List<CellData> getCells() {
 		return cells;
 	}

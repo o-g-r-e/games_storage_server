@@ -11,9 +11,13 @@
         .api-key-field {
             width:330px;
         }
-        input {
-            margin-bottom: 6px;
+        input[type='text'] {
             margin-left: 6px;
+            margin-right: 6px;
+            margin-bottom: 6px;
+        }
+        input[type='button'] {
+            margin-bottom: 6px;
             margin-right: 6px;
         }
         .desc {
@@ -21,206 +25,299 @@
             color: rgb(167, 167, 167);
             font-style: italic;
         }
+        .code-block {
+            padding: 5px;
+            background-color: #e6e3e3;
+            border: solid 2px #a2a2a2;
+            border-radius: 10px;
+            margin-top: 5px;
+            margin-bottom: 20px;
+        }
+        .area-of-delete-game {
+            width: 408px;
+        }
+        .reg-game-area {
+            width: 542px;
+            margin-right: 8px;
+            float: left;
+        }
+        .area-of-select {
+            width: 407px;
+            height: 212px;
+        }
+        .area-of-update {
+            width: 543px;
+        }
+        .area-of-update-mod1 {
+            width: 517px;
+        }
+        /*.area-of-update .table-field {
+            margin-left: 24px;
+        }
+        .area-of-update .data-field {
+            margin-left: 39px;
+        }
+        .area-of-update .where-field {
+            margin-left: 17px;
+        }
+        .area-of-insert .table-field {
+            margin-left: 24px;
+        }
+        .area-of-insert .data-field {
+            margin-left: 29px;
+        }*/
+        label {
+            display: inline-block;
+            width: 100px;
+            text-align: right;
+        }
+        .server-area label {
+            width: 37px;
+        }
+        .gen-api-area label {
+            width: 44px;
+        }
+        .area-of-delete-game label {
+            width: 60px;
+        }
+        .area-of-select label, .area-of-insert label, .area-of-update label {
+            width: 58px;
+        }
+
+        .area-of-insert #update-if-exists {
+            margin-left: 65px;
+            margin-bottom: 11px;
+        }
+
+        .area-of-insert-mod1 label {
+            width: 85px;
+        }
+
+        .area-of-insert-mod1 #update-if-exists  {
+            margin-left: 92px;
+        }
+
+        #response-area {
+            width: 1008px;
+        }
+
+        .content {
+            margin-left: auto;
+            margin-right: auto;
+            width: 1017px;
+        }
     </style>
 </head>
 <body>
-    <form>
-        <fieldset style="float: left; margin-right: 8px; height:100px;">
-            <legend>Server</legend>
-            <label>Host:<input id="host" type="text" value="http://"/></label><br/>
-            <label>Port:<input id="port" type="text"/></label><br/>
-        </fieldset>
-        <fieldset style="float: left; margin-right: 8px;">
-            <legend>Generate API key / Register owner</legend>
-            <label>Email:<input style="width: 250px;" id="owner-email" type="text"/></label><br/>
-            <input id="gen-api-key" type="button" value="Generate API key"/><br/>
-            <input class="clear-fields" type="button" value="Clear fileds"/>
-        </fieldset>
-        <fieldset class="area-of-delete-game">
-            <legend>Delete game</legend>
-            <label>API key:<input class="api-key-field" type="text"/></label><br/>
-            <input id="del-game" type="button" value="Delete game"/><br/>
-            <input class="clear-fields" type="button" value="Clear fileds"/>
-        </fieldset>
-        <fieldset class="reg-game-area">
-            <legend>Register game</legend>
-            <label>API key:<input class="api-key-field" type="text"/></label><br/>
-            <label>Game name:<input class="game-name-field" type="text"/></label><br/>
-            <label>Game package:<input class="game-package-field" type="text"/></label><br/>
-            <label>Game type:<input class="game-type-field" type="text"/></label><br/>
-            <input id="fill-test-data" type="button" value="Fill test data"/><br/>
-            <input id="reg-game" type="button" value="Register game"/><span class="desc">Register game and create tables "players", "scorelevel", "boosts"</span><br/>
-            <input class="clear-fields" type="button" value="Clear fileds"/>
-        </fieldset>
-        <div>
-            <fieldset style="float: left; margin-right: 8px;" class="area-of-select">
-            <legend>Select data</legend>
-            <label>API key:<input class="api-key-field" type="text"/></label><br/>
-            <label>Table:<input class="table-field" type="text"/></label><br/>
-            <label>Where:<input class="data-field" type="text"/></label><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-            <input id="select" type="button" value="Request"/><br/>
-            <input class="clear-fields" type="button" value="Clear fileds"/>
-            </fieldset>
-            <fieldset style="float: left; margin-right: 8px;" class="area-of-insert">
-            <legend>Insert data</legend>
-            <label>API key:<input class="api-key-field" type="text"/></label><br/>
-            <label>Table:<input class="table-field" type="text"/></label><br/>
-            <label>Data:<input class="data-field" type="text"/></label><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-            <input id="update-if-exists" type="checkbox" value=""/>Update if exists<br/>
-            <span style="display:none" id="check-fields-label"><label>Check fields:<input id="check-fields" type="text"/></label><span class="desc">fieldName1,fieldName2,fieldName3</span></span><br/>
-            <input id="insert" type="button" value="Send"/><br/>
-            <input class="clear-fields" type="button" value="Clear fileds"/>
-            </fieldset>
-            <fieldset class="area-of-update">
-            <legend>Update data</legend>
-            <label>API key:<input class="api-key-field" type="text"/></label><br/>
-            <label>Table:<input class="table-field" type="text"/></label><br/>
-            <label>Set:<input class="data-field" type="text"/></label><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-            <label>Where:<input class="where-field"/></label><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-            <input id="update" type="button" value="Send"/><br/>
-            <input class="clear-fields" type="button" value="Clear fileds"/>
-            </fieldset>
-        </div>
-        <div style="margin-top: 22px;">
-            <label>Response:</label><br/><textarea name="" id="response-area" cols="30" rows="10"></textarea>
-        </div>
+    <div style="overflow: auto;" class="content"><form>
+    <div><fieldset class="server-area" style="float: left; margin-right: 8px; height:100px;">
+    <legend>Server</legend>
+    <label>Host:</label><input id="host" type="text" value="http://"/><br/>
+    <label>Port:</label><input id="port" type="text"/><br/>
+    </fieldset>
+    <fieldset class="gen-api-area" style="float: left; margin-right: 8px;">
+    <legend>Generate API key / Register owner</legend>
+    <label>Email:</label><input style="width: 250px;" id="owner-email" type="text"/><br/>
+    <input id="gen-api-key" type="button" value="Generate API key"/><br/>
+    <input class="clear-fields" type="button" value="Clear fileds"/>
+    </fieldset>
+    <fieldset class="area-of-delete-game">
+    <legend>Delete game</legend>
+    <label>API key:</label><input class="api-key-field" type="text"/><br/>
+    <input id="del-game" type="button" value="Delete game"/><br/>
+    <input class="clear-fields" type="button" value="Clear fileds"/>
+    </fieldset>
+    <fieldset class="reg-game-area">
+    <legend>Register game</legend>
+    <label>API key:</label><input class="api-key-field" type="text"/><br/>
+    <label>Game name:</label><input class="game-name-field" type="text"/><br/>
+    <label>Game package:</label><input class="game-package-field" type="text"/><br/>
+    <label>Game type:</label><input class="game-type-field" type="text"/><br/>
+    <input id="fill-test-data" type="button" value="Fill test data"/><br/>
+    <input id="reg-game" type="button" value="Register game"/><span class="desc">Register game and create tables "players", "scorelevel", "boosts"</span><br/>
+    <input class="clear-fields" type="button" value="Clear fileds"/>
+    </fieldset>
+    <fieldset class="area-of-select">
+    <legend>Select data</legend>
+    <label>API key:</label><input class="api-key-field" type="text"/><br/>
+    <label>Table:</label><input class="table-field" type="text"/><br/>
+    <label>Where:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
+    <input id="select" type="button" value="Request"/><br/>
+    <input class="clear-fields" type="button" value="Clear fileds"/>
+    </fieldset>
+    <fieldset style="float: left; margin-right: 8px;" class="area-of-insert">
+    <legend>Insert data</legend>
+    <label>API key:</label><input class="api-key-field" type="text"/><br/>
+    <label>Table:</label><input class="table-field" type="text"/><br/>
+    <label>Data:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
+    <input id="update-if-exists" type="checkbox" value=""/>Update if exists
+    <span style="display:none" id="check-fields-label"><br/><label>Check fields:</label><input id="check-fields" type="text"/><span class="desc">fieldName1,fieldName2,fieldName3</span></span><br/>
+    <input id="insert" type="button" value="Send"/><br/>
+    <input class="clear-fields" type="button" value="Clear fileds"/>
+    </fieldset>
+    <fieldset class="area-of-update">
+    <legend>Update data</legend>
+    <label>API key:</label><input class="api-key-field" type="text"/><br/>
+    <label>Table:</label><input class="table-field" type="text"/><br/>
+    <label>Set:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
+    <label>Where:</label><input class="where-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
+    <input id="update" type="button" value="Send"/><br/>
+    <input class="clear-fields" type="button" value="Clear fileds"/>
+    </fieldset></div>
+    <div style="margin-top: 12px; margin-bottom: 12px;">
+    <label style="width: 80px;">Response:</label><br/><textarea name="" id="response-area" cols="30" rows="10"></textarea>
+    </div>
     </form>
     <b>Generate API key / Register owner:</b><br/>
-    https://candy-smith.info:3636/system/generate_api_key?<b>email</b>=fake@fake.net<br/><br/><br/>
+    <div class="code-block">
+    https://candy-smith.info:3636/system/generate_api_key?<b>email</b>=fake@fake.net
+    </div>
     
     <b>Register game:</b><br/>
+    <div class="code-block">
     https://candy-smith.info:3636/system/register_game<br/>
     <span style="color: rgb(28, 143, 85);">Эти данные отправляются в теле POST запроса:</span><br/>
-    api_key=348t7hre48eruif78e74g4&game_name=Magic Forest&game_package=com.magicgames.magicforest&game_type=assetname<br/><br/>
+    <b>api_key</b>=348t7hre48eruif78e74g4&<b>game_name</b>=Magic Forest&<b>game_package</b>=com.magicgames.magicforest&<b>game_type</b>=assetname
+    </div>
     
     <b>Delete game:</b><br/>
-    https://candy-smith.info:3636/system/delete_game?<b>api_key</b>=348t7hre48eruif78e74g4<br/><br/><br/>
-
+    <div class="code-block">
+    https://candy-smith.info:3636/system/delete_game?<b>api_key</b>=348t7hre48eruif78e74g4
+    </div>
+    
     <b>Insert data:</b><br/>
+    <div class="code-block">
     https://candy-smith.info:3636/api/insert?<b>api_key</b>=348t7hre48eruif78e74g4&<b>table</b>=tablename<br/><br/>
-
+    
     <span style="color: rgb(28, 143, 85);">Эти данные отправляются в теле POST запроса. В данном примере отправляются 2 строки данных.</span><br/>
     [<br/>&emsp;
-        [<br/>&emsp;&emsp;
-            {<br/>&emsp;&emsp;&emsp;
-                type : "INTEGER",<span style="color: rgb(28, 143, 85);">&emsp;&emsp;&emsp;&emsp;&lt;-- Параметр <b>type</b> не обязательный, так как работает автоматическое приведение типов</span><br/>&emsp;&emsp;&emsp; 
-                name : "field_name1",<br/>&emsp;&emsp;&emsp;
-                value : 3050<br/>&emsp;&emsp;
-            },<br/>&emsp;&emsp;
-            {<br/>&emsp;&emsp;&emsp;
-                type : "FLOAT",<br/>&emsp;&emsp;&emsp;
-                name : "field_name2",<br/>&emsp;&emsp;&emsp;
-                value : 7.55<br/>&emsp;&emsp;
-            },<br/>&emsp;&emsp;
-            {<br/>&emsp;&emsp;&emsp;
-                type : "STRING",<br/>&emsp;&emsp;&emsp;
-                name : "field_name3",<br/>&emsp;&emsp;&emsp;
-                value : "hahaha"<br/>&emsp;&emsp;
-            }<br/>&emsp;
-        ],<br/>&emsp;
-        [<br/>&emsp;&emsp;
-            {<br/>&emsp;&emsp;&emsp;
-                type : "INTEGER",<br/>&emsp;&emsp;&emsp;
-                name : "field_name1",<br/>&emsp;&emsp;&emsp;
-                value : 3300<br/>&emsp;&emsp;
-            },<br/>&emsp;&emsp;
-            {<br/>&emsp;&emsp;&emsp;
-                type : "FLOAT",<br/>&emsp;&emsp;&emsp;
-                name : "field_name2",<br/>&emsp;&emsp;&emsp;
-                value : 8.0<br/>&emsp;&emsp;
-            },<br/>&emsp;&emsp;
-            {<br/>&emsp;&emsp;&emsp;
-                type : "STRING",<br/>&emsp;&emsp;&emsp;
-                name : "field_name3",<br/>&emsp;&emsp;&emsp;
-                value : "what?"<br/>&emsp;&emsp;
-            }<br/>&emsp;
-        ]<br/>
-    ]<br/><br/><br/>
-
+    [<br/>&emsp;&emsp;
+    {<br/>&emsp;&emsp;&emsp;
+    type : "INTEGER",<span style="color: rgb(28, 143, 85);">&emsp;&emsp;&emsp;&emsp;&lt;-- Параметр <b>type</b> не обязательный, так как работает автоматическое приведение типов</span><br/>&emsp;&emsp;&emsp;
+    name : "field_name1",<br/>&emsp;&emsp;&emsp;
+    value : 3050<br/>&emsp;&emsp;
+    },<br/>&emsp;&emsp;
+    {<br/>&emsp;&emsp;&emsp;
+    type : "FLOAT",<br/>&emsp;&emsp;&emsp;
+    name : "field_name2",<br/>&emsp;&emsp;&emsp;
+    value : 7.55<br/>&emsp;&emsp;
+    },<br/>&emsp;&emsp;
+    {<br/>&emsp;&emsp;&emsp;
+    type : "STRING",<br/>&emsp;&emsp;&emsp;
+    name : "field_name3",<br/>&emsp;&emsp;&emsp;
+    value : "hahaha"<br/>&emsp;&emsp;
+    }<br/>&emsp;
+    ],<br/>&emsp;
+    [<br/>&emsp;&emsp;
+    {<br/>&emsp;&emsp;&emsp;
+    type : "INTEGER",<br/>&emsp;&emsp;&emsp;
+    name : "field_name1",<br/>&emsp;&emsp;&emsp;
+    value : 3300<br/>&emsp;&emsp;
+    },<br/>&emsp;&emsp;
+    {<br/>&emsp;&emsp;&emsp;
+    type : "FLOAT",<br/>&emsp;&emsp;&emsp;
+    name : "field_name2",<br/>&emsp;&emsp;&emsp;
+    value : 8.0<br/>&emsp;&emsp;
+    },<br/>&emsp;&emsp;
+    {<br/>&emsp;&emsp;&emsp;
+    type : "STRING",<br/>&emsp;&emsp;&emsp;
+    name : "field_name3",<br/>&emsp;&emsp;&emsp;
+    value : "what?"<br/>&emsp;&emsp;
+    }<br/>&emsp;
+    ]<br/>
+    ]
+    </div>
+    
     <b>Insert data and update if exists:</b><br/>
     
+    <div class="code-block">
     https://candy-smith.info:3636/api/insert?<b>api_key</b>=348t7hre48eruif78e74g4&<b>table</b>=tablename&<b>updateIfExists=true&checkField1=field_name1&checkField2=field_name2</b><br/><br/>
     
     [<br/>&emsp;
-        {<br/>&emsp;&emsp;
-            type : "INTEGER",<br/>&emsp;&emsp;
-            name : "field_name1",<br/>&emsp;&emsp;
-            value : 3050<br/>&emsp;
-        },<br/>&emsp;
-        {<br/>&emsp;&emsp;
-            type : "FLOAT",<br/>&emsp;&emsp;
-            name : "field_name2",<br/>&emsp;&emsp;
-            value : 7.55<br/>&emsp;
-        },<br/>&emsp;
-        {<br/>&emsp;&emsp;
-            type : "STRING",<br/>&emsp;&emsp;
-            name : "field_name3",<br/>&emsp;&emsp;
-            value : "hahaha"<br/>&emsp;
-        }<br/>
-    ]<br/><br/><br/>
+    {<br/>&emsp;&emsp;
+    type : "INTEGER",<br/>&emsp;&emsp;
+    name : "field_name1",<br/>&emsp;&emsp;
+    value : 3050<br/>&emsp;
+    },<br/>&emsp;
+    {<br/>&emsp;&emsp;
+    type : "FLOAT",<br/>&emsp;&emsp;
+    name : "field_name2",<br/>&emsp;&emsp;
+    value : 7.55<br/>&emsp;
+    },<br/>&emsp;
+    {<br/>&emsp;&emsp;
+    type : "STRING",<br/>&emsp;&emsp;
+    name : "field_name3",<br/>&emsp;&emsp;
+    value : "hahaha"<br/>&emsp;
+    }<br/>
+    ]
+    </div>
     
     <b>Select data:</b><br/>
+    <div class="code-block">
     https://candy-smith.info:3636/api/select?<b>api_key</b>=348t7hre48eruif78e74g4&<b>table</b>=tablename<br/><br/>
     <span style="color: rgb(28, 143, 85);">Условие WHERE, SQL запроса, ревращается в field_name1=330 AND field_name2=8.0 AND field_name3='what?'</span><br/>
     [<br/>&emsp;&emsp;
-        {<br/>&emsp;&emsp;&emsp;
-            type : "INTEGER",<br/>&emsp;&emsp;&emsp;
-            name : "field_name1",<br/>&emsp;&emsp;&emsp;
-            value : 3300<br/>&emsp;&emsp;
-        },<br/>&emsp;&emsp;
-        {<br/>&emsp;&emsp;&emsp;
-            type : "FLOAT",<br/>&emsp;&emsp;&emsp;
-            name : "field_name2",<br/>&emsp;&emsp;&emsp;
-            value : 8.0<br/>&emsp;&emsp;
-        },<br/>&emsp;&emsp;
-        {<br/>&emsp;&emsp;&emsp;
-            type : "STRING",<br/>&emsp;&emsp;&emsp;
-            name : "field_name3",<br/>&emsp;&emsp;&emsp;
-            value : "what?"<br/>&emsp;&emsp;
-        }<br/>
-    ]<br/><br/><br/>
-
+    {<br/>&emsp;&emsp;&emsp;
+    type : "INTEGER",<br/>&emsp;&emsp;&emsp;
+    name : "field_name1",<br/>&emsp;&emsp;&emsp;
+    value : 3300<br/>&emsp;&emsp;
+    },<br/>&emsp;&emsp;
+    {<br/>&emsp;&emsp;&emsp;
+    type : "FLOAT",<br/>&emsp;&emsp;&emsp;
+    name : "field_name2",<br/>&emsp;&emsp;&emsp;
+    value : 8.0<br/>&emsp;&emsp;
+    },<br/>&emsp;&emsp;
+    {<br/>&emsp;&emsp;&emsp;
+    type : "STRING",<br/>&emsp;&emsp;&emsp;
+    name : "field_name3",<br/>&emsp;&emsp;&emsp;
+    value : "what?"<br/>&emsp;&emsp;
+    }<br/>
+    ]
+    </div>
+    
     <b>Update data:</b><br/>
+    <div class="code-block">
     https://candy-smith.info:3636/api/update?<b>api_key</b>=348t7hre48eruif78e74g4&<b>table</b>=tablename<br/><br/>
     <span style="color: rgb(28, 143, 85);">Блоки данных SET и WHERE, SQL запроса UPDATE:</span><br/>
     {<br/>&emsp;
-        set :<br/>&emsp;&emsp;
-        [<br/>&emsp;&emsp;&emsp;
-            {<br/>&emsp;&emsp;&emsp;&emsp;
-                type : "INTEGER",<br/>&emsp;&emsp;&emsp;&emsp;
-                name : "field_name1",<br/>&emsp;&emsp;&emsp;&emsp;
-                value : 3050<br/>&emsp;&emsp;&emsp;
-            },<br/>&emsp;&emsp;&emsp;
-            {<br/>&emsp;&emsp;&emsp;&emsp;
-                type : "FLOAT",<br/>&emsp;&emsp;&emsp;&emsp;
-                name : "field_name2",<br/>&emsp;&emsp;&emsp;&emsp;
-                value : 7.55<br/>&emsp;&emsp;&emsp;
-            },<br/>&emsp;&emsp;&emsp;
-            {<br/>&emsp;&emsp;&emsp;&emsp;
-                type : "STRING",<br/>&emsp;&emsp;&emsp;&emsp;
-                name : "field_name3",<br/>&emsp;&emsp;&emsp;&emsp;
-                value : "hahaha"<br/>&emsp;&emsp;&emsp;
-            }<br/>&emsp;&emsp;
-        ],<br/>&emsp;
-        where :<br/>&emsp;&emsp;
-        [<br/>&emsp;&emsp;&emsp;
-            {<br/>&emsp;&emsp;&emsp;&emsp;
-                type : "INTEGER",<br/>&emsp;&emsp;&emsp;&emsp;
-                name : "field_name1",<br/>&emsp;&emsp;&emsp;&emsp;
-                value : 3300<br/>&emsp;&emsp;&emsp;
-            },<br/>&emsp;&emsp;&emsp;
-            {<br/>&emsp;&emsp;&emsp;&emsp;
-                type : "FLOAT",<br/>&emsp;&emsp;&emsp;&emsp;
-                name : "field_name2",<br/>&emsp;&emsp;&emsp;&emsp;
-                value : 8.0<br/>&emsp;&emsp;&emsp;
-            },<br/>&emsp;&emsp;&emsp;
-            {<br/>&emsp;&emsp;&emsp;&emsp;
-                type : "STRING",<br/>&emsp;&emsp;&emsp;&emsp;
-                name : "field_name3",<br/>&emsp;&emsp;&emsp;&emsp;
-                value : "what?"<br/>&emsp;&emsp;&emsp;
-            }<br/>&emsp;&emsp;
-        ]<br/>
-    }<br/><br/><br/>
+    set :<br/>&emsp;&emsp;
+    [<br/>&emsp;&emsp;&emsp;
+    {<br/>&emsp;&emsp;&emsp;&emsp;
+    type : "INTEGER",<br/>&emsp;&emsp;&emsp;&emsp;
+    name : "field_name1",<br/>&emsp;&emsp;&emsp;&emsp;
+    value : 3050<br/>&emsp;&emsp;&emsp;
+    },<br/>&emsp;&emsp;&emsp;
+    {<br/>&emsp;&emsp;&emsp;&emsp;
+    type : "FLOAT",<br/>&emsp;&emsp;&emsp;&emsp;
+    name : "field_name2",<br/>&emsp;&emsp;&emsp;&emsp;
+    value : 7.55<br/>&emsp;&emsp;&emsp;
+    },<br/>&emsp;&emsp;&emsp;
+    {<br/>&emsp;&emsp;&emsp;&emsp;
+    type : "STRING",<br/>&emsp;&emsp;&emsp;&emsp;
+    name : "field_name3",<br/>&emsp;&emsp;&emsp;&emsp;
+    value : "hahaha"<br/>&emsp;&emsp;&emsp;
+    }<br/>&emsp;&emsp;
+    ],<br/>&emsp;
+    where :<br/>&emsp;&emsp;
+    [<br/>&emsp;&emsp;&emsp;
+    {<br/>&emsp;&emsp;&emsp;&emsp;
+    type : "INTEGER",<br/>&emsp;&emsp;&emsp;&emsp;
+    name : "field_name1",<br/>&emsp;&emsp;&emsp;&emsp;
+    value : 3300<br/>&emsp;&emsp;&emsp;
+    },<br/>&emsp;&emsp;&emsp;
+    {<br/>&emsp;&emsp;&emsp;&emsp;
+    type : "FLOAT",<br/>&emsp;&emsp;&emsp;&emsp;
+    name : "field_name2",<br/>&emsp;&emsp;&emsp;&emsp;
+    value : 8.0<br/>&emsp;&emsp;&emsp;
+    },<br/>&emsp;&emsp;&emsp;
+    {<br/>&emsp;&emsp;&emsp;&emsp;
+    type : "STRING",<br/>&emsp;&emsp;&emsp;&emsp;
+    name : "field_name3",<br/>&emsp;&emsp;&emsp;&emsp;
+    value : "what?"<br/>&emsp;&emsp;&emsp;
+    }<br/>&emsp;&emsp;
+    ]<br/>
+    }
+    </div></div>
     <script>
             function sendAjax(url, postData) {
                 $("#response-area").text("Wait response");
@@ -272,8 +369,12 @@
             $('#update-if-exists').on('click', function() {
                 if($(this).is(':checked')) {
                     $("#check-fields-label").show();
+                    $(this).parent().addClass('area-of-insert-mod1');
+                    $('.area-of-update').addClass('area-of-update-mod1');
                 } else {
                     $("#check-fields-label").hide();
+                    $(this).parent().removeClass('area-of-insert-mod1');
+                    $('.area-of-update').removeClass('area-of-update-mod1');
                 }
             });
     

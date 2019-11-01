@@ -209,12 +209,15 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			Owner owner = dbManager.getOwnerByEmail(inputEmail);
 			if(owner == null) {
 				int result = dbManager.regOwner(inputEmail);
+				
 				if(result <= 0) {
 					//errorLogMessage.append("Error during inserting owner.");
 					httpResponse.setContent(simpleJsonObject("Error", "Error occurred during registration"));
 					sendHttpResponse(ctx, httpResponse);
 					return;
 				}
+				
+				owner = dbManager.getOwnerByEmail(inputEmail);
 			}
 			
 			String newApiKey = RandomKeyGenerator.nextString(45);
@@ -404,6 +407,11 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 				
 			while (httpRequest.getUrlParametrs().containsKey("checkField"+i)) {
 				String fieldName = httpRequest.getUrlParametrs().get("checkField"+(i++));
+				if(!insertData.containsCell(fieldName)) {
+					httpResponse.setContent(simpleJsonObject("Error", "Field name mismatch"));
+					sendHttpResponse(ctx, httpResponse);
+					return;
+				}
 				whereExpression.add(new CellData(fieldName, insertData.getCell(fieldName).getValue()));
 			}
 				
