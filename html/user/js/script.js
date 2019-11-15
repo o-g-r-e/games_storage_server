@@ -1,6 +1,7 @@
 $(function() {
+	var api_key = '';
 	$.ajax({
-    url: 'http://localhost:3636/get_usr_tables?key=vjsYeNp4ZsGtPcHLz4AfghqMkTPwCjA4',
+    url: host+'/get_usr_tables?key=vjsYeNp4ZsGtPcHLz4AfghqMkTPwCjA4',
 	crossDomain: true,
 	xhrFields: {
         withCredentials: true
@@ -24,8 +25,8 @@ $(function() {
     }
 	});
 
-	var htmlTable = buildTable("T1", {head:["field1", "field2", "field3"], body:[["value1", "value2", "value3"],["value1", "value2", "value3"]]});
-	$(htmlTable).appendTo('.container');
+	//var htmlTable = buildTable("T1", {head:["field1", "field2", "field3"], body:[["value1", "value2", "value3"],["value1", "value2", "value3"]]});
+	//$(htmlTable).appendTo('.container');
 
 	function buildTable(tableName, tableData) {
 		var htmlTable = '<div class="row usr-table-block">';
