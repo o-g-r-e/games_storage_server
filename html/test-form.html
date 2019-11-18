@@ -412,11 +412,19 @@
                     var array1 = data.split("&");
                     array1.forEach(function(item) {
                         var array2 = item.split("=");
-                        result.push({name : array2[0], value : array2[1]});
+                        var value = array2[1];
+                        if(value.startsWith('[')) {
+                            value = JSON.parse(value);
+                        }
+                        result.push({name : array2[0], value : value});
                     });
                 } else if(data.includes("="))  {
                     var array2 = data.split("=");
-                    result.push({name : array2[0], value : array2[1]});
+                    var value = array2[1];
+                    if(value.startsWith('[')) {
+                        value = JSON.parse(value);
+                    }
+                    result.push({name : array2[0], value : value});
                 }
                 
               return result;  

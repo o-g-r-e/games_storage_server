@@ -13,7 +13,7 @@ public class Owner {
 		return id;
 	}
 	
-	public String getName() {
+	public String getEmail() {
 		return email;
 	}
 	

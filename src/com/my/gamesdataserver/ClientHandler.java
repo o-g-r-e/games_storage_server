@@ -278,8 +278,8 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			dbManager.disableTransactions();
 			
 			dbManager.createGameTables(gameTemplate, prefix); //throw exception if not successfully
-			
-			EmailSender.send(contentParameters.get("email"), "Your game registerd", "Your game "+apiKey+" registered");
+			String email = dbManager.getOwnerEmailById(apiKeyEntity.getOwnerId());
+			EmailSender.send(email, "Your game registerd", "Your game \""+gameName+"\" registered with key "+apiKey);
 			httpResponse.setContent(simpleJsonObject("Success", "Register successed"));
 			sendHttpResponse(ctx, httpResponse);
 			
@@ -329,7 +329,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		
 		if(httpRequest.getUrl().startsWith("/api/select")) {
 			
-			List<CellData> whereData = DataBaseInterface.parseCellDataRow(httpRequest.getContent());
+			List<SqlExpression> whereData = DataBaseInterface.parseWhere(new JSONArray(httpRequest.getContent()));
 			result = new SqlSelect(tableName, whereData);
 			
 		} else if(httpRequest.getUrl().startsWith("/api/insert")) {
@@ -342,7 +342,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 			String jsonUpdateData = httpRequest.getContent();
 			JSONObject updateData = new JSONObject(jsonUpdateData);
 			
-			List<CellData> whereData = DataBaseInterface.parseCellDataRow(updateData.getJSONArray("where"));
+			List<SqlExpression> whereData = DataBaseInterface.parseWhere(updateData.getJSONArray("where"));
 			List<CellData> setData = DataBaseInterface.parseCellDataRow(updateData.getJSONArray("set"));
 			
 			result = new SqlUpdate(tableName, whereData, setData);
@@ -402,7 +402,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		if(sqlRequest instanceof SqlInsert && httpRequest.getUrlParametrs().containsKey("updateIfExists") && httpRequest.getUrlParametrs().containsKey("checkField1")) {
 			
 			Row insertData = new Row(DataBaseInterface.parseCellDataRow(httpRequest.getContent()));
-			List<CellData> whereExpression = new ArrayList<>();
+			List<SqlExpression> whereExpression = new ArrayList<>();
 			int i = 1;
 				
 			while (httpRequest.getUrlParametrs().containsKey("checkField"+i)) {
@@ -412,7 +412,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 					sendHttpResponse(ctx, httpResponse);
 					return;
 				}
-				whereExpression.add(new CellData(fieldName, insertData.getCell(fieldName).getValue()));
+				whereExpression.add(new SqlExpression(fieldName, insertData.getCell(fieldName).getValue()));
 			}
 				
 			List<List<CellData>> rows = dbManager.executeSelect(new SqlSelect(sqlRequest.getTableName(), whereExpression));

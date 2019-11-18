@@ -1,30 +1,30 @@
-package com.my.gamesdataserver.basedbclasses;
+package com.my.gamesdataserver;
 
-public class CellData {
+public class SqlExpression {
 	private int type;
 	private String name;
 	private Object value;
 	
-	public CellData(int type, String name, Object value) {
+	public SqlExpression(int type, String name, Object value) {
 		this.type = type;
 		this.name = name;
 		this.value = value;
 	}
 	
-	public CellData(String name, Object value) {
+	public SqlExpression(String name, Object value) {
+		this.type = -1;
 		this.name = name;
 		this.value = value;
-		this.type = -1;
 	}
-
+	
 	public int getType() {
 		return type;
 	}
-
+	
 	public String getName() {
 		return name;
 	}
-
+	
 	public Object getValue() {
 		return value;
 	}

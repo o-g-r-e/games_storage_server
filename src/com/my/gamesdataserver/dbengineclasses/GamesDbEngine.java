@@ -15,6 +15,7 @@ import java.util.Set;
 
 import com.my.gamesdataserver.ClientHandler;
 import com.my.gamesdataserver.DataBaseConnectionParameters;
+import com.my.gamesdataserver.SqlExpression;
 import com.my.gamesdataserver.basedbclasses.CellData;
 import com.my.gamesdataserver.basedbclasses.ColData;
 import com.my.gamesdataserver.basedbclasses.DataBaseInterface;
@@ -78,6 +79,18 @@ public class GamesDbEngine  {
 		
 		return owner;
 	}
+	
+	public String getOwnerEmailById(int id) throws SQLException {
+		Owner owner = null;
+		List<List<CellData>> rows = dataBaseInterface.selectAllWhere("owners", "id="+id);
+		
+		if(rows.size() > 0) {
+			owner = new Owner((int)rows.get(0).get(0).getValue(), (String)rows.get(0).get(1).getValue());
+		}
+		String result = owner.getEmail();
+		return result;
+	}
+	
 	public boolean checkGameByKey(String apiKey) throws SQLException {
 		
 		return dataBaseInterface.selectAllWhere("games", "api_key="+apiKey).size() > 0;
@@ -85,7 +98,10 @@ public class GamesDbEngine  {
 	
 	public Game getGameByKey(String apiKey) throws SQLException {
 		Game game = null;
-		List<List<CellData>> rows = dataBaseInterface.selectAllWhere("games", "api_key="+apiKey);
+		
+		List<SqlExpression> where = new ArrayList<>();
+		where.add(new SqlExpression(Types.VARCHAR, "api_key", apiKey));
+		List<List<CellData>> rows = dataBaseInterface.selectAllWhere("games", where);
 		
 		if(rows.size() > 0) {
 			game = new Game((int)rows.get(0).get(0).getValue(), 

@@ -16,6 +16,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.my.gamesdataserver.DataBaseConnectionParameters;
+import com.my.gamesdataserver.SqlExpression;
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
 public class DataBaseInterface {
@@ -138,21 +139,10 @@ public class DataBaseInterface {
 		fieldsNames.append(")");
 		fieldsValues.append(")");
 		
-		/*StringBuilder sqlInsert = new StringBuilder("INSERT INTO ");
-		sqlInsert.append(tableName);
-		sqlInsert.append(" ");
-		sqlInsert.append(fieldsNames);
-		sqlInsert.append(" VALUES ");
-		sqlInsert.append(fieldsValues);
-		for (int i = 1; i < values.size(); i++) {
-			sqlInsert.append(",");
-			sqlInsert.append(fieldsValues);
-		}*/
-		
 		PreparedStatement pstmt = getCon().prepareStatement(String.format("INSERT INTO %s %s VALUES %s", tableName, fieldsNames, fieldsValues));
 		
 		for (int i = 0; i < row.size(); i++) {
-			setQueryValue(pstmt, row.get(i), i+1);
+			setQueryValue(pstmt, row.get(i).getType(), row.get(i).getValue(), i+1);
 		}
 		
 		return pstmt.executeUpdate();
@@ -162,7 +152,7 @@ public class DataBaseInterface {
 		return 0;
 	}
 	
-	public int updateTable(String tableName, List<CellData> set, List<CellData> where) throws SQLException {
+	public int updateTable(String tableName, List<CellData> set, List<SqlExpression> where) throws SQLException {
 		StringBuilder sqlUpdate = new StringBuilder("UPDATE ");
 		sqlUpdate.append(tableName);
 		sqlUpdate.append(" SET ");
@@ -176,8 +166,8 @@ public class DataBaseInterface {
 		}
 		sqlUpdate.append(" WHERE (");
 		for (int i = 0; i < where.size(); i++) {
-			CellData d = where.get(i);
-			sqlUpdate.append(d.getName());
+			SqlExpression exp = where.get(i);
+			sqlUpdate.append(exp.getName());
 			sqlUpdate.append("=?");
 			if(i < where.size()-1) {
 				sqlUpdate.append(" AND ");
@@ -188,11 +178,11 @@ public class DataBaseInterface {
 		PreparedStatement pstmt = getCon().prepareStatement(sqlUpdate.toString());//con.prepareStatement(String.format("UDPATE %s SET %s WHERE %s", tableName, ));
 		
 		for (int i = 0; i < set.size(); i++) {
-			setQueryValue(pstmt, set.get(i), i+1);
+			setQueryValue(pstmt, set.get(i).getType(), set.get(i).getValue(), i+1);
 		}
 		
 		for (int i = 0; i < where.size(); i++) {
-			setQueryValue(pstmt, where.get(i), i+1+set.size());
+			setQueryValue(pstmt, where.get(i).getType(), where.get(i).getValue(), i+1+set.size());
 		}
 		
 		return pstmt.executeUpdate();
@@ -214,11 +204,11 @@ public class DataBaseInterface {
 		return result;
 	}
 	
-	public List<List<CellData>> selectAllWhere(String tableName, List<CellData> where) throws SQLException {
+	public List<List<CellData>> selectAllWhere(String tableName, List<SqlExpression> where) throws SQLException {
 		
 		StringBuilder sql = new StringBuilder("SELECT * FROM "+tableName);
 		
-		if(where.size() > 0) {
+		/*if(where.size() > 0) {
 			
 			sql.append(" WHERE ");
 			
@@ -230,11 +220,23 @@ public class DataBaseInterface {
 					sql.append(" AND ");
 				}
 			}
-		}
-		
+		}*/
+		sql.append(buildWhere(where));
 		PreparedStatement pstmt = getCon().prepareStatement(sql.toString());
-		for (int i = 0; i < where.size(); i++) {
-			setQueryValue(pstmt, where.get(i), i+1);
+		int requestValueIndex = 0;
+		int expIndex = 0;
+		for (SqlExpression exp : where) {
+			if(exp.getValue() instanceof Object[]) {
+				Object[] valueSet = (Object[]) exp.getValue();
+				for(int i=0;i<valueSet.length;i++) {
+					setQueryValue(pstmt, where.get(expIndex).getType(), valueSet[i], requestValueIndex+1);
+					requestValueIndex++;
+				}
+			} else {
+				setQueryValue(pstmt, where.get(expIndex).getType(), where.get(expIndex).getValue(), requestValueIndex+1);
+				requestValueIndex++;
+			}
+			expIndex++;
 		}
 		ResultSet resultSet = pstmt.executeQuery();
 		ResultSetMetaData rsmd = resultSet.getMetaData();
@@ -251,7 +253,7 @@ public class DataBaseInterface {
 	
 	public List<List<CellData>> selectAllWhere(String tableName, String where) throws SQLException {
 		
-		List<CellData> whereData = new ArrayList<>();
+		List<SqlExpression> whereData = new ArrayList<>();
 		Map<String, String> wherePairs = new HashMap<>();
 		List<List<CellData>> result = new ArrayList<>();
 		
@@ -269,12 +271,45 @@ public class DataBaseInterface {
 		}
 		
 		for(Map.Entry<String, String> e : wherePairs.entrySet()) {
-			whereData.add(new CellData(0, e.getKey(), e.getValue()));
+			whereData.add(new SqlExpression(0, e.getKey(), e.getValue()));
 		}
 		
 		result = selectAllWhere(tableName, whereData);
 		
 		return result;
+	}
+	
+	private String buildWhere(List<SqlExpression> where) {
+		if(where == null || where.size() <= 0) {
+			return "";
+		}
+		
+		StringBuilder result = new StringBuilder(" WHERE ");
+		
+		for (int i = 0; i < where.size(); i++) {
+			SqlExpression exp = where.get(i);
+			if(exp.getValue() instanceof Object[]) {
+				Object[] objects = (Object[]) exp.getValue();
+				result.append(exp.getName()).append(" IN (");
+				
+				for (int j = 0; j < objects.length; j++) {
+					
+					result.append("?");
+					if(j < objects.length-1) {
+						result.append(",");
+					}
+				}
+				result.append(")");
+			} else {
+				result.append(exp.getName()).append("=?");
+			}
+			
+			if(i < where.size()-1) {
+				result.append(" AND ");
+			}
+		}
+		
+		return result.toString();
 	}
 	
 	public static int parseDataType(String type) {
@@ -289,19 +324,19 @@ public class DataBaseInterface {
 		return -1;
 	}
 	
-	private void setQueryValue(PreparedStatement pstmt, CellData d, int index) throws SQLException {
-		switch (d.getType()) {
+	private void setQueryValue(PreparedStatement pstmt, int type, Object value, int index) throws SQLException {
+		switch (type) {
 		case Types.INTEGER:
-			pstmt.setInt(index, (int)d.getValue());
+			pstmt.setInt(index, (int)value);
 			break;
 		case Types.VARCHAR:
-			pstmt.setString(index, String.valueOf(d.getValue()));
+			pstmt.setString(index, String.valueOf(value));
 			break;
 		case Types.FLOAT:
-			pstmt.setFloat(index, (float)d.getValue());
+			pstmt.setFloat(index, (float)value);
 			break;
 		default:
-			pstmt.setObject(index, d.getValue());
+			pstmt.setObject(index, value);
 			break;
 		}
 	}
@@ -332,6 +367,39 @@ public class DataBaseInterface {
 	
 	public int executeUpdate(SqlUpdate sqlUpdate) throws SQLException {
 		return updateTable(sqlUpdate.getTableName(), sqlUpdate.getUpdatesData(), sqlUpdate.getWhereExpression());
+	}
+	
+	public static List<SqlExpression> parseWhere(JSONArray whereData) throws JSONException {
+		List<SqlExpression> result = new ArrayList<>();
+		//JSONArray whereData = new JSONArray(jsonArray);
+		for (int i = 0; i < whereData.length(); i++) {
+			JSONObject cellObject = whereData.getJSONObject(i);
+			if(!cellObject.has("name") || !cellObject.has("value")) {
+				continue;
+			}
+			
+			Object value = null;
+			
+			if(cellObject.get("value") instanceof JSONArray) {
+				JSONArray values = cellObject.getJSONArray("value");
+				Object[] objects = new Object[values.length()];
+				for (int j = 0; j < values.length(); j++) {
+					objects[j] = values.get(j);
+				}
+				value = objects;
+			} else {
+				value = cellObject.getString("value");
+			}
+			
+			SqlExpression cd = new SqlExpression(cellObject.getString("name"), value);
+			
+			if(cellObject.has("type")) {
+				cd.setType(DataBaseInterface.parseDataType(cellObject.getString("type")));
+			} 
+			
+			result.add(cd);
+		}
+		return result;
 	}
 	
 	public static List<CellData> parseCellDataRow(String jsonCallDataArray) throws JSONException {

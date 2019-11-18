@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.my.gamesdataserver.SqlExpression;
 import com.my.gamesdataserver.basedbclasses.CellData;
 import com.my.gamesdataserver.basedbclasses.DataBaseInterface;
 
@@ -80,10 +81,10 @@ public class Template1DbEngine {
 		set.add(new CellData("score", scores));
 		set.add(new CellData("stars", stars));
 		
-		List<CellData> where = new ArrayList<>();
+		List<SqlExpression> where = new ArrayList<>();
 		
-		where.add(new CellData("playerId", playerId));
-		where.add(new CellData("level", level));
+		where.add(new SqlExpression("playerId", playerId));
+		where.add(new SqlExpression("level", level));
 		
 		return dataBaseInterface.updateTable(tablePrefix+"scorelevel", set, where);
 	}
