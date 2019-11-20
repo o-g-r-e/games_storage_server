@@ -14,11 +14,16 @@ import com.my.gamesdataserver.helpers.Settings;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpRequestDecoder;
+import io.netty.handler.codec.http.HttpResponseDecoder;
+import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -73,10 +78,15 @@ public class Main {
 	        	.channel(NioServerSocketChannel.class)
 	        	.childHandler(new ChannelInitializer<SocketChannel>() {
 	        		@Override
-	                public void initChannel(SocketChannel ch) throws Exception {
-	                	ch.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(2048));
-	                	if(sslEnable) ch.pipeline().addLast(sslCtx.newHandler(ch.alloc()));
-	                    ch.pipeline().addLast(new ClientHandler(dbInterface, logManager));
+	                public void initChannel(SocketChannel channel) throws Exception {
+	        			ChannelPipeline pipeline = channel.pipeline();
+	        			if(sslEnable) pipeline.addLast(sslCtx.newHandler(channel.alloc()));
+	        			pipeline.addLast(new HttpRequestDecoder());
+	        			pipeline.addLast(new HttpResponseEncoder());
+	        			pipeline.addLast(new HttpObjectAggregator(1048576));
+	                	//channel.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(2048));
+	                	
+	                	pipeline.addLast(new ClientHandler(dbInterface, logManager));
 	                }
 	        	});
 	            

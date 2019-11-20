@@ -1,4 +1,4 @@
-package com.my.gamesdataserver;
+package com.my.gamesdataserver.deprecated;
 
 import java.util.HashMap;
 import java.util.Map;

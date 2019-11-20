@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.my.gamesdataserver.ClientHandler;
 import com.my.gamesdataserver.DataBaseConnectionParameters;
 import com.my.gamesdataserver.SqlExpression;
 import com.my.gamesdataserver.basedbclasses.CellData;
