@@ -1,4 +1,4 @@
-package com.my.gamesdataserver;
+package com.my.gamesdataserver.deprecated;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -20,6 +20,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.my.gamesdataserver.SqlExpression;
 import com.my.gamesdataserver.basedbclasses.CellData;
 import com.my.gamesdataserver.basedbclasses.ColData;
 import com.my.gamesdataserver.basedbclasses.DataBaseInterface;
@@ -131,6 +132,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 				
 			case BAD:
 				httpResponse.setContent(simpleJsonObject("Error", "Bad request group"));
+				logManager.log(errorLogFilePrefix, inputString, "ERROR: Bad request group".toUpperCase(), httpResponse.toString());
 				sendHttpResponse(ctx, httpResponse);
 				break;
 			}
