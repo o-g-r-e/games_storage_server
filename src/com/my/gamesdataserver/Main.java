@@ -20,6 +20,7 @@ import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
@@ -79,12 +80,13 @@ public class Main {
 	        		@Override
 	                public void initChannel(SocketChannel channel) throws Exception {
 	        			ChannelPipeline pipeline = channel.pipeline();
-	                	/*channel.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(2048));
-	                	if(sslEnable) pipeline.addLast(sslCtx.newHandler(channel.alloc()));
-	                	pipeline.addLast(new ClientHandler(dbInterface, logManager));*/
+	        			if(sslEnable) pipeline.addLast(sslCtx.newHandler(channel.alloc()));
 	        			pipeline.addLast(new HttpRequestDecoder());
 	        			pipeline.addLast(new HttpResponseEncoder());
-	        			pipeline.addLast(new RequestHandler(dbInterface, logManager));
+	        			pipeline.addLast(new HttpObjectAggregator(1048576));
+	                	//channel.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(2048));
+	                	
+	                	pipeline.addLast(new ClientHandler(dbInterface, logManager));
 	                }
 	        	});
 	            

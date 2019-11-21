@@ -57,4 +57,8 @@ public class LogManager {
 	public void log(String filePrefix, String input, String errorMessage, String output) {
 		executorService.submit(new LogService(filePrefix,  input+"\n\n"+errorMessage+"\n\n"+output+"\n\n"));
 	}
+
+	public void log(String filePrefix, String input, String errorMessage) {
+		executorService.submit(new LogService(filePrefix,  input+"\n\n"+errorMessage+"\n\n"));
+	}
 }

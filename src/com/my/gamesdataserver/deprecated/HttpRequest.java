@@ -1,6 +1,7 @@
 package com.my.gamesdataserver.deprecated;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -10,10 +11,10 @@ import org.json.JSONObject;
 
 public class HttpRequest {
 	private static final Pattern HTTP_REQUEST_PATTERN = Pattern.compile("^([A-Z]+)\\s([\\w\\.\\/-]+)(\\?(.*))?\\sHTTP[\\s\\S]+(\\n\\n|\\r\\n\\r\\n)([\\s\\S]*)");
-	private String type;
+	private String method;
 	private String url;
 	private Map<String, String> urlParameters = new HashMap<String, String>();
-	private Map<String, String> contentParameters = new HashMap<String, String>();
+	//private Map<String, String> contentParameters = new HashMap<String, String>();
 	private Map<String, String> headers = new HashMap<String, String>();
 	private String content;
 	
@@ -29,11 +30,13 @@ public class HttpRequest {
 		Matcher matcher = HTTP_REQUEST_PATTERN.matcher(httpRequest);
 		
 		if(matcher.find()) {
-			type = matcher.group(1);
+			method = matcher.group(1);
 			url = matcher.group(2);
 			String parametersInUrl = matcher.group(4)==null?"":matcher.group(4);
-			urlParameters = parseParameters(parametersInUrl.replaceAll("\\+", " ").replaceAll("%40", "@"));
-			content = matcher.group(6).replaceAll("\\+", " ").replaceAll("%40", "@");
+			//urlParameters = parseUrlParameters(parametersInUrl.replaceAll("\\+", " ").replaceAll("%40", "@"));
+			urlParameters = HttpRequest.parseUrlParameters(parametersInUrl);
+			//content = matcher.group(6).replaceAll("\\+", " ").replaceAll("%40", "@");
+			content = matcher.group(6);
 		}
 	}
 	
@@ -49,11 +52,11 @@ public class HttpRequest {
 		return content;
 	}
 	
-	public String getType() {
-		return type;
+	public String getMethod() {
+		return method;
 	}
 	
-	private Map<String, String> parseParameters(String input) {
+	public static Map<String, String> parseUrlParameters(String input) {
 		Map<String, String> reuslt = new HashMap<>();
 		if(input == null) {
 			return reuslt;
@@ -78,19 +81,36 @@ public class HttpRequest {
 		return reuslt;
 	}
 	
-	public Map<String, String> parseContentWithParameters() {
+	/*public Map<String, String> parseContentWithParameters() {
 		if(contentParameters.size() <= 0) {
 			contentParameters = parseParameters(getContent());
 		}
 		return contentParameters;
-	}
+	}*/
 
 	public void clear() {
-		type = "";
+		method = "";
 		url = "";
 		urlParameters.clear();
-		contentParameters.clear();
+		//contentParameters.clear();
 		headers.clear();
 		content = "";
+	}
+	
+	public HttpRequest(String method, String url, Map<String, String> urlParameters, Map<String, String> headers, String content) {
+		this.method = method;
+		this.url = url;
+		this.urlParameters = urlParameters;
+		//contentParameters.clear();
+		this.headers = headers;
+		this.content = content;
+	}
+	
+	public static Map<String, String> convertUrlParameters(Map<String, List<String>> inputParameters) {
+		Map<String, String> result = new HashMap<>();
+		for(Map.Entry<String, List<String>> en : inputParameters.entrySet()) {
+			result.put(en.getKey(), en.getValue().get(0));
+		}
+		return result;
 	}
 }
