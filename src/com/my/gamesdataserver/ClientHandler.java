@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.deprecated;
+package com.my.gamesdataserver;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -70,8 +70,8 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private LogManager logManager;
 	//private Access access = new Access();
 	//private StringBuilder errorLogMessage = new StringBuilder();
-	private FullHttpRequest inputHttpRequest;
-	private FullHttpResponse httpResponse;
+	//private FullHttpRequest inputHttpRequest;
+	//private FullHttpResponse httpResponse;
 	private static Map<String, String> defaultResponseHeaders = new HashMap<>();
 	private String errorLogFilePrefix = "error";
 	private static final GameTemplate gameTemplate = createGameTemplate1();
@@ -105,65 +105,54 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		}
 	}
 	
+	private FullHttpResponse buildResponse(String status, String message, HttpResponseStatus httpStatus, /*HttpHeaders headers*/Map<String, String> headers) {
+		DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpStatus, Unpooled.copiedBuffer(simpleJsonObject(status, message), CharsetUtil.UTF_8));
+		//response.headers().add(headers);
+		addResponseHeaders(response, headers);
+		return response;
+	}
+	
+	private FullHttpResponse buildResponse(String content, HttpResponseStatus httpStatus, /*HttpHeaders headers*/Map<String, String> headers) {
+		DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpStatus, Unpooled.copiedBuffer(content, CharsetUtil.UTF_8));
+		//response.headers().add(headers);
+		addResponseHeaders(response, headers);
+		return response;
+	}
+	
+	private String httpRequestToString(FullHttpRequest httpRequest) {
+		return httpRequest.toString().substring(httpRequest.toString().indexOf("\n")+1)+"\n\n"+httpRequest.content().toString(CharsetUtil.UTF_8);
+	}
+	
 	@Override
     public void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
-		//errorLogMessage.setLength(0);
-		
-		// Check for invalid http data:
-        //if(fullHttpRequest.getDecoderResult() != DecoderResult.SUCCESS ) {
-            //ctx.close();
-            //return;
-        //}
-		
-		//String inputString = ((ByteBuf)msg).toString(CharsetUtil.UTF_8);
-        StringBuilder inputString = new StringBuilder();
-        inputString.append(fullHttpRequest.method().asciiName()).append(" ").append(fullHttpRequest.uri()).append("\n");
-	    //ReferenceCountUtil.release(msg);
-	    /*inputHttpRequest.clear();
-	    inputHttpRequest.parse(inputString);*/
-        HttpHeaders requestHeaders = fullHttpRequest.headers();
-        Map<String, String> headers = new HashMap<>();
-        if (!requestHeaders.isEmpty()) {
-        	for (Map.Entry<String, String> h: requestHeaders) {
-        		headers.put(h.getKey(), h.getValue());
-        		inputString.append(h.getKey()).append(": ").append(h.getValue()).append("\n");
-        	}
-        }
-        
-        inputString.append("\n").append(fullHttpRequest.content().toString(CharsetUtil.UTF_8));
-		//inputHttpRequest = new HttpRequest(fullHttpRequest.method().asciiName().toString(), fullHttpRequest.uri(), HttpRequest.convertUrlParameters(new QueryStringDecoder(fullHttpRequest.uri()).parameters()), headers, fullHttpRequest.content().toString(CharsetUtil.UTF_8));
-		inputHttpRequest = fullHttpRequest;
-	    httpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-	    addResponseHeaders(httpResponse, defaultResponseHeaders);
-	    
 		/*if(access.isDiscardRequest(inputHttpRequest.getUrl()) || access.isWrongSymbols(inputHttpRequest.getUrl()))  {
 			logManager.log("access", inputString+"\n\n"+"Suppressed because not accessible");
 			return;
 		}*/
 		
-		RequestGroup requestGroup = recognizeRequestGroup(inputHttpRequest);
+		RequestGroup requestGroup = recognizeRequestGroup(fullHttpRequest);
 		
 		try {
 			
 			switch (requestGroup) {
 
 			case BASE:
-				handleSystemRequest(ctx, inputHttpRequest);
+				handleSystemRequest(ctx, fullHttpRequest);
 				break;
 				
 			case API:
-				handleApiRequest(ctx, inputHttpRequest);
+				handleApiRequest(ctx, fullHttpRequest);
 				break;
 				
 			case TEMPLATE_API:
-				handleTemplateRequest(ctx, inputHttpRequest);
+				handleTemplateRequest(ctx, fullHttpRequest);
 				break;
 				
 			case BAD:
-				//httpResponse.setContent(simpleJsonObject("Error", "Bad request group"));
-				httpResponse.content().writeBytes(simpleJsonObject("Error", "Bad request group").getBytes());
-				httpResponse.setStatus(HttpResponseStatus.BAD_REQUEST);
-				logManager.log(errorLogFilePrefix, inputString.toString(), "ERROR: Bad request group".toUpperCase(), httpResponse.toString());
+				//httpResponse.content().writeBytes(simpleJsonObject("Error", "Bad request group").getBytes());
+				//httpResponse.setStatus(HttpResponseStatus.BAD_REQUEST);
+				FullHttpResponse httpResponse = buildResponse("Error", "Bad request group", HttpResponseStatus.BAD_REQUEST, defaultResponseHeaders);
+				logManager.log(errorLogFilePrefix, httpRequestToString(fullHttpRequest), "ERROR: Bad request group".toUpperCase(), httpResponse.toString());
 				sendHttpResponse(ctx, httpResponse);
 				break;
 			}
@@ -185,10 +174,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			}
 			
 			e.printStackTrace(pw);
-			//httpResponse.setContent(simpleJsonObject("Error", "An error occurred during processing"));
-			httpResponse.content().writeBytes(simpleJsonObject("Error", "An error occurred during processing").getBytes());
-			httpResponse.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-			logManager.log(errorLogFilePrefix, inputString.toString(), sw.toString(), httpResponse.toString());
+			//httpResponse.content().writeBytes(simpleJsonObject("Error", "An error occurred during processing").getBytes());
+			//httpResponse.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+			FullHttpResponse httpResponse = buildResponse("Error", "An error occurred during processing", HttpResponseStatus.INTERNAL_SERVER_ERROR, defaultResponseHeaders);
+			logManager.log(errorLogFilePrefix, httpRequestToString(fullHttpRequest), sw.toString(), httpResponse.toString());
 			sendHttpResponse(ctx, httpResponse);
 		}
     }
@@ -199,10 +188,34 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		}
 	}
 	
-	public static Map<String, String> parseUrlParameters(String input) {
+	private Map<String, String> parseParameters(String input) {
 		Map<String, String> reuslt = new HashMap<>();
-		input = input.startsWith("?")?input:"?"+input;
-		Map<String, List<String>> parameters = new QueryStringDecoder(input).parameters();
+		if(input == null) {
+			return reuslt;
+		}
+		
+		String[] pairs = input.split("&");
+		
+		if(pairs.length < 2 && !input.contains("=")) {
+			return reuslt;
+		}
+		
+		for(String pair : pairs) {
+			String[] params = pair.split("=");
+			
+			if(params.length < 2) {
+				reuslt.put(params[0], "");
+				continue;
+			}
+			reuslt.put(params[0], params[1]);
+		}
+		
+		return reuslt;
+	}
+	
+	private Map<String, String> parseUrlParameters(String url) {
+		Map<String, String> reuslt = new HashMap<>();
+		Map<String, List<String>> parameters = new QueryStringDecoder(url).parameters();
 		for(Map.Entry<String, List<String>> p : parameters.entrySet()) {
 			reuslt.put(p.getKey(), p.getValue().get(0));
 		}
@@ -213,7 +226,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		String responseContent = "";
 		Map<String, String> urlParameters = parseUrlParameters(httpRequest.uri());
 		if(!simpleValidation(new String[] {"api_key", "table", "playerId"}, urlParameters)) {
-			sendValidationFailResponse(ctx, httpResponse);
+			sendValidationFailResponse(ctx);
 			return;
 		}
 		
@@ -222,10 +235,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		Game game = dbManager.getGameByKey(apiKey);
 		
 		if(game == null) {
-			//httpResponse.setContent(simpleJsonObject("Error", "Game not found"));
-			httpResponse.content().writeBytes(simpleJsonObject("Error", "Game not found").getBytes());
-			httpResponse.setStatus(HttpResponseStatus.BAD_REQUEST);
-			sendHttpResponse(ctx, httpResponse);
+			//httpResponse.content().writeBytes(simpleJsonObject("Error", "Game not found").getBytes());
+			//httpResponse.setStatus(HttpResponseStatus.BAD_REQUEST);
+			sendHttpResponse(ctx, buildResponse("Error", "Game not found", HttpResponseStatus.BAD_REQUEST, defaultResponseHeaders));
 			return;
 		}
 		
@@ -236,10 +248,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		Player player = template1DbManager.getPlayer(playerId);
 		
 		if(player == null) {
-			//httpResponse.setContent(simpleJsonObject("Error", "Player not found"));
-			httpResponse.content().writeBytes(simpleJsonObject("Error", "Player not found").getBytes());
-			httpResponse.setStatus(HttpResponseStatus.BAD_REQUEST);
-			sendHttpResponse(ctx, httpResponse);
+			//httpResponse.content().writeBytes(simpleJsonObject("Error", "Player not found").getBytes());
+			//httpResponse.setStatus(HttpResponseStatus.BAD_REQUEST);
+			sendHttpResponse(ctx, buildResponse("Error", "Player not found", HttpResponseStatus.BAD_REQUEST, defaultResponseHeaders));
 			return;
 		}
 		
@@ -247,10 +258,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			
 		}
 		
-		//httpResponse.setContent(responseContent);
-		httpResponse.content().writeBytes(responseContent.getBytes());
-		httpResponse.setStatus(HttpResponseStatus.OK);
-		sendHttpResponse(ctx, httpResponse);
+		//httpResponse.content().writeBytes(responseContent.getBytes());
+		//httpResponse.setStatus(HttpResponseStatus.OK);
+		sendHttpResponse(ctx, buildResponse(responseContent, HttpResponseStatus.OK, defaultResponseHeaders));
 	}
 
 	private void handleSystemRequest(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, MessagingException {
@@ -260,7 +270,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			
 			//DatabaseEngine dbManager = new DatabaseEngine(dbInterface);
 			if(!simpleValidation(new String[] {"email"}, urlParameters)) {
-				sendValidationFailResponse(ctx, httpResponse);
+				sendValidationFailResponse(ctx);
 				return;
 			}
 			
@@ -272,9 +282,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				if(result <= 0) {
 					//errorLogMessage.append("Error during inserting owner.");
 					//httpResponse.setContent(simpleJsonObject("Error", "Error occurred during registration"));
-					httpResponse.content().writeBytes(simpleJsonObject("Error", "Error occurred during registration").getBytes());
-					httpResponse.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-					sendHttpResponse(ctx, httpResponse);
+					//httpResponse.content().writeBytes(simpleJsonObject("Error", "Error occurred during registration").getBytes());
+					//httpResponse.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+					sendHttpResponse(ctx, buildResponse("Error", "Error occurred during registration", HttpResponseStatus.INTERNAL_SERVER_ERROR, defaultResponseHeaders));
 					return;
 				}
 				
@@ -292,16 +302,16 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				responseContent = simpleJsonObject("Error", "An error occurred while creating the key");
 			}
 			//httpResponse.setContent(responseContent);
-			httpResponse.content().writeBytes(responseContent.getBytes());
-			httpResponse.setStatus(HttpResponseStatus.OK);
-			sendHttpResponse(ctx, httpResponse);
+			//httpResponse.content().writeBytes(responseContent.getBytes());
+			//httpResponse.setStatus(HttpResponseStatus.OK);
+			sendHttpResponse(ctx, buildResponse(responseContent, HttpResponseStatus.OK, defaultResponseHeaders));
 		} else if(httpRequest.uri().startsWith("/system/register_game")) {
 			//Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
 			//Map<String, String> contentParameters = HttpRequest.parseUrlParameters(httpRequest.getContent());
-			Map<String, String> contentParameters = parseUrlParameters(httpRequest.content().toString(CharsetUtil.UTF_8));
+			Map<String, String> contentParameters = parseParameters(httpRequest.content().toString(CharsetUtil.UTF_8));
 			
 			if(!simpleValidation(new String[] {"api_key", "game_name", "game_package", "game_type"}, contentParameters)) {
-				sendValidationFailResponse(ctx, httpResponse);
+				sendValidationFailResponse(ctx);
 				return;
 			}
 			
@@ -312,9 +322,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			
 			if(dbManager.checkGameByKey(apiKey)) {
 				//httpResponse.setContent(simpleJsonObject("Error", "Game alredy exists"));
-				httpResponse.content().writeBytes(simpleJsonObject("Error", "Game alredy exists").getBytes());
-				httpResponse.setStatus(HttpResponseStatus.BAD_REQUEST);
-				sendHttpResponse(ctx, httpResponse);
+				//httpResponse.content().writeBytes(simpleJsonObject("Error", "Game alredy exists").getBytes());
+				//httpResponse.setStatus(HttpResponseStatus.BAD_REQUEST);
+				sendHttpResponse(ctx, buildResponse("Error", "Game alredy exists", HttpResponseStatus.BAD_REQUEST, defaultResponseHeaders));
 				return;
 			}
 			
@@ -323,9 +333,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			if(apiKeyEntity == null) {
 				//errorLogMessage.append("Cannot find game api key.");
 				//httpResponse.setContent(simpleJsonObject("Error", "An error occurred while searching for the key"));
-				httpResponse.content().writeBytes(simpleJsonObject("Error", "An error occurred while searching for the key").getBytes());
-				httpResponse.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-				sendHttpResponse(ctx, httpResponse);
+				//httpResponse.content().writeBytes(simpleJsonObject("Error", "An error occurred while searching for the key").getBytes());
+				//httpResponse.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+				sendHttpResponse(ctx, buildResponse("Error", "An error occurred while searching for the key", HttpResponseStatus.INTERNAL_SERVER_ERROR, defaultResponseHeaders));
 				return;
 			}
 			
@@ -337,9 +347,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				dbManager.rollback();
 				//errorLogMessage.append("Cannot write game.");
 				//httpResponse.setContent(simpleJsonObject("Error", "An error occurred while adding the game"));
-				httpResponse.content().writeBytes(simpleJsonObject("Error", "An error occurred while adding the game").getBytes());
-				httpResponse.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-				sendHttpResponse(ctx, httpResponse);
+				//httpResponse.content().writeBytes(simpleJsonObject("Error", "An error occurred while adding the game").getBytes());
+				//httpResponse.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+				sendHttpResponse(ctx, buildResponse("Error", "An error occurred while adding the game", HttpResponseStatus.INTERNAL_SERVER_ERROR, defaultResponseHeaders));
 				return;
 			}
 			
@@ -352,17 +362,17 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			String email = dbManager.getOwnerEmailById(apiKeyEntity.getOwnerId());
 			EmailSender.send(email, "Your game registerd", "Your game \""+gameName+"\" registered with key "+apiKey);
 			//httpResponse.setContent(simpleJsonObject("Success", "Register successed"));
-			httpResponse.content().writeBytes(simpleJsonObject("Success", "Register successed").getBytes());
-			httpResponse.setStatus(HttpResponseStatus.OK);
-			sendHttpResponse(ctx, httpResponse);
+			//httpResponse.content().writeBytes(simpleJsonObject("Success", "Register successed").getBytes());
+			//httpResponse.setStatus(HttpResponseStatus.OK);
+			sendHttpResponse(ctx, buildResponse("Success", "Register successed", HttpResponseStatus.OK, defaultResponseHeaders));
 			
 		} else if(httpRequest.uri().startsWith("/system/udpate_game_data")) {
 			//Map<String, String> contentParameters = httpRequest.parseContentWithParameters();
 			//Map<String, String> contentParameters = HttpRequest.parseUrlParameters(httpRequest.getContent());
-			Map<String, String> contentParameters = parseUrlParameters(httpRequest.content().toString(CharsetUtil.UTF_8));
+			Map<String, String> contentParameters = parseParameters(httpRequest.content().toString(CharsetUtil.UTF_8));
 			
 			if(!simpleValidation(new String[] {"api_key"}, contentParameters)) {
-				sendValidationFailResponse(ctx, httpResponse);
+				sendValidationFailResponse(ctx);
 				return;
 			}
 			
@@ -374,7 +384,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			
 		} else if(httpRequest.uri().startsWith("/system/delete_game")) {
 			if(!simpleValidation(new String[] {"api_key"}, urlParameters)) {
-				sendValidationFailResponse(ctx, httpResponse);
+				sendValidationFailResponse(ctx);
 				return;
 			}
 			
@@ -384,23 +394,23 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			
 			if(game == null) {
 				//httpResponse.setContent(simpleJsonObject("Error", "An error occurred while deleting the game"));
-				httpResponse.content().writeBytes(simpleJsonObject("Error", "An error occurred while deleting the game").getBytes());
-				httpResponse.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-				sendHttpResponse(ctx, httpResponse);
+				//httpResponse.content().writeBytes(simpleJsonObject("Error", "An error occurred while deleting the game").getBytes());
+				//httpResponse.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+				sendHttpResponse(ctx, buildResponse("Error", "An error occurred while deleting the game", HttpResponseStatus.INTERNAL_SERVER_ERROR, defaultResponseHeaders));
 				return;
 			}
 			
 			dbManager.deleteGameTables(game.getPrefix(), gameTemplate.getTableNames());
 			
 			//httpResponse.setContent(simpleJsonObject("Success", "Deletion was successful"));
-			httpResponse.content().writeBytes(simpleJsonObject("Success", "Deletion was successful").getBytes());
-			httpResponse.setStatus(HttpResponseStatus.OK);
-			sendHttpResponse(ctx, httpResponse);
+			//httpResponse.content().writeBytes(simpleJsonObject("Success", "Deletion was successful").getBytes());
+			//httpResponse.setStatus(HttpResponseStatus.OK);
+			sendHttpResponse(ctx, buildResponse("Success", "Deletion was successful", HttpResponseStatus.OK, defaultResponseHeaders));
 		} else {
 			//httpResponse.setContent(simpleJsonObject("Error", "Bad command"));
-			httpResponse.content().writeBytes(simpleJsonObject("Error", "Bad command").getBytes());
-			httpResponse.setStatus(HttpResponseStatus.BAD_REQUEST);
-			sendHttpResponse(ctx, httpResponse);
+			//httpResponse.content().writeBytes(simpleJsonObject("Error", "Bad command").getBytes());
+			//httpResponse.setStatus(HttpResponseStatus.BAD_REQUEST);
+			sendHttpResponse(ctx, buildResponse("Error", "Bad command", HttpResponseStatus.BAD_REQUEST, defaultResponseHeaders));
 		}
 	}
 	
@@ -411,7 +421,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		
 		if(httpRequest.uri().startsWith("/api/select")) {
 			
-			List<SqlExpression> whereData = DataBaseInterface.parseWhere(new JSONArray(httpRequest.content()));
+			List<SqlExpression> whereData = DataBaseInterface.parseWhere(new JSONArray(httpRequest.content().toString(CharsetUtil.UTF_8)));
 			result = new SqlSelect(tableName, whereData);
 			
 		} else if(httpRequest.uri().startsWith("/api/insert")) {
@@ -466,7 +476,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		String responseContent = "";
 		Map<String, String> urlParameters = parseUrlParameters(httpRequest.uri());
 		if(!simpleValidation(new String[] {"api_key", "table"}, urlParameters)) {
-			sendValidationFailResponse(ctx, httpResponse);
+			sendValidationFailResponse(ctx);
 			return;
 		}
 		
@@ -476,9 +486,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		
 		if(game == null) {
 			//httpResponse.setContent(simpleJsonObject("Error", "Game not found"));
-			httpResponse.content().writeBytes(simpleJsonObject("Error", "Game not found").getBytes());
-			httpResponse.setStatus(HttpResponseStatus.BAD_REQUEST);
-			sendHttpResponse(ctx, httpResponse);
+			//httpResponse.content().writeBytes(simpleJsonObject("Error", "Game not found").getBytes());
+			//httpResponse.setStatus(HttpResponseStatus.BAD_REQUEST);
+			sendHttpResponse(ctx, buildResponse("Error", "Game not found", HttpResponseStatus.BAD_REQUEST, defaultResponseHeaders));
 			return;
 		}
 		
@@ -494,9 +504,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				String fieldName = urlParameters.get("checkField"+(i++));
 				if(!insertData.containsCell(fieldName)) {
 					//httpResponse.setContent(simpleJsonObject("Error", "Field name mismatch"));
-					httpResponse.content().writeBytes(simpleJsonObject("Error", "Field name mismatch").getBytes());
-					httpResponse.setStatus(HttpResponseStatus.BAD_REQUEST);
-					sendHttpResponse(ctx, httpResponse);
+					//httpResponse.content().writeBytes(simpleJsonObject("Error", "Field name mismatch").getBytes());
+					//httpResponse.setStatus(HttpResponseStatus.BAD_REQUEST);
+					sendHttpResponse(ctx, buildResponse("Error", "Field name mismatch", HttpResponseStatus.BAD_REQUEST, defaultResponseHeaders));
 					return;
 				}
 				whereExpression.add(new SqlExpression(fieldName, insertData.getCell(fieldName).getValue()));
@@ -530,9 +540,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		}
 		
 		//httpResponse.setContent(responseContent);
-		httpResponse.content().writeBytes(responseContent.getBytes());
-		httpResponse.setStatus(HttpResponseStatus.OK);
-		sendHttpResponse(ctx, httpResponse);
+		//httpResponse.content().writeBytes(responseContent.getBytes());
+		//httpResponse.setStatus(HttpResponseStatus.OK);
+		sendHttpResponse(ctx, buildResponse(responseContent, HttpResponseStatus.OK, defaultResponseHeaders));
 	}
 	
 	private static GameTemplate createGameTemplate1() {
@@ -584,11 +594,8 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		return true;
 	}*/
 	
-	private void sendValidationFailResponse(ChannelHandlerContext ctx, FullHttpResponse httpResponse) {
-		//httpResponse.setContent(simpleJsonObject("Error", "Parameters validation failed"));
-		httpResponse.content().writeBytes(simpleJsonObject("Error", "Parameters validation failed").getBytes());
-		httpResponse.setStatus(HttpResponseStatus.BAD_REQUEST);
-		sendHttpResponse(ctx, httpResponse);
+	private void sendValidationFailResponse(ChannelHandlerContext ctx) {
+		sendHttpResponse(ctx, buildResponse("Error", "Parameters validation failed", HttpResponseStatus.BAD_REQUEST, defaultResponseHeaders));
 	}
 
     @Override
