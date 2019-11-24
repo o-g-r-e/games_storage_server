@@ -1,7 +1,9 @@
-package com.my.gamesdataserver.basedbclasses;
+package com.my.gamesdataserver.dbengineclasses;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import com.my.gamesdataserver.basedbclasses.ColData;
 
 public class TableTemplate {
 	private String name;

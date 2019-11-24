@@ -21,8 +21,6 @@ import com.my.gamesdataserver.basedbclasses.DataBaseInterface;
 import com.my.gamesdataserver.basedbclasses.SqlInsert;
 import com.my.gamesdataserver.basedbclasses.SqlSelect;
 import com.my.gamesdataserver.basedbclasses.SqlUpdate;
-import com.my.gamesdataserver.basedbclasses.TableIndex;
-import com.my.gamesdataserver.basedbclasses.TableTemplate;
 
 public class GamesDbEngine  {
 	
