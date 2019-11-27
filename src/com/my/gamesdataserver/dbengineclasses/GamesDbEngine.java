@@ -13,11 +13,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.json.JSONException;
+
 import com.my.gamesdataserver.DataBaseConnectionParameters;
 import com.my.gamesdataserver.SqlExpression;
 import com.my.gamesdataserver.basedbclasses.CellData;
 import com.my.gamesdataserver.basedbclasses.ColData;
 import com.my.gamesdataserver.basedbclasses.DataBaseInterface;
+import com.my.gamesdataserver.basedbclasses.Decrement;
+import com.my.gamesdataserver.basedbclasses.Increment;
 import com.my.gamesdataserver.basedbclasses.SqlInsert;
 import com.my.gamesdataserver.basedbclasses.SqlSelect;
 import com.my.gamesdataserver.basedbclasses.SqlUpdate;
@@ -219,5 +223,13 @@ public class GamesDbEngine  {
 
 	public int executeUpdate(SqlUpdate sqlRequest) throws SQLException {
 		return dataBaseInterface.executeUpdate(sqlRequest);
+	}
+
+	public boolean executeIncrement(Increment increment) throws SQLException, JSONException {
+		return dataBaseInterface.executeIncrement(increment);
+	}
+
+	public int executeDecrement(Decrement sqlRequest) {
+		return 0;
 	}
 }

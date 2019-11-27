@@ -32,4 +32,8 @@ public class CellData {
 	public void setType(int type) {
 		this.type = type;
 	}
+
+	public void setValue(Object value) {
+		this.value = value;
+	}
 }

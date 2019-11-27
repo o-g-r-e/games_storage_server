@@ -437,4 +437,22 @@ public class DataBaseInterface {
 	public void createIndex(String indexName, String tableName, String[] fields, boolean unique) throws SQLException {
 		getCon().prepareStatement(String.format("CREATE %s INDEX %s ON %s(%s)", unique?"UNIQUE":"", indexName, tableName, String.join(",", fields))).execute();
 	}
+
+	public boolean executeIncrement(Increment increment) throws SQLException, JSONException {
+		String tableName = increment.getTableName();
+		String fieldToIncrement = increment.getFieldName();
+		List<SqlExpression> whereExpression = increment.getWhereExpression();
+		List<List<CellData>> rows = selectAllWhere(tableName, whereExpression);
+		int result = 0;
+		if(rows.size() > 0) {
+			CellData cellToInc = new Row(rows.get(0)).getCell(fieldToIncrement);
+			if(cellToInc != null) {
+				cellToInc.setValue(((Integer)cellToInc.getValue())+1);
+				List<CellData> set = new ArrayList<>();
+				set.add(cellToInc);
+				result = updateTable(tableName, set, whereExpression);
+			}
+		}
+		return result > 0;
+	}
 }

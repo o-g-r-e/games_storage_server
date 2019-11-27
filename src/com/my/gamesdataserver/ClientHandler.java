@@ -19,6 +19,8 @@ import com.my.gamesdataserver.SqlExpression;
 import com.my.gamesdataserver.basedbclasses.CellData;
 import com.my.gamesdataserver.basedbclasses.ColData;
 import com.my.gamesdataserver.basedbclasses.DataBaseInterface;
+import com.my.gamesdataserver.basedbclasses.Decrement;
+import com.my.gamesdataserver.basedbclasses.Increment;
 import com.my.gamesdataserver.basedbclasses.Row;
 import com.my.gamesdataserver.basedbclasses.SqlInsert;
 import com.my.gamesdataserver.basedbclasses.SqlRequest;
@@ -373,6 +375,20 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				responseContent = simpleJsonObject("Success", "Update completed successfully");
 			} else {
 				responseContent = simpleJsonObject("Error", "An error occurred while updating");
+			}
+		} else if(sqlRequest instanceof Increment) {
+			boolean result = dbManager.executeIncrement((Increment) sqlRequest);
+			if(result) {
+				responseContent = simpleJsonObject("Success", "Increment completed successfully");
+			} else {
+				responseContent = simpleJsonObject("Error", "An error occurred while incrementing");
+			}
+		} else if(sqlRequest instanceof Decrement) {
+			int result = dbManager.executeDecrement((Decrement) sqlRequest);
+			if(result > 0) {
+				responseContent = simpleJsonObject("Success", "Decrement completed successfully");
+			} else {
+				responseContent = simpleJsonObject("Error", "An error occurred while decrementing");
 			}
 		}
 		
