@@ -53,7 +53,7 @@ public class PlayerData {
 		}
 	}*/
 	
-	public String toJson() {
+	/*public String toJson() {
 		StringBuilder result = new StringBuilder();
 		StringBuilder levelsJson = new StringBuilder("[");
 		
@@ -86,5 +86,5 @@ public class PlayerData {
 		boostsJson.append("]");
 		
 		return "{\"max_level\":"+maxLevel+",\"levels\":"+levelsJson.toString()+",\"boosts\":"+boostsJson.toString()+"}";
-	}
+	}*/
 }

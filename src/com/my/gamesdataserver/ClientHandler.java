@@ -223,7 +223,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			}
 			
 			String apiKey = contentParameters.get("api_key");
-			String apiSecret = contentParameters.get("api_secret");
+			
 			String gameName = contentParameters.get("game_name");
 			String gameJavaPackage = contentParameters.get("game_package");
 			String gameType = contentParameters.get("game_type");
@@ -242,6 +242,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			
 			dbManager.enableTransactions();
 			String prefix = GamesDbEngine.generateTablePrefix(gameName, apiKey);
+			String apiSecret = ownerSecrets.getApiSecret();
 			int added = dbManager.insertGame(gameName, gameJavaPackage, ownerSecrets.getOwnerId(), apiKey, apiSecret, gameType, prefix, generateHmacHash(apiKey, apiSecret));
 			
 			if(added < 1) {
@@ -330,19 +331,31 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	
 	private void handleApiRequest(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, JSONException {
 		String responseContent = "";
-		Map<String, String> urlParameters = parseUrlParameters(httpRequest.uri());
+		/*Map<String, String> urlParameters = parseUrlParameters(httpRequest.uri());
 		if(!simpleValidation(new String[] {"api_key", "table"}, urlParameters)) {
 			sendValidationFailResponse(ctx);
 			return;
-		}
+		}*/
 		
 		Game game = null;
 		
 		if(hmac) {
 			String inputHash = httpRequest.headers().get("Authorization");
+			
+			if(inputHash == null || "".equals(inputHash)) {
+				sendValidationFailResponse(ctx);
+				return;
+			}
+			
 			game = dbManager.getGameByHash(inputHash);
 		} else {
-			String apiKey = urlParameters.get("api_key");
+			String apiKey = httpRequest.headers().get("API_key");
+			
+			if(apiKey == null || "".equals(apiKey)) {
+				sendValidationFailResponse(ctx);
+				return;
+			}
+			
 			game = dbManager.getGameByKey(apiKey);
 		}
 		
@@ -351,6 +364,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			return;
 		}
 		
+		Map<String, String> urlParameters = parseUrlParameters(httpRequest.uri());
 		SqlRequest sqlRequest = parseRequest(httpRequest, game.getPrefix());
 		
 		if(sqlRequest instanceof SqlInsert && urlParameters.containsKey("updateIfExists") && urlParameters.containsKey("checkField1")) {
@@ -498,23 +512,27 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private static GameTemplate createGameTemplate1() {
 		
 		List<TableTemplate> tblTemplates = new ArrayList<>();
-		TableTemplate levelsTemplate = new TableTemplate("levels", new ColData[] {new ColData(Types.INTEGER, "playerId", false),
+		TableTemplate levelsTemplate = new TableTemplate("levels", new ColData[] {new ColData(Types.VARCHAR, "playerId", false),
 				  																  new ColData(Types.INTEGER, "level", false),
 																				  new ColData(Types.INTEGER, "score"),
 																				  new ColData(Types.INTEGER, "stars")});
 		
 		levelsTemplate.addIndex(new TableIndex("playerId_level", new String[] {"playerId", "level"}, true));
 		
-		TableTemplate playersTemplate = new TableTemplate("players", new ColData[] {new ColData(Types.VARCHAR, "playerId", false), 
-																					new ColData(Types.INTEGER, "max_level")});
+		TableTemplate playersTemplate = new TableTemplate("players", new ColData[] {new ColData(Types.VARCHAR, "facebookId", false), 
+																					new ColData(Types.VARCHAR, "playerId", false),
+																					new ColData(Types.INTEGER, "maxLevel")});
 		
-		playersTemplate.addIndex(new TableIndex("playerId_unique", new String[] {"playerId"}, true));
+		playersTemplate.addIndex(new TableIndex("playerId_unique", new String[] {"facebookId"}, true));
 				
-		TableTemplate boostsTemplate = new TableTemplate("boosts", new ColData[] {new ColData(Types.INTEGER, "playerId", false), 
-				  																  new ColData(Types.VARCHAR, "name", false), 
-																				  new ColData(Types.INTEGER, "count", "0")});
+		TableTemplate boostsTemplate = new TableTemplate("boosts", new ColData[] {new ColData(Types.VARCHAR, "playerId", false), 
+				  																  new ColData(Types.INTEGER, "boost1", "0"), 
+																				  new ColData(Types.INTEGER, "boost2", "0"), 
+																				  new ColData(Types.INTEGER, "boost3", "0"), 
+																				  new ColData(Types.INTEGER, "boost4", "0"), 
+																				  new ColData(Types.INTEGER, "boost5", "0")});
 		
-		boostsTemplate.addIndex(new TableIndex("playerId_boostName", new String[] {"playerId", "name"}, true));
+		boostsTemplate.addIndex(new TableIndex("playerId_boostName", new String[] {"playerId"}, true));
 		
 		tblTemplates.add(levelsTemplate);
 		tblTemplates.add(playersTemplate);
@@ -555,7 +573,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private String generateHmacHash(String apiKey, String apiSecret) throws NoSuchAlgorithmException, InvalidKeyException {
 		Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
 		sha256_HMAC.init(new SecretKeySpec(apiSecret.getBytes(), "HmacSHA256"));
-		return Arrays.toString(Base64.getEncoder().encode(sha256_HMAC.doFinal(apiKey.getBytes())));
+		return Base64.getEncoder().encodeToString(sha256_HMAC.doFinal(apiKey.getBytes()));
 	}
 	
 	private String simpleJsonObject(String name, String value) {

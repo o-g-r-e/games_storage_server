@@ -48,10 +48,10 @@ public class GamesDbEngine  {
 	
 	public int writeNewOwnerSecrets(int ownerId, String apiKey, String apiSecret) throws SQLException {
 		List<CellData> row = new ArrayList<>();
-		row.add(new CellData(Types.VARCHAR, "owner_id", ownerId));
+		row.add(new CellData(Types.INTEGER, "ownerId", ownerId));
 		row.add(new CellData(Types.VARCHAR, "api_key", apiKey));
 		row.add(new CellData(Types.VARCHAR, "api_secret", apiSecret));
-		return dataBaseInterface.insertIntoTable("api_keys", row);
+		return dataBaseInterface.insertIntoTable("owner_secrets", row);
 	}
 	
 	public int updateGame(String name, String gameJavaPackage) {
@@ -141,7 +141,7 @@ public class GamesDbEngine  {
 	public OwnerSecrets getOwnerSecrets(String apiKey) throws SQLException {
 		OwnerSecrets result = null;
 		
-		List<List<CellData>> rows = dataBaseInterface.selectAllWhere("api_keys", "api_key="+apiKey);
+		List<List<CellData>> rows = dataBaseInterface.selectAllWhere("owner_secrets", "api_key="+apiKey);
 		
 		if(rows.size() > 0) {
 			result = new OwnerSecrets((int)rows.get(0).get(0).getValue(), (int)rows.get(0).get(1).getValue(), (String)rows.get(0).get(2).getValue(), (String)rows.get(0).get(3).getValue());
@@ -151,7 +151,7 @@ public class GamesDbEngine  {
 	}
 	
 	public void removeApiKey(String apiKey) throws SQLException {
-		dataBaseInterface.deleteFrom("api_keys", "api_key='"+apiKey+"'");
+		dataBaseInterface.deleteFrom("owner_secrets", "api_key='"+apiKey+"'");
 	}
 	
 	public int insertGame(String gameName, String gameJavaPackage, int ownerId, String apiKey, String apiSecret, String type, String prefix, String hash) throws SQLException {
