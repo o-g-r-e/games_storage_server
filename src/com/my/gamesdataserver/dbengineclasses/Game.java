@@ -8,17 +8,21 @@ public class Game {
 	private String javaPackage;
 	private int ownerId;
 	private String apiKey;
+	private String secretKey;
 	private String type;
 	private String prefix;
+	private String hash;
 	
-	public Game(int id, String name, String javaPackage, int ownerId, String apiKey, String type, String prefix) {
+	public Game(int id, String name, String javaPackage, int ownerId, String apiKey, String secretKey, String type, String prefix, String hash) {
 		this.id = id;
 		this.name = name;
 		this.javaPackage = javaPackage;
 		this.ownerId = ownerId;
 		this.apiKey = apiKey;
+		this.secretKey = secretKey;
 		this.type = type;
 		this.prefix = prefix;
+		this.hash = hash;
 	}
 	
 	public int getId() {
@@ -56,5 +60,13 @@ public class Game {
 
 	public String getPrefix() {
 		return prefix;
+	}
+
+	public String getSecretKey() {
+		return secretKey;
+	}
+
+	public String getHash() {
+		return hash;
 	}
 }

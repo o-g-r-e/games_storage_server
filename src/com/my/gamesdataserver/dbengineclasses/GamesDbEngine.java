@@ -46,10 +46,11 @@ public class GamesDbEngine  {
 		}
 	}
 	
-	public int writeNewApiKey(int ownerId, String apiKey) throws SQLException {
+	public int writeNewOwnerSecrets(int ownerId, String apiKey, String apiSecret) throws SQLException {
 		List<CellData> row = new ArrayList<>();
 		row.add(new CellData(Types.VARCHAR, "owner_id", ownerId));
 		row.add(new CellData(Types.VARCHAR, "api_key", apiKey));
+		row.add(new CellData(Types.VARCHAR, "api_secret", apiSecret));
 		return dataBaseInterface.insertIntoTable("api_keys", row);
 	}
 	
@@ -105,13 +106,16 @@ public class GamesDbEngine  {
 		List<List<CellData>> rows = dataBaseInterface.selectAllWhere("games", where);
 		
 		if(rows.size() > 0) {
-			game = new Game((int)rows.get(0).get(0).getValue(), 
-							(String)rows.get(0).get(1).getValue(), 
-							(String)rows.get(0).get(2).getValue(), 
-							(int)   rows.get(0).get(3).getValue(), 
-							(String)rows.get(0).get(4).getValue(), 
-							(String)rows.get(0).get(5).getValue(), 
-							(String)rows.get(0).get(6).getValue());
+			int id = (int)rows.get(0).get(0).getValue();
+			String gameName = (String)rows.get(0).get(1).getValue();
+			String javaPackage = (String)rows.get(0).get(2).getValue();
+			int ownerId = (int)   rows.get(0).get(3).getValue();
+			//String apiKey = (String)rows.get(0).get(4).getValue();
+			String secretKey = (String)rows.get(0).get(5).getValue();
+			String type = (String)rows.get(0).get(6).getValue();
+			String prefix = (String)rows.get(0).get(7).getValue();
+			String hash = (String)rows.get(0).get(8).getValue();
+			game = new Game(id, gameName, javaPackage, ownerId, apiKey, secretKey, type, prefix, hash);
 		}
 		
 		return game;
@@ -134,13 +138,13 @@ public class GamesDbEngine  {
 		}
 	}
 
-	public ApiKey getApiKey(String apiKey) throws SQLException {
-		ApiKey result = null;
+	public OwnerSecrets getOwnerSecrets(String apiKey) throws SQLException {
+		OwnerSecrets result = null;
 		
 		List<List<CellData>> rows = dataBaseInterface.selectAllWhere("api_keys", "api_key="+apiKey);
 		
 		if(rows.size() > 0) {
-			result = new ApiKey((int)rows.get(0).get(0).getValue(), (int)rows.get(0).get(1).getValue(), (String)rows.get(0).get(2).getValue());
+			result = new OwnerSecrets((int)rows.get(0).get(0).getValue(), (int)rows.get(0).get(1).getValue(), (String)rows.get(0).get(2).getValue(), (String)rows.get(0).get(3).getValue());
 		}
 		
 		return result;
@@ -150,32 +154,18 @@ public class GamesDbEngine  {
 		dataBaseInterface.deleteFrom("api_keys", "api_key='"+apiKey+"'");
 	}
 	
-	List<Game> selectGames() throws SQLException {
-		List<Game> result = new ArrayList<Game>();
-		
-		List<List<CellData>> rows = dataBaseInterface.selectAll("games");
-		for(List<CellData> row : rows) {
-			result.add(new Game((int)row.get(0).getValue(), 
-					(String)row.get(1).getValue(), 
-					(String)row.get(2).getValue(),
-					(int)   row.get(3).getValue(), 
-					(String)row.get(4).getValue(), 
-					(String)row.get(5).getValue(), 
-					(String)row.get(6).getValue()));
-		}
-		return result;
-	}
-	
-	public int insertGame(String gameName, String gameJavaPackage, int ownerId, String key, String type, String prefix) throws SQLException {
+	public int insertGame(String gameName, String gameJavaPackage, int ownerId, String apiKey, String apiSecret, String type, String prefix, String hash) throws SQLException {
 		
 		List<CellData> row = new ArrayList<>();
 		
 		row.add(new CellData("name", gameName));
 		row.add(new CellData("package", gameJavaPackage));
 		row.add(new CellData("owner_id", ownerId));
-		row.add(new CellData("api_key", key));
+		row.add(new CellData("api_key", apiKey));
+		row.add(new CellData("api_secret", apiSecret));
 		row.add(new CellData("type", type));
 		row.add(new CellData("prefix", prefix));
+		row.add(new CellData("hash", hash));
 		
 		return dataBaseInterface.insertIntoTable("games", row);
 	}
@@ -231,5 +221,9 @@ public class GamesDbEngine  {
 
 	public int executeDecrement(Decrement sqlRequest) {
 		return 0;
+	}
+
+	public Game getGameByHash(String gameHash) {
+		return null;
 	}
 }

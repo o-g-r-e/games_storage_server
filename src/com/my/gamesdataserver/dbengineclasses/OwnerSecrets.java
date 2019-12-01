@@ -1,14 +1,16 @@
 package com.my.gamesdataserver.dbengineclasses;
 
-public class ApiKey {
+public class OwnerSecrets {
 	private int id;
 	private int ownerId;
 	private String apiKey;
+	private String apiSecret;
 	
-	public ApiKey(int id, int ownerId, String apiKey) {
+	public OwnerSecrets(int id, int ownerId, String apiKey, String apiSecret) {
 		this.id = id;
 		this.ownerId = ownerId;
 		this.apiKey = apiKey;
+		this.apiSecret = apiSecret;
 	}
 
 	public int getId() {
@@ -21,5 +23,9 @@ public class ApiKey {
 
 	public String getApiKey() {
 		return apiKey;
+	}
+
+	public String getApiSecret() {
+		return apiSecret;
 	}
 }

@@ -2,14 +2,21 @@ package com.my.gamesdataserver;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import javax.mail.MessagingException;
+import javax.print.attribute.standard.MediaSize.Engineering;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -26,7 +33,7 @@ import com.my.gamesdataserver.basedbclasses.SqlInsert;
 import com.my.gamesdataserver.basedbclasses.SqlRequest;
 import com.my.gamesdataserver.basedbclasses.SqlSelect;
 import com.my.gamesdataserver.basedbclasses.SqlUpdate;
-import com.my.gamesdataserver.dbengineclasses.ApiKey;
+import com.my.gamesdataserver.dbengineclasses.OwnerSecrets;
 import com.my.gamesdataserver.dbengineclasses.GamesDbEngine;
 import com.my.gamesdataserver.dbengineclasses.Owner;
 import com.my.gamesdataserver.dbengineclasses.TableIndex;
@@ -60,6 +67,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private String errorLogFilePrefix = "error";
 	private static final GameTemplate TEMPLATE_1;
 	private static Map<String, String> defaultResponseHeaders;
+	private boolean hmac;
 	
 	private enum RequestGroup {BASE, API, TEMPLATE_API, BAD};
 	
@@ -73,10 +81,11 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		defaultResponseHeaders.put("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");*/
 	}
 	
-	public ClientHandler(DataBaseInterface dbInterface, LogManager logManager) throws IOException {
+	public ClientHandler(DataBaseInterface dbInterface, LogManager logManager, boolean isHmac) throws IOException {
 		this.dbManager = new GamesDbEngine(dbInterface);
 		this.template1DbManager = new Template1DbEngine(dbInterface);
 		this.logManager = logManager;
+		this.hmac = isHmac;
 	}
 	
 	private RequestGroup recognizeRequestGroup(FullHttpRequest httpRequest) {
@@ -117,7 +126,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				sendHttpResponse(ctx, httpResponse);
 				break;
 			}
-		} catch (JSONException | SQLException | MessagingException e) {
+		} catch (JSONException | SQLException | MessagingException | InvalidKeyException | NoSuchAlgorithmException e) {
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
 			
@@ -171,7 +180,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		sendHttpResponse(ctx, buildResponse(responseContent, HttpResponseStatus.OK, defaultResponseHeaders));
 	}
 
-	private void handleSystemRequest(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, MessagingException {
+	private void handleSystemRequest(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, MessagingException, InvalidKeyException, NoSuchAlgorithmException {
 		String responseContent = "";
 		Map<String, String> urlParameters = parseUrlParameters(httpRequest.uri());
 		if(httpRequest.uri().startsWith("/system/generate_api_key")) {
@@ -195,10 +204,11 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			}
 			
 			String newApiKey = RandomKeyGenerator.nextString(45);
-			int added = dbManager.writeNewApiKey(owner.getId(), newApiKey);
+			String newApiSecret = RandomKeyGenerator.nextString(45);
+			int added = dbManager.writeNewOwnerSecrets(owner.getId(), newApiKey, newApiSecret);
 			
 			if(added > 0) {
-				EmailSender.send(inputEmail, "New API key generation", "Your API key generated: "+newApiKey);
+				EmailSender.send(inputEmail, "New API key generation", "Your secret data: \r\n\r\n API key: "+newApiKey+"\r\nAPI secret: "+newApiSecret);
 				responseContent = simpleJsonObject("Success", "API key generated successfully");
 			} else {
 				responseContent = simpleJsonObject("Error", "An error occurred while creating the key");
@@ -213,6 +223,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			}
 			
 			String apiKey = contentParameters.get("api_key");
+			String apiSecret = contentParameters.get("api_secret");
 			String gameName = contentParameters.get("game_name");
 			String gameJavaPackage = contentParameters.get("game_package");
 			String gameType = contentParameters.get("game_type");
@@ -222,16 +233,16 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				return;
 			}
 			
-			ApiKey apiKeyEntity = dbManager.getApiKey(apiKey);
+			OwnerSecrets ownerSecrets = dbManager.getOwnerSecrets(apiKey);
 			
-			if(apiKeyEntity == null) {
+			if(ownerSecrets == null) {
 				sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while searching for the key", HttpResponseStatus.INTERNAL_SERVER_ERROR, defaultResponseHeaders));
 				return;
 			}
 			
 			dbManager.enableTransactions();
 			String prefix = GamesDbEngine.generateTablePrefix(gameName, apiKey);
-			int added = dbManager.insertGame(gameName, gameJavaPackage, apiKeyEntity.getOwnerId(), apiKey, gameType, prefix);
+			int added = dbManager.insertGame(gameName, gameJavaPackage, ownerSecrets.getOwnerId(), apiKey, apiSecret, gameType, prefix, generateHmacHash(apiKey, apiSecret));
 			
 			if(added < 1) {
 				dbManager.rollback();
@@ -245,7 +256,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			dbManager.disableTransactions();
 			
 			dbManager.createGameTables(TEMPLATE_1, prefix); //throw exception if not successfully
-			String email = dbManager.getOwnerEmailById(apiKeyEntity.getOwnerId());
+			String email = dbManager.getOwnerEmailById(ownerSecrets.getOwnerId());
 			EmailSender.send(email, "Your game registerd", "Your game \""+gameName+"\" registered with key "+apiKey);
 			sendHttpResponse(ctx, buildSimpleResponse("Success", "Register successed", HttpResponseStatus.OK, defaultResponseHeaders));
 			
@@ -325,9 +336,15 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			return;
 		}
 		
-		String apiKey = urlParameters.get("api_key");
+		Game game = null;
 		
-		Game game = dbManager.getGameByKey(apiKey);
+		if(hmac) {
+			String inputHash = httpRequest.headers().get("Authorization");
+			game = dbManager.getGameByHash(inputHash);
+		} else {
+			String apiKey = urlParameters.get("api_key");
+			game = dbManager.getGameByKey(apiKey);
+		}
 		
 		if(game == null) {
 			sendHttpResponse(ctx, buildSimpleResponse("Error", "Game not found", HttpResponseStatus.BAD_REQUEST, defaultResponseHeaders));
@@ -531,8 +548,14 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		return new String(encoded, encoding);
 	}*/
     
-	void sendHttpResponse(ChannelHandlerContext ctx, FullHttpResponse httpResponse) {
+	private void sendHttpResponse(ChannelHandlerContext ctx, FullHttpResponse httpResponse){
 		ctx.writeAndFlush(httpResponse);
+	}
+	
+	private String generateHmacHash(String apiKey, String apiSecret) throws NoSuchAlgorithmException, InvalidKeyException {
+		Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
+		sha256_HMAC.init(new SecretKeySpec(apiSecret.getBytes(), "HmacSHA256"));
+		return Arrays.toString(Base64.getEncoder().encode(sha256_HMAC.doFinal(apiKey.getBytes())));
 	}
 	
 	private String simpleJsonObject(String name, String value) {

@@ -86,7 +86,7 @@ public class Main {
 	        			pipeline.addLast(new HttpObjectAggregator(1048576));
 	                	//channel.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(2048));
 	                	
-	                	pipeline.addLast(new ClientHandler(dbInterface, logManager));
+	                	pipeline.addLast(new ClientHandler(dbInterface, logManager, "Yes".equals(settings.get("hmac"))));
 	                }
 	        	});
 	            
