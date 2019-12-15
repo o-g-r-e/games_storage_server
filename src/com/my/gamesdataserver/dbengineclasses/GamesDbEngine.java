@@ -38,7 +38,7 @@ public class GamesDbEngine  {
 		
 		for(TableTemplate tableTemplate : gameTemplate.getTableTemplates()) {
 			
-			dataBaseInterface.createTable(prefix+tableTemplate.getName(), tableTemplate.getCols());
+			dataBaseInterface.createTable(prefix+tableTemplate.getName(), tableTemplate.getCols(), tableTemplate.getPrimaryKey());
 			
 			for(TableIndex tIndex : tableTemplate.getIndices()) {
 				dataBaseInterface.createIndex(tIndex.getName(), prefix+tableTemplate.getName(), tIndex.getFields(), tIndex.isUnique());
@@ -106,16 +106,15 @@ public class GamesDbEngine  {
 		List<List<CellData>> rows = dataBaseInterface.selectAllWhere("games", where);
 		
 		if(rows.size() > 0) {
-			int id = (int)rows.get(0).get(0).getValue();
-			String gameName = (String)rows.get(0).get(1).getValue();
-			String javaPackage = (String)rows.get(0).get(2).getValue();
-			int ownerId = (int)   rows.get(0).get(3).getValue();
-			//String apiKey = (String)rows.get(0).get(4).getValue();
-			String secretKey = (String)rows.get(0).get(5).getValue();
-			String type = (String)rows.get(0).get(6).getValue();
-			String prefix = (String)rows.get(0).get(7).getValue();
-			String hash = (String)rows.get(0).get(8).getValue();
-			game = new Game(id, gameName, javaPackage, ownerId, apiKey, secretKey, type, prefix, hash);
+			String gameName = (String)rows.get(0).get(0).getValue();
+			String javaPackage = (String)rows.get(0).get(1).getValue();
+			int ownerId = (int)   rows.get(0).get(2).getValue();
+			//String apiKey = (String)rows.get(0).get(3).getValue();
+			String secretKey = (String)rows.get(0).get(4).getValue();
+			String type = (String)rows.get(0).get(5).getValue();
+			String prefix = (String)rows.get(0).get(6).getValue();
+			String hash = (String)rows.get(0).get(7).getValue();
+			game = new Game(gameName, javaPackage, ownerId, apiKey, secretKey, type, prefix, hash);
 		}
 		
 		return game;
@@ -144,7 +143,7 @@ public class GamesDbEngine  {
 		List<List<CellData>> rows = dataBaseInterface.selectAllWhere("owner_secrets", "api_key="+apiKey);
 		
 		if(rows.size() > 0) {
-			result = new OwnerSecrets((int)rows.get(0).get(0).getValue(), (int)rows.get(0).get(1).getValue(), (String)rows.get(0).get(2).getValue(), (String)rows.get(0).get(3).getValue());
+			result = new OwnerSecrets((int)rows.get(0).get(0).getValue(), (String)rows.get(0).get(1).getValue(), (String)rows.get(0).get(2).getValue());
 		}
 		
 		return result;
@@ -223,7 +222,24 @@ public class GamesDbEngine  {
 		return 0;
 	}
 
-	public Game getGameByHash(String gameHash) {
-		return null;
+	public Game getGameByHash(String gameHash) throws SQLException {
+		Game game = null;
+		List<SqlExpression> where = new ArrayList<>();
+		where.add(new SqlExpression(Types.VARCHAR, "hash", gameHash));
+		List<List<CellData>> rows = dataBaseInterface.selectAllWhere("games", where);
+		
+		if(rows.size() > 0) {
+			String gameName = (String)rows.get(0).get(0).getValue();
+			String javaPackage = (String)rows.get(0).get(1).getValue();
+			int ownerId = (int)   rows.get(0).get(2).getValue();
+			String apiKey = (String)rows.get(0).get(3).getValue();
+			String secretKey = (String)rows.get(0).get(4).getValue();
+			String type = (String)rows.get(0).get(5).getValue();
+			String prefix = (String)rows.get(0).get(6).getValue();
+			String hash = (String)rows.get(0).get(7).getValue();
+			game = new Game(gameName, javaPackage, ownerId, apiKey, secretKey, type, prefix, hash);
+		}
+		
+		return game;
 	}
 }

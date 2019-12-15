@@ -46,13 +46,7 @@ public class Template1DbEngine {
 		List<List<CellData>> rows = dataBaseInterface.selectAllWhere(tablePrefix+"boosts", "playerId='"+playerId+"'");
 		
 		for(List<CellData> row : rows) {
-			boosts.add(new Boost((int)row.get(0).getValue(), 
-									   (String)row.get(1).getValue(), 
-									   (int)row.get(2).getValue(), 
-									   (int)row.get(3).getValue(), 
-									   (int)row.get(4).getValue(), 
-									   (int)row.get(5).getValue(), 
-									   (int)row.get(6).getValue()));
+			boosts.add(new Boost((int)row.get(0).getValue(), (String)row.get(1).getValue(), (int)row.get(2).getValue()));
 		}
 		
 		return boosts;

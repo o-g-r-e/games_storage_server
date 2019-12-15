@@ -3,7 +3,6 @@ package com.my.gamesdataserver.dbengineclasses;
 import java.util.Set;
 
 public class Game {
-	private int id;
 	private String name;
 	private String javaPackage;
 	private int ownerId;
@@ -13,8 +12,7 @@ public class Game {
 	private String prefix;
 	private String hash;
 	
-	public Game(int id, String name, String javaPackage, int ownerId, String apiKey, String secretKey, String type, String prefix, String hash) {
-		this.id = id;
+	public Game(String name, String javaPackage, int ownerId, String apiKey, String secretKey, String type, String prefix, String hash) {
 		this.name = name;
 		this.javaPackage = javaPackage;
 		this.ownerId = ownerId;
@@ -23,10 +21,6 @@ public class Game {
 		this.type = type;
 		this.prefix = prefix;
 		this.hash = hash;
-	}
-	
-	public int getId() {
-		return id;
 	}
 	
 	public String getName() {
@@ -43,7 +37,7 @@ public class Game {
 	
 	public String toJson() {
 		StringBuilder result = new StringBuilder();
-		return result.append("[").append(id).append(",\"").append(name).append("\",").append(ownerId).append(",\"").append(apiKey).append("\"]").toString();
+		return result.append("[").append("\"").append(name).append("\",").append(ownerId).append(",\"").append(apiKey).append("\"]").toString();
 	}
 
 	public String getJavaPackage() {

@@ -81,8 +81,8 @@ public class DataBaseInterface {
 		getCon().prepareStatement("DELETE FROM `"+tableName+"` WHERE ("+where+")").execute();
 	}
 	
-	public void createTable(String name, ColData[] fields) throws SQLException {
-		StringBuilder query = new StringBuilder("CREATE TABLE IF NOT EXISTS "+name+" (`id` INT NOT NULL AUTO_INCREMENT, ");
+	public void createTable(String name, ColData[] fields, String primaryKey) throws SQLException {
+		StringBuilder query = new StringBuilder("CREATE TABLE IF NOT EXISTS "+name+" (");
 		
 		for (int i = 0; i < fields.length; i++) {
 			query.append("`").append(fields[i].getName()).append("` ");
@@ -104,8 +104,17 @@ public class DataBaseInterface {
 				query.append(" NOT NULL");
 			}
 			
-			if(fields[i].getDefaultValue() != null && !"".equals(fields[i].getDefaultValue().trim())) {
-				query.append(" DEFAULT ").append(fields[i].getDefaultValue());
+			if(fields[i].isAutoIncrement()) {
+				query.append(" AUTO_INCREMENT");
+			}
+			
+			if(fields[i].getDefaultValue() != null) {
+				query.append(" DEFAULT ");
+				if(fields[i].getType() == Types.VARCHAR) {
+					query.append("'").append(fields[i].getDefaultValue()).append("'");
+				} else if(fields[i].getType() == Types.INTEGER) {
+					query.append(fields[i].getDefaultValue());
+				}
 			}
 			
 			if(i < fields.length-1) {
@@ -113,7 +122,11 @@ public class DataBaseInterface {
 			}
 		}
 		
-		query.append(", PRIMARY KEY (`id`));");
+		if(primaryKey != null) {
+			query.append(", PRIMARY KEY (`"+primaryKey+"`)");
+		}
+		
+		query.append(");");
 		
 		getCon().prepareStatement(query.toString()).execute();
 	}
