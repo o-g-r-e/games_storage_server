@@ -15,7 +15,6 @@
             width: 137px;
         }
         input[type='text'].api-key-field, input[type='text'].api-secret-field {
-            /*width:330px;*/
             width:322px;
         }
         input[type='button'] {
@@ -40,56 +39,70 @@
             height: 100px;
         }
         .reg-game-area {
-            width: 542px;
+            width: 547px;
             margin-right: 8px;
             float: left;
             height: 212px;
         }
+
+        .reg-game-area input[type="button"] {
+            margin-left: 105px;
+            width: 105px;
+        }
+
+        .reg-game-area input[type="text"] {
+            width: 250px;
+        }
+
         .area-of-select {
             width: 407px;
             height: 212px;
         }
+
+        .area-of-select input[type="button"] {
+            margin-left: 63px;
+            width: 90px;
+        }
+
         .area-of-update {
             width: 549px;
         }
         .area-of-update-mod1 {
             width: 517px;
         }
-        .server-area {
-            width: 416px;
+
+        .area-of-update input[type="button"] {
+            margin-left: 63px;
+            width: 90px;
         }
         .gen-api-area {
             width: 312px;
             height: 100px;
         }
         .area-of-insert {
-            width: 400px;
+            width: 405px;
         }
-        /*.area-of-update .table-field {
-            margin-left: 24px;
+        .area-of-insert input[type="button"] {
+            margin-left: 62px;
+            
+            width: 90px;
         }
-        .area-of-update .data-field {
-            margin-left: 39px;
-        }
-        .area-of-update .where-field {
-            margin-left: 17px;
-        }
-        .area-of-insert .table-field {
-            margin-left: 24px;
-        }
-        .area-of-insert .data-field {
-            margin-left: 29px;
-        }*/
         label {
             display: inline-block;
             width: 100px;
             text-align: right;
         }
         .server-area label {
-            width: 72px;
+            width: 36px;
         }
         .gen-api-area label {
             width: 44px;
+        }
+        .gen-api-area input[type="button"] {
+            margin-left: 49px;
+        }
+        .game-secr-area input[type="button"] {
+            margin-left: 77px;
         }
         .area-of-delete-game label {
             width: 60px;
@@ -122,31 +135,33 @@
         .content {
             margin-left: auto;
             margin-right: auto;
-            width: 1018px;
+            width: 1028px;
+        }
+
+        .game-secr-area label {
+            width: 72px;
         }
     </style>
 </head>
 <body>
     <div class="content"><form>
-    <div style="overflow: auto;"><fieldset class="server-area" style="float: left; margin-right: 8px; height:144px;">
+    <div style="overflow: auto;"><fieldset class="server-area" style="float: left; margin-right: 8px; height: 100px;">
     <legend>Server</legend>
     <label>Host:</label><input id="host" type="text" value="http://"/><br/>
     <label>Port:</label><input id="port" type="text"/><br/>
-    <label>API key:</label><input class="api-key-field" type="text"/><br/>
-    <label>API secret:</label><input class="api-secret-field" type="text"/><br/>
     </fieldset>
+       
     <fieldset class="gen-api-area" style="float: left; margin-right: 8px;">
     <legend>Generate API key / Register owner</legend>
-    <label>Email:</label><input style="width: 250px;" id="owner-email" type="text"/><br/>
-    <input id="gen-api-key" type="button" value="Generate API key"/><br/>
-    <input class="clear-fields" type="button" value="Clear fileds"/>
+    <label>e-mail:</label><input style="width: 250px;" id="owner-email" type="text"/><br/>
+    <input id="gen-api-key" type="button" value="Generate API key"/>
     </fieldset>
-    <fieldset class="area-of-delete-game">
-    <legend>Delete game</legend>
-    <!-- <label>API key:</label><input class="api-key-field" type="text"/><br/> -->
-    <input id="del-game" type="button" value="Delete game"/><br/>
-    <input class="clear-fields" type="button" value="Clear fileds"/>
-    </fieldset>
+    <fieldset class="game-secr-area" style="margin-right: 8px;">
+        <legend>Game secrets</legend>
+        <label>API key:</label><input class="api-key-field" type="text"/><br/>
+        <label>API secret:</label><input class="api-secret-field" type="text"/><br/>
+        <input id="del-game" type="button" value="Delete game"/>
+        </fieldset>
     <fieldset class="reg-game-area">
     <legend>Register game</legend>
     <!-- <label>API key:</label><input class="api-key-field" type="text"/><br/> -->
@@ -154,7 +169,7 @@
     <label>Game package:</label><input class="game-package-field" type="text"/><br/>
     <label>Game type:</label><input class="game-type-field" type="text"/><br/>
     <input id="fill-test-data" type="button" value="Fill test data"/><br/>
-    <input id="reg-game" type="button" value="Register game"/><span class="desc">Register game and create tables "players", "scorelevel", "boosts"</span><br/>
+    <input id="reg-game" type="button" value="Register game"/><span class="desc">Register game and create tables "players", "levels", "boosts"</span><br/>
     <input class="clear-fields" type="button" value="Clear fileds"/>
     </fieldset>
     <fieldset class="area-of-select">
@@ -171,7 +186,7 @@
     <label>Table:</label><input class="table-field" type="text"/><br/>
     <label>Data:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
     <input id="update-if-exists" type="checkbox" value=""/>Update if exists
-    <span style="display:none" id="check-fields-label"><br/><label>Check fields:</label><input id="check-fields" type="text"/><span class="desc">fieldName1,fieldName2,fieldName3</span></span><br/>
+    <span style="display:none" id="check-fields-label"><br/><label>If fields equals:</label><input id="check-fields" type="text"/><span class="desc">fieldName1,fieldName2,fieldName3</span></span><br/>
     <input id="insert" type="button" value="Send"/><br/>
     <input class="clear-fields" type="button" value="Clear fileds"/>
     </fieldset>
