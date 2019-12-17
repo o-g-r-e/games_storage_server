@@ -5,7 +5,6 @@
     <meta http-equiv='X-UA-Compatible' content='IE=edge'>
     <title>Test Form</title>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
-    <link rel='stylesheet' type='text/css' media='screen' href='main.css'>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <style>
         input[type='text'] {
@@ -76,7 +75,7 @@
             width: 90px;
         }
         .gen-api-area {
-            width: 312px;
+            width: 314px;
             height: 100px;
         }
         .area-of-insert {
@@ -96,7 +95,7 @@
             width: 36px;
         }
         .gen-api-area label {
-            width: 44px;
+            width: 46px;
         }
         .gen-api-area input[type="button"] {
             margin-left: 49px;
@@ -135,7 +134,7 @@
         .content {
             margin-left: auto;
             margin-right: auto;
-            width: 1028px;
+            width: 1030px;
         }
 
         .game-secr-area label {
@@ -144,65 +143,74 @@
     </style>
 </head>
 <body>
-    <div class="content"><form>
-    <div style="overflow: auto;"><fieldset class="server-area" style="float: left; margin-right: 8px; height: 100px;">
-    <legend>Server</legend>
-    <label>Host:</label><input id="host" type="text" value="http://"/><br/>
-    <label>Port:</label><input id="port" type="text"/><br/>
+    <div class="content">
+    <form>
+    <div style="overflow: auto;">
+
+    <fieldset class="server-area" style="float: left; margin-right: 8px; height: 100px;">
+        <legend>Server</legend>
+        <label>Host:</label><input id="host" type="text" value="http://"/><br/>
+        <label>Port:</label><input id="port" type="text"/><br/>
     </fieldset>
        
     <fieldset class="gen-api-area" style="float: left; margin-right: 8px;">
-    <legend>Generate API key / Register owner</legend>
-    <label>e-mail:</label><input style="width: 250px;" id="owner-email" type="text"/><br/>
-    <input id="gen-api-key" type="button" value="Generate API key"/>
+        <legend>Generate API key / Register owner</legend>
+        <label>e-mail:</label><input style="width: 250px;" id="owner-email" type="text"/><br/>
+        <input id="gen-api-key" type="button" value="Generate API key"/>
     </fieldset>
-    <fieldset class="game-secr-area" style="margin-right: 8px;">
+
+    <fieldset class="game-secr-area" style="margin-right: 8px; height: 100px;">
         <legend>Game secrets</legend>
         <label>API key:</label><input class="api-key-field" type="text"/><br/>
-        <label>API secret:</label><input class="api-secret-field" type="text"/><br/>
+        <label>Secret:</label><input class="api-secret-field" type="text"/><br/>
         <input id="del-game" type="button" value="Delete game"/>
-        </fieldset>
+    </fieldset>
+
     <fieldset class="reg-game-area">
-    <legend>Register game</legend>
-    <!-- <label>API key:</label><input class="api-key-field" type="text"/><br/> -->
-    <label>Game name:</label><input class="game-name-field" type="text"/><br/>
-    <label>Game package:</label><input class="game-package-field" type="text"/><br/>
-    <label>Game type:</label><input class="game-type-field" type="text"/><br/>
-    <input id="fill-test-data" type="button" value="Fill test data"/><br/>
-    <input id="reg-game" type="button" value="Register game"/><span class="desc">Register game and create tables "players", "levels", "boosts"</span><br/>
-    <input class="clear-fields" type="button" value="Clear fileds"/>
+        <legend>Register game</legend>
+        <label>Game name:</label><input class="game-name-field" type="text"/><br/>
+        <label>Game package:</label><input class="game-package-field" type="text"/><br/>
+        <label>Game type:</label><input class="game-type-field" type="text"/><br/>
+        <input id="fill-test-data" type="button" value="Fill test data"/><br/>
+        <input id="reg-game" type="button" value="Register game"/><span class="desc">Register game and create tables "players", "levels", "boosts"</span><br/>
+        <input class="clear-fields" type="button" value="Clear fileds"/>
     </fieldset>
+
     <fieldset class="area-of-select">
-    <legend>Select data</legend>
-    <!-- <label>API key:</label><input class="api-key-field" type="text"/><br/> -->
-    <label>Table:</label><input class="table-field" type="text"/><br/>
-    <label>Where:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-    <input id="select" type="button" value="Request"/><br/>
-    <input class="clear-fields" type="button" value="Clear fileds"/>
+        <legend>Select data</legend>
+        <label>Table:</label><input class="table-field" type="text"/><br/>
+        <label>Where:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
+        <input id="select" type="button" value="Request"/><br/>
+        <input class="clear-fields" type="button" value="Clear fileds"/>
     </fieldset>
+
     <fieldset style="float: left; margin-right: 8px;" class="area-of-insert">
-    <legend>Insert data</legend>
-    <!-- <label>API key:</label><input class="api-key-field" type="text"/><br/> -->
-    <label>Table:</label><input class="table-field" type="text"/><br/>
-    <label>Data:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-    <input id="update-if-exists" type="checkbox" value=""/>Update if exists
-    <span style="display:none" id="check-fields-label"><br/><label>If fields equals:</label><input id="check-fields" type="text"/><span class="desc">fieldName1,fieldName2,fieldName3</span></span><br/>
-    <input id="insert" type="button" value="Send"/><br/>
-    <input class="clear-fields" type="button" value="Clear fileds"/>
+        <legend>Insert data</legend>
+        <label>Table:</label><input class="table-field" type="text"/><br/>
+        <label>Data:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
+        <input id="update-if-exists" type="checkbox" value=""/>Update if exists
+        <span style="display:none" id="check-fields-label"><br/><label>If fields equals:</label><input id="check-fields" type="text"/><span class="desc">fieldName1,fieldName2,fieldName3</span></span><br/>
+        <input id="insert" type="button" value="Send"/><br/>
+        <input class="clear-fields" type="button" value="Clear fileds"/>
     </fieldset>
+
     <fieldset class="area-of-update">
-    <legend>Update data</legend>
-    <!-- <label>API key:</label><input class="api-key-field" type="text"/><br/> -->
-    <label>Table:</label><input class="table-field" type="text"/><br/>
-    <label>Set:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-    <label>Where:</label><input class="where-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-    <input id="update" type="button" value="Send"/><br/>
-    <input class="clear-fields" type="button" value="Clear fileds"/>
-    </fieldset></div>
-    <div style="margin-top: 12px; margin-bottom: 12px;">
-    <label style="width: 80px;">Response:</label><br/><textarea name="" id="response-area" cols="30" rows="10"></textarea>
+        <legend>Update data</legend>
+        <label>Table:</label><input class="table-field" type="text"/><br/>
+        <label>Set:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
+        <label>Where:</label><input class="where-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
+        <input id="update" type="button" value="Send"/><br/>
+        <input class="clear-fields" type="button" value="Clear fileds"/>
+    </fieldset>
+
     </div>
+
+    <div style="margin-top: 12px; margin-bottom: 12px;">
+        <label style="width: 80px;">Response:</label><br/><textarea name="" id="response-area" cols="30" rows="10"></textarea>
+    </div>
+
     </form>
+    
     <b>Generate API key / Register owner:</b><br/>
     <div class="code-block">
     https://candy-smith.info:3636/system/generate_api_key?<b>email</b>=fake@fake.net

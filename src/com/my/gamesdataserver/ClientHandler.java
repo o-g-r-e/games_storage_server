@@ -67,9 +67,11 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private String errorLogFilePrefix = "error";
 	private static final GameTemplate TEMPLATE_1;
 	//private static Map<String, String> defaultResponseHeaders;
-	private boolean hmac;
+	private boolean playerAuthorization = true;
 	
-	private enum RequestGroup {BASE, API, TEMPLATE_API, BAD};
+	private enum RequestGroup {BASE, API, TEMPLATE_1_API, PLAYER_AUTHORIZATION, BAD};
+	
+	private enum AuthorizationCode {SUCCESS, REQUEST_AUTH_FAIL, GAME_HMAK_BAD, PLAYER_AUTH_FAIL};
 	
 	static {
 		TEMPLATE_1 = createGameTemplate1();
@@ -81,18 +83,19 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		defaultResponseHeaders.put("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");*/
 	}
 	
-	public ClientHandler(DataBaseInterface dbInterface, LogManager logManager, boolean isHmac) throws IOException {
+	public ClientHandler(DataBaseInterface dbInterface, LogManager logManager) throws IOException {
 		this.dbManager = new GamesDbEngine(dbInterface);
 		this.template1DbManager = new Template1DbEngine(dbInterface);
 		this.logManager = logManager;
-		this.hmac = isHmac;
 	}
 	
 	private RequestGroup recognizeRequestGroup(FullHttpRequest httpRequest) {
 		if(httpRequest.uri().startsWith("/api")) {
 			return RequestGroup.API;
 		} else if(httpRequest.uri().startsWith("/api/template1")) {
-			return RequestGroup.TEMPLATE_API;
+			return RequestGroup.TEMPLATE_1_API;
+		} else if(httpRequest.uri().startsWith("/player_auth")) {
+			return RequestGroup.TEMPLATE_1_API;
 		} else if(httpRequest.uri().startsWith("/system")) {
 			return RequestGroup.BASE;
 		} else {
@@ -105,19 +108,29 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		RequestGroup requestGroup = recognizeRequestGroup(fullHttpRequest);
 		
 		try {
-			
+			AuthorizationCode authCode;
 			switch (requestGroup) {
 
 			case BASE:
 				handleSystemRequest(ctx, fullHttpRequest);
 				break;
 				
-			case API:
-				handleApiRequest(ctx, fullHttpRequest);
+			case PLAYER_AUTHORIZATION:
+				handlePlayerAuthorization(ctx, fullHttpRequest);
 				break;
 				
-			case TEMPLATE_API:
-				handleTemplateRequest(ctx, fullHttpRequest);
+			case API:
+				authCode = authorization(fullHttpRequest);
+				if(authCode == AuthorizationCode.SUCCESS) {
+					handleApiRequest(ctx, fullHttpRequest);
+				}
+				break;
+				
+			case TEMPLATE_1_API:
+				authCode = authorization(fullHttpRequest);
+				if(authCode == AuthorizationCode.SUCCESS) {
+					handleTemplateRequest(ctx, fullHttpRequest);
+				}
 				break;
 				
 			case BAD:
@@ -126,6 +139,12 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				sendHttpResponse(ctx, httpResponse);
 				break;
 			}
+			
+			if(authCode != AuthorizationCode.SUCCESS) {
+				String authFailMessage = authorizationCodeToMessage(authCode);
+				sendHttpResponse(ctx, buildSimpleResponse("Error", authFailMessage, HttpResponseStatus.OK));
+			}
+			
 		} catch (JSONException | SQLException | MessagingException | InvalidKeyException | NoSuchAlgorithmException e) {
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
@@ -145,6 +164,22 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		}
     }
 	
+	private AuthorizationCode authorization(FullHttpRequest fullHttpRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	private void handlePlayerAuthorization(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
+		String responseContent = "";
+		Map<String, String> urlParameters = parseUrlParameters(fullHttpRequest.uri());
+		if(fullHttpRequest.uri().startsWith("/player_auth/login")) {
+			if(!simpleValidation(new String[] {"facebookId"}, urlParameters)) {
+				sendValidationFailResponse(ctx);
+				return;
+			}
+		}
+	}
+
 	private void handleTemplateRequest(ChannelHandlerContext ctx, HttpRequest httpRequest) throws SQLException {
 		String responseContent = "";
 		Map<String, String> urlParameters = parseUrlParameters(httpRequest.uri());
@@ -338,10 +373,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		}*/
 		
 		Game game = null;
-		
-		if(hmac) {
-			String authorization = httpRequest.headers().get("Authorization");
-			
+		//Game authentication:
+		String authorization = httpRequest.headers().get("Authorization");
+		if(authorization != null) {
+			// hmac:
 			if(authorization == null || "".equals(authorization) || !authorization.contains(":")) {
 				sendValidationFailResponse(ctx);
 				return;
@@ -372,6 +407,11 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		if(game == null) {
 			sendHttpResponse(ctx, buildSimpleResponse("Error", "Game not found", HttpResponseStatus.BAD_REQUEST));
 			return;
+		}
+		
+		//Player authentication:
+		if(playerAuthorization) {
+			
 		}
 		
 		Map<String, String> urlParameters = parseUrlParameters(httpRequest.uri());

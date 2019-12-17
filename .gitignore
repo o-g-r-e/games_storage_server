@@ -1,9 +1,7 @@
-
 #eclipse
-
 /bin/
 .project
+.classpath
 
 #application
-# /settings
-# /other
+/settings/

@@ -60,7 +60,7 @@ public class Template1DbEngine {
 			return null;
 		}
 		
-		return new Player((int)rows.get(0).get(0).getValue(), (String)rows.get(0).get(1).getValue(), (String)rows.get(0).get(2).getValue(), (int)rows.get(0).get(3).getValue());
+		return new Player((String)rows.get(0).get(0).getValue(), (String)rows.get(0).get(1).getValue(), (int)rows.get(0).get(2).getValue());
 	}
 
 	public void addPlayer(String playerId/*, String tablePrefix*/) throws SQLException {
