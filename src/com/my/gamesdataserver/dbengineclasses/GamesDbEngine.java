@@ -25,6 +25,8 @@ import com.my.gamesdataserver.basedbclasses.Increment;
 import com.my.gamesdataserver.basedbclasses.SqlInsert;
 import com.my.gamesdataserver.basedbclasses.SqlSelect;
 import com.my.gamesdataserver.basedbclasses.SqlUpdate;
+import com.my.gamesdataserver.helpers.RandomKeyGenerator;
+import com.my.gamesdataserver.template1classes.Player;
 
 public class GamesDbEngine  {
 	
@@ -241,5 +243,41 @@ public class GamesDbEngine  {
 		}
 		
 		return game;
+	}
+
+	public Player getPlayerById(String playerId, String gamePrefix) throws SQLException {
+		List<List<CellData>> rows = dataBaseInterface.selectAllWhere(gamePrefix+"players", "playerId="+playerId);
+		
+		if(rows.size() <= 0) {
+			return null;
+		}
+		
+		return new Player((String)rows.get(0).get(0).getValue(), (String)rows.get(0).get(1).getValue(), (int)rows.get(0).get(2).getValue());
+	}
+	
+	public Player getPlayerByFacebookId(String facebookId, String gamePrefix) throws SQLException {
+		List<List<CellData>> rows = dataBaseInterface.selectAllWhere(gamePrefix+"players", "facebookId="+facebookId);
+		
+		if(rows.size() <= 0) {
+			return null;
+		}
+		
+		return new Player((String)rows.get(0).get(0).getValue(), (String)rows.get(0).get(1).getValue(), (int)rows.get(0).get(2).getValue());
+	}
+	
+	public String registrationPlayerByFacebookId(String facebookId, String gamePrefix) throws SQLException {
+		List<CellData> row = new ArrayList<>();
+		String playerId = generatePlayerId();
+		row.add(new CellData("playerId", playerId));
+		row.add(new CellData("facebookId", facebookId));
+		row.add(new CellData("maxLevel", 0));
+		if(dataBaseInterface.insertIntoTable(gamePrefix+"players", row) <= 0) {
+			return null;
+		}
+		return playerId;
+	}
+	
+	private String generatePlayerId() {
+		return RandomKeyGenerator.nextString(8).toLowerCase()+"-"+RandomKeyGenerator.nextString(8).toLowerCase();
 	}
 }

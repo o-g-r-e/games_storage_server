@@ -82,7 +82,7 @@ public class Main {
 	        	File tlsPrivateKey = new File(settings.get("privateKey"));
 	        	sslCtx = SslContextBuilder.forServer(tlsCert, tlsPrivateKey).sslProvider(SslProvider.OPENSSL).clientAuth(ClientAuth.NONE).build();
 	        }
-	        CorsConfig corsConfig = CorsConfigBuilder.forAnyOrigin().allowNullOrigin().allowCredentials().allowedRequestHeaders("Authorization", "api_key").build();
+	        CorsConfig corsConfig = CorsConfigBuilder.forAnyOrigin().allowNullOrigin().allowCredentials().allowedRequestHeaders("Authorization", "api_key", "player_id").build();
 	        ServerBootstrap b = new ServerBootstrap();
 	        b.group(bossGroup, workerGroup)
 	        	.channel(NioServerSocketChannel.class)
@@ -96,7 +96,7 @@ public class Main {
 	        			pipeline.addLast(new HttpObjectAggregator(1048576));
 	                	//channel.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(2048));
 	        			pipeline.addLast(new CorsHandler(corsConfig));
-	                	pipeline.addLast(new ClientHandler(dbInterface, logManager, "Yes".equals(settings.get("hmac"))));
+	                	pipeline.addLast(new ClientHandler(dbInterface, logManager));
 	                }
 	        	});
 	            

@@ -67,11 +67,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private String errorLogFilePrefix = "error";
 	private static final GameTemplate TEMPLATE_1;
 	//private static Map<String, String> defaultResponseHeaders;
-	private boolean playerAuthorization = true;
 	
 	private enum RequestGroup {BASE, API, TEMPLATE_1_API, PLAYER_AUTHORIZATION, BAD};
 	
-	private enum AuthorizationCode {SUCCESS, REQUEST_AUTH_FAIL, GAME_HMAK_BAD, PLAYER_AUTH_FAIL};
+	
 	
 	static {
 		TEMPLATE_1 = createGameTemplate1();
@@ -94,8 +93,8 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			return RequestGroup.API;
 		} else if(httpRequest.uri().startsWith("/api/template1")) {
 			return RequestGroup.TEMPLATE_1_API;
-		} else if(httpRequest.uri().startsWith("/player_auth")) {
-			return RequestGroup.TEMPLATE_1_API;
+		} else if(httpRequest.uri().startsWith("/player")) {
+			return RequestGroup.PLAYER_AUTHORIZATION;
 		} else if(httpRequest.uri().startsWith("/system")) {
 			return RequestGroup.BASE;
 		} else {
@@ -108,7 +107,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		RequestGroup requestGroup = recognizeRequestGroup(fullHttpRequest);
 		
 		try {
-			AuthorizationCode authCode;
 			switch (requestGroup) {
 
 			case BASE:
@@ -120,17 +118,11 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				break;
 				
 			case API:
-				authCode = authorization(fullHttpRequest);
-				if(authCode == AuthorizationCode.SUCCESS) {
-					handleApiRequest(ctx, fullHttpRequest);
-				}
+				handleApiRequest(ctx, fullHttpRequest);
 				break;
 				
 			case TEMPLATE_1_API:
-				authCode = authorization(fullHttpRequest);
-				if(authCode == AuthorizationCode.SUCCESS) {
-					handleTemplateRequest(ctx, fullHttpRequest);
-				}
+				handleTemplateRequest(ctx, fullHttpRequest);
 				break;
 				
 			case BAD:
@@ -138,11 +130,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				logManager.log(errorLogFilePrefix, httpRequestToString(fullHttpRequest), "ERROR: Bad request group".toUpperCase(), httpResponse.toString());
 				sendHttpResponse(ctx, httpResponse);
 				break;
-			}
-			
-			if(authCode != AuthorizationCode.SUCCESS) {
-				String authFailMessage = authorizationCodeToMessage(authCode);
-				sendHttpResponse(ctx, buildSimpleResponse("Error", authFailMessage, HttpResponseStatus.OK));
 			}
 			
 		} catch (JSONException | SQLException | MessagingException | InvalidKeyException | NoSuchAlgorithmException e) {
@@ -164,18 +151,59 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		}
     }
 	
-	private AuthorizationCode authorization(FullHttpRequest fullHttpRequest) {
-		// TODO Auto-generated method stub
+	private Game getGame(FullHttpRequest httpRequest) throws SQLException {
+		
+		String authorization = httpRequest.headers().get("Authorization");
+		
+		if(authorization != null && !"".equals(authorization) && authorization.contains(":")) {
+			String inputGameHash = authorization.substring(authorization.indexOf(":")+1);
+			return dbManager.getGameByHash(inputGameHash);
+		}
+
+		String apiKey = httpRequest.headers().get("API_key");
+		
+		if(apiKey == null || "".equals(apiKey)) {
+			return dbManager.getGameByKey(apiKey);
+		}
+		
 		return null;
 	}
 
-	private void handlePlayerAuthorization(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
-		String responseContent = "";
+	private void handlePlayerAuthorization(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws InvalidKeyException, NoSuchAlgorithmException, SQLException {
 		Map<String, String> urlParameters = parseUrlParameters(fullHttpRequest.uri());
-		if(fullHttpRequest.uri().startsWith("/player_auth/login")) {
+		if(fullHttpRequest.uri().startsWith("/player/authorization")) {
+			
 			if(!simpleValidation(new String[] {"facebookId"}, urlParameters)) {
 				sendValidationFailResponse(ctx);
 				return;
+			}
+			
+			Authorization auth = new Authorization();
+			if(!auth.requestAuthentication(fullHttpRequest)) {
+				sendHttpResponse(ctx, buildSimpleResponse("Error", auth.getStatusMessage(), HttpResponseStatus.OK));
+				return;
+			}
+			
+			Game game = getGame(fullHttpRequest);
+			
+			if(game == null) {
+				sendHttpResponse(ctx, buildSimpleResponse("Error", "Game not found", HttpResponseStatus.OK));
+				return;
+			}
+			
+			String facebookId = urlParameters.get("facebookId");
+			Player player = dbManager.getPlayerByFacebookId(facebookId, game.getPrefix());
+			
+			if(player != null) {
+				sendHttpResponse(ctx, buildSimpleResponse("playerId", player.getPlayerId(), HttpResponseStatus.OK));
+				return;
+			}
+			
+			String playerId = dbManager.registrationPlayerByFacebookId(urlParameters.get("facebookId"), game.getPrefix());
+			if(playerId != null) {
+				sendHttpResponse(ctx, buildSimpleResponse("playerId", playerId, HttpResponseStatus.OK));
+			} else {
+				sendValidationFailResponse(ctx);
 			}
 		}
 	}
@@ -278,7 +306,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			dbManager.enableTransactions();
 			String prefix = GamesDbEngine.generateTablePrefix(gameName, apiKey);
 			String apiSecret = ownerSecrets.getApiSecret();
-			int added = dbManager.insertGame(gameName, gameJavaPackage, ownerSecrets.getOwnerId(), apiKey, apiSecret, gameType, prefix, generateHmacHash(apiSecret, apiKey));
+			int added = dbManager.insertGame(gameName, gameJavaPackage, ownerSecrets.getOwnerId(), apiKey, apiSecret, gameType, prefix, Authorization.generateHmacHash(apiSecret, apiKey));
 			
 			if(added < 1) {
 				dbManager.rollback();
@@ -329,6 +357,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			
 			sendHttpResponse(ctx, buildSimpleResponse("Success", "Deletion was successful", HttpResponseStatus.OK));
 		} else {
+		
 			sendHttpResponse(ctx, buildSimpleResponse("Error", "Bad command", HttpResponseStatus.BAD_REQUEST));
 		}
 	}
@@ -372,46 +401,18 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			return;
 		}*/
 		
-		Game game = null;
-		//Game authentication:
-		String authorization = httpRequest.headers().get("Authorization");
-		if(authorization != null) {
-			// hmac:
-			if(authorization == null || "".equals(authorization) || !authorization.contains(":")) {
-				sendValidationFailResponse(ctx);
-				return;
-			}
-			
-			String inputGameHash = authorization.substring(authorization.indexOf(":")+1);
-			String inputRequestHash = authorization.substring(0, authorization.indexOf(":"));
-			
-			boolean auth = checkRequestHash(httpRequest.uri(), inputRequestHash, inputGameHash);
-			
-			if(!auth) {
-				sendHttpResponse(ctx, buildSimpleResponse("Error", "Authentication fail", HttpResponseStatus.OK));
-				return;
-			}
-			
-			game = dbManager.getGameByHash(inputGameHash);
-		} else {
-			String apiKey = httpRequest.headers().get("API_key");
-			
-			if(apiKey == null || "".equals(apiKey)) {
-				sendValidationFailResponse(ctx);
-				return;
-			}
-			
-			game = dbManager.getGameByKey(apiKey);
-		}
+		Game game = getGame(httpRequest);
 		
 		if(game == null) {
-			sendHttpResponse(ctx, buildSimpleResponse("Error", "Game not found", HttpResponseStatus.BAD_REQUEST));
+			sendHttpResponse(ctx, buildSimpleResponse("Error", "Game not found", HttpResponseStatus.OK));
 			return;
 		}
 		
-		//Player authentication:
-		if(playerAuthorization) {
-			
+		Authorization auth = new Authorization();
+		
+		if(!auth.authorization(httpRequest, game, dbManager)) {
+			sendHttpResponse(ctx, buildSimpleResponse("Error", auth.getStatusMessage(), HttpResponseStatus.OK));
+			return;
 		}
 		
 		Map<String, String> urlParameters = parseUrlParameters(httpRequest.uri());
@@ -495,6 +496,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private FullHttpResponse buildResponse(String content, HttpResponseStatus httpStatus) {
 		DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpStatus, Unpooled.copiedBuffer(content, CharsetUtil.UTF_8));
 		response.headers().setInt(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
+		response.headers().set("Content-Type", "application/json");
 		return response;
 	}
 	
@@ -579,7 +581,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		
 		levelsTemplate.addIndex(new TableIndex("playerId_level", new String[] {"playerId", "level"}, true));
 		
-		TableTemplate playersTemplate = new TableTemplate("players", new ColData[] {new ColData(Types.INTEGER, "playerId").setNull(false).setAutoIncrement(true),
+		TableTemplate playersTemplate = new TableTemplate("players", new ColData[] {new ColData(Types.VARCHAR, "playerId").setNull(false).setAutoIncrement(true),
 																					new ColData(Types.VARCHAR, "facebookId").setNull(false),
 																					new ColData(Types.INTEGER, "maxLevel").setDefaultValue("0").setNull(false)}, "playerId");
 		
@@ -625,19 +627,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
     
 	private void sendHttpResponse(ChannelHandlerContext ctx, FullHttpResponse httpResponse){
 		ctx.writeAndFlush(httpResponse);
-	}
-	
-	private boolean checkRequestHash(String uri, String requestHash, String gameHash) throws InvalidKeyException, NoSuchAlgorithmException {
-		String key = gameHash;
-		String hash = generateHmacHash(key, gameHash.substring(0, 8)+uri);
-		return hash.equals(requestHash);
-	}
-	
-	private String generateHmacHash(String key, String data) throws NoSuchAlgorithmException, InvalidKeyException {
-		Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
-		sha256_HMAC.init(new SecretKeySpec(key.getBytes(), "HmacSHA256"));
-		return Base64.getEncoder().encodeToString(sha256_HMAC.doFinal(data.getBytes()));
-		//return new String(sha256_HMAC.doFinal(data.getBytes()));
 	}
 	
 	private String simpleJsonObject(String name, String value) {

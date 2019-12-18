@@ -5,7 +5,7 @@ public class Player {
 	private String facebookId;
 	private int maxLevel;
 
-	public Player(String facebookId, String playerId, int maxLevel) {
+	public Player(String playerId, String facebookId, int maxLevel) {
 		this.playerId = playerId;
 		this.facebookId = facebookId;
 		this.maxLevel = maxLevel;

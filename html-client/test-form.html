@@ -163,7 +163,14 @@
         <legend>Game secrets</legend>
         <label>API key:</label><input class="api-key-field" type="text"/><br/>
         <label>Secret:</label><input class="api-secret-field" type="text"/><br/>
-        <input id="del-game" type="button" value="Delete game"/>
+        <input id="del-game" type="button" value="Delete game" disabled/>
+    </fieldset>
+
+    <fieldset class="player-auth-area" style="margin-right: 8px; height: 100px;">
+        <legend>Player Facebook authorization</legend>
+        <label>Facebook id:</label><input class="player-facebookid-field" type="text"/><br/>
+        <input id="player-auth" type="button" value="Do it"/>
+        <span>Status: <span id="auth-status">Not authorized</span></span>
     </fieldset>
 
     <fieldset class="reg-game-area">
@@ -366,6 +373,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/enc-base64.min.js"></script>
     <script>
             var hmac = true;
+            var playerId;
             //var hash = CryptoJS.HmacSHA256("Message", "secret");
             //var hashInBase64 = CryptoJS.enc.Base64.stringify(hash);
             function sendAjax(url, postData, additionalHeaders) {
@@ -374,7 +382,7 @@
                 $.ajax({
                     url: url,
                     type: "POST",
-                   // crossDomain: true,
+                    crossDomain: true,
                     data: postData,
                     //dataType: "json",
                     success: function (response) {
@@ -400,22 +408,69 @@
             }
 
             function apiRequest(request, uri, postData) {
-                var headers = {};
-                var apiKey = $('.api-key-field').val();
+                var headers = {Player_id : playerId};
                 
                 if(hmac) {
-                    var apiSecret = $('.api-secret-field').val();
-                    var gameHash = CryptoJS.HmacSHA256(apiKey, apiSecret);
-                    var b64GameHash = CryptoJS.enc.Base64.stringify(gameHash);
-                    var requestHash = CryptoJS.HmacSHA256(b64GameHash.substring(0, 8)+uri, b64GameHash);
-                    var b64RequestHash = CryptoJS.enc.Base64.stringify(requestHash);
-                    headers.Authorization = b64RequestHash+':'+b64GameHash;
+                    headers.Authorization = generateHmac(uri);
                 } else  {
-                    headers.API_key = apiKey;
+                    headers.API_key = $('.api-key-field').val();
                 }
 
                 sendAjax(request+uri, postData, headers);
             }
+
+            function playerAuth(host, uri) {
+                var headers = {};
+                
+                if(hmac) {
+                    headers.Authorization = generateHmac(uri);
+                } else  {
+                    headers.API_key = $('.api-key-field').val();
+                }
+
+                $.ajax({
+                    url: host+uri,
+                    type: "POST",
+                    crossDomain: true,
+                    success: function (response) {
+                        $("#response-area").text(JSON.stringify(response));
+                        if(response.hasOwnProperty('playerId')) {
+                            playerId = response.playerId;
+                            if(playerId != undefined) {
+                                $('#auth-status').text("Authorized");
+                            }
+                        }
+                    },
+                    error: function (xhr, status) {
+                        $("#response-area").text("Error status: \""+status+"\"");
+                    },
+                    beforeSend: function(request) {
+                        $.each(headers, function(index, value) {
+                            request.setRequestHeader(index, value);
+                        }); 
+                    }
+                });
+
+            }
+
+            function generateHmac(uri) {
+                var apiKey = $('.api-key-field').val();
+                var apiSecret = $('.api-secret-field').val();
+                var gameHash = CryptoJS.HmacSHA256(apiKey, apiSecret);
+                var b64GameHash = CryptoJS.enc.Base64.stringify(gameHash);
+                var requestHash = CryptoJS.HmacSHA256(b64GameHash.substring(0, 8)+uri, b64GameHash);
+                var b64RequestHash = CryptoJS.enc.Base64.stringify(requestHash);
+                return b64RequestHash+':'+b64GameHash;
+            }
+
+            function playerFacebookAuthorization() {
+                var uri = "/player/authorization?facebookId="+$(".player-facebookid-field").val()
+                playerAuth($("#host").val()+":"+$("#port").val(), uri);
+            }
+    
+            $('#player-auth').on('click', function() {
+                playerFacebookAuthorization();
+            });
     
             $('#gen-api-key').on('click', function() {
                 ownerRequest($("#host").val()+":"+$("#port").val()+"/system/generate_api_key?email="+$('#owner-email').val(), {}, "");
