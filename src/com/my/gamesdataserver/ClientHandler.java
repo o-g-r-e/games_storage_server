@@ -597,7 +597,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		tblTemplates.add(playersTemplate);
 		tblTemplates.add(boostsTemplate);
 		
-		return new GameTemplate("Template1", tblTemplates);
+		return new GameTemplate("Template1", tblTemplates, new ArrayList<>());
 	}
 	
 	private boolean simpleValidation(String[] names, Map<String, String> parameters) {
