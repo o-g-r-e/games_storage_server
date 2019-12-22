@@ -201,10 +201,34 @@ public class DataBaseInterface {
 		return pstmt.executeUpdate();
 	}
 	
-	public List<List<CellData>> selectAll(String tableName) throws SQLException {
-		String sql = String.format("SELECT * FROM %s", tableName);
-		PreparedStatement pstmt = getCon().prepareStatement(sql);
-		List<List<CellData>> result = new ArrayList<>();
+	public List<Row> select(String tableName, String[] fields, List<SqlExpression> where) throws SQLException {
+		StringBuilder sql = new StringBuilder("SELECT ");
+		if(fields != null) {
+			sql.append(String.join(", ", fields));
+		} else {
+			sql.append("*");
+		}
+		sql.append(" FROM ").append(tableName);
+		if(where != null) {
+			sql.append(buildWhere(where));
+		}
+		List<Row> result = new ArrayList<>();
+		PreparedStatement pstmt = getCon().prepareStatement(sql.toString());
+		int requestValueIndex = 0;
+		int expIndex = 0;
+		for (SqlExpression exp : where) {
+			if(exp.getValue() instanceof Object[]) {
+				Object[] valueSet = (Object[]) exp.getValue();
+				for(int i=0;i<valueSet.length;i++) {
+					setQueryValue(pstmt, where.get(expIndex).getType(), valueSet[i], requestValueIndex+1);
+					requestValueIndex++;
+				}
+			} else {
+				setQueryValue(pstmt, where.get(expIndex).getType(), where.get(expIndex).getValue(), requestValueIndex+1);
+				requestValueIndex++;
+			}
+			expIndex++;
+		}
 		ResultSet resultSet = pstmt.executeQuery();
 		ResultSetMetaData rsmd = resultSet.getMetaData();
 		while(resultSet.next()) {
@@ -212,28 +236,30 @@ public class DataBaseInterface {
 			for (int i = 1; i <= rsmd.getColumnCount(); i++) {
 				row.add(new CellData(rsmd.getColumnType(i), rsmd.getColumnName(i), resultSet.getObject(i)));
 			}
-			result.add(row);
+			result.add(new Row(row));
 		}
 		return result;
 	}
 	
-	public List<List<CellData>> selectAllWhere(String tableName, List<SqlExpression> where) throws SQLException {
-		
-		StringBuilder sql = new StringBuilder("SELECT * FROM "+tableName);
-		
-		/*if(where.size() > 0) {
-			
-			sql.append(" WHERE ");
-			
-			for (int i = 0; i < where.size(); i++) {
-				CellData d = where.get(i);
-				sql.append(d.getName());
-				sql.append("=?");
-				if(i < where.size()-1) {
-					sql.append(" AND ");
-				}
+	public List<Row> selectAll(String tableName) throws SQLException {
+		/*String sql = String.format("SELECT * FROM %s", tableName);
+		PreparedStatement pstmt = getCon().prepareStatement(sql);
+		List<Row> result = new ArrayList<>();
+		ResultSet resultSet = pstmt.executeQuery();
+		ResultSetMetaData rsmd = resultSet.getMetaData();
+		while(resultSet.next()) {
+			List<CellData> row = new ArrayList<>();
+			for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+				row.add(new CellData(rsmd.getColumnType(i), rsmd.getColumnName(i), resultSet.getObject(i)));
 			}
+			result.add(new Row(row));
 		}*/
+		return select(tableName, null, null);
+	}
+	
+	public List<Row> selectAll(String tableName, List<SqlExpression> where) throws SQLException {
+		
+		/*StringBuilder sql = new StringBuilder("SELECT * FROM "+tableName);
 		sql.append(buildWhere(where));
 		PreparedStatement pstmt = getCon().prepareStatement(sql.toString());
 		int requestValueIndex = 0;
@@ -253,22 +279,22 @@ public class DataBaseInterface {
 		}
 		ResultSet resultSet = pstmt.executeQuery();
 		ResultSetMetaData rsmd = resultSet.getMetaData();
-		List<List<CellData>> result = new ArrayList<>();
+		List<Row> result = new ArrayList<>();
 		while(resultSet.next()) {
 			List<CellData> row = new ArrayList<>();
 			for (int i = 1; i <= rsmd.getColumnCount(); i++) {
 				row.add(new CellData(rsmd.getColumnType(i), rsmd.getColumnName(i), resultSet.getObject(i)));
 			}
-			result.add(row);
-		}
-		return result;
+			result.add(new Row(row));
+		}*/
+		return select(tableName, null, where);
 	}
 	
-	public List<List<CellData>> selectAllWhere(String tableName, String where) throws SQLException {
+	public List<Row> selectAll(String tableName, String where) throws SQLException {
 		
 		List<SqlExpression> whereData = new ArrayList<>();
 		Map<String, String> wherePairs = new HashMap<>();
-		List<List<CellData>> result = new ArrayList<>();
+		List<Row> result = new ArrayList<>();
 		
 		String[] pairs = where.split("&");
 		
@@ -287,7 +313,7 @@ public class DataBaseInterface {
 			whereData.add(new SqlExpression(0, e.getKey(), e.getValue()));
 		}
 		
-		result = selectAllWhere(tableName, whereData);
+		result = selectAll(tableName, whereData);
 		
 		return result;
 	}
@@ -366,8 +392,11 @@ public class DataBaseInterface {
 		return tableNames.toArray(new String[] {});
 	}
 	
-	public List<List<CellData>> executeSelect(SqlSelect sqlSelect) throws SQLException {
-		return selectAllWhere(sqlSelect.getTableName(), sqlSelect.getWhereExpression());
+	public List<Row> executeSelect(SqlSelect sqlSelect) throws SQLException {
+		if(sqlSelect.getFields() != null) {
+			return select(sqlSelect.getTableName(), sqlSelect.getFields(), sqlSelect.getWhereExpression());
+		}
+		return selectAll(sqlSelect.getTableName(), sqlSelect.getWhereExpression());
 	}
 	
 	public int executeInsert(SqlInsert sqlInsert) throws SQLException {
@@ -451,7 +480,7 @@ public class DataBaseInterface {
 		getCon().prepareStatement(String.format("CREATE %s INDEX %s ON %s(%s)", unique?"UNIQUE":"", indexName, tableName, String.join(",", fields))).execute();
 	}
 
-	public boolean executeIncrement(Increment increment) throws SQLException, JSONException {
+	/*public boolean executeIncrement(Increment increment) throws SQLException, JSONException {
 		String tableName = increment.getTableName();
 		String fieldToIncrement = increment.getFieldName();
 		List<SqlExpression> whereExpression = increment.getWhereExpression();
@@ -467,5 +496,5 @@ public class DataBaseInterface {
 			}
 		}
 		return result > 0;
-	}
+	}*/
 }

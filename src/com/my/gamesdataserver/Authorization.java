@@ -14,6 +14,7 @@ import com.my.gamesdataserver.dbengineclasses.GamesDbEngine;
 import io.netty.handler.codec.http.FullHttpRequest;
 
 public class Authorization {
+	public static final String PLAYER_ID_HEADER = "Player_id";
 	private enum Code {SUCCESS, REQUEST_AUTH_FAIL, /*GAME_AUTH_FAIL,*/ PLAYER_AUTH_FAIL, NULL};
 	
 	private Code statusCode = Code.NULL;
@@ -78,7 +79,7 @@ public class Authorization {
 			return false;
 		}*/
 		
-		String playerId = httpRequest.headers().get("Player_id");
+		String playerId = httpRequest.headers().get(Authorization.PLAYER_ID_HEADER);
 		
 		if(playerId == null || "".equals(playerId) || playerId.contains("%") || playerId.contains("_") || dbManager.getPlayerById(playerId, game.getPrefix()) == null) {
 			statusCode = Code.PLAYER_AUTH_FAIL;

@@ -10,6 +10,7 @@ public class Game {
 	private String secretKey;
 	private String type;
 	private String prefix;
+	private String playerIdFieldName;
 	private String hash;
 	
 	public Game(String name, String javaPackage, int ownerId, String apiKey, String secretKey, String type, String prefix, String hash) {
@@ -62,5 +63,9 @@ public class Game {
 
 	public String getHash() {
 		return hash;
+	}
+
+	public String getPlayerIdFieldName() {
+		return playerIdFieldName;
 	}
 }

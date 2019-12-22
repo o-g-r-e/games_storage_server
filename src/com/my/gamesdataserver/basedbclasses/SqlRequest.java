@@ -29,4 +29,8 @@ public class SqlRequest {
 	public List<SqlExpression> getWhereExpression() {
 		return whereExpression;
 	}
+	
+	public void addExpression(SqlExpression exp) {
+		whereExpression.add(exp);
+	}
 }

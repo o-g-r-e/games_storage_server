@@ -27,8 +27,8 @@ public class Template1DbEngine {
 	}
 	
 	public List<Level> getLevelsOfPlayer(String playerId) throws SQLException {
-		List<Level> levels = new ArrayList<Level>();
-		List<List<CellData>> rows = dataBaseInterface.selectAllWhere(tablePrefix+"levels", "playerId="+playerId);
+		/*List<Level> levels = new ArrayList<Level>();
+		List<List<CellData>> rows = dataBaseInterface.selectAll(tablePrefix+"levels", "playerId="+playerId);
 		
 		for(List<CellData> row : rows) {
 			levels.add(new Level((int)row.get(0).getValue(), 
@@ -38,29 +38,32 @@ public class Template1DbEngine {
 									   (int)row.get(4).getValue()));
 		}
 		
-		return levels;
+		return levels;*/
+		return null;
 	}
 	
 	public List<Boost> getBoostsOfPlayer(String playerId) throws SQLException {
-		List<Boost> boosts = new ArrayList<Boost>();
-		List<List<CellData>> rows = dataBaseInterface.selectAllWhere(tablePrefix+"boosts", "playerId='"+playerId+"'");
+		/*List<Boost> boosts = new ArrayList<Boost>();
+		List<List<CellData>> rows = dataBaseInterface.selectAll(tablePrefix+"boosts", "playerId='"+playerId+"'");
 		
 		for(List<CellData> row : rows) {
 			boosts.add(new Boost((int)row.get(0).getValue(), (String)row.get(1).getValue(), (int)row.get(2).getValue()));
 		}
 		
-		return boosts;
+		return boosts;*/
+		return null;
 	}
 	
 	public Player getPlayer(String playerId) throws SQLException {
 		
-		List<List<CellData>> rows = dataBaseInterface.selectAllWhere(tablePrefix+"players", "playerId="+playerId);
+		/*List<List<CellData>> rows = dataBaseInterface.selectAll(tablePrefix+"players", "playerId="+playerId);
 		
 		if(rows.size() < 1) {
 			return null;
 		}
 		
-		return new Player((String)rows.get(0).get(0).getValue(), (String)rows.get(0).get(1).getValue(), (int)rows.get(0).get(2).getValue());
+		return new Player((String)rows.get(0).get(0).getValue(), (String)rows.get(0).get(1).getValue(), (int)rows.get(0).get(2).getValue());*/
+		return null;
 	}
 
 	public void addPlayer(String playerId/*, String tablePrefix*/) throws SQLException {
