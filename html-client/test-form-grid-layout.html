@@ -29,7 +29,7 @@
             padding: 5px;
             background-color: #e6e3e3;
             border: solid 2px #a2a2a2;
-            border-radius: 10px;
+            border-radius: 6px;
             margin-top: 5px;
             margin-bottom: 20px;
         }
@@ -95,13 +95,13 @@
         }
 
         #response-area {
-            width: 1008px;
+            width: 1035px;
         }
 
         .content {
             margin-left: auto;
             margin-right: auto;
-            width: 1030px;
+            width: 1045px;
         }
 
         .game-secr-area label {
@@ -110,7 +110,7 @@
 
         .temp-grid {
             display: grid; 
-            grid-template-columns: repeat(10, 120px); 
+            grid-template-columns: repeat(10, 116px); 
             grid-auto-rows: minmax(100px, auto);
         }
 
@@ -167,238 +167,214 @@
 </head>
 <body>
     <div class="content">
-    <form>
-    <div class="temp-grid">
+        <form>
+        <div class="temp-grid">
 
-    <fieldset class="form-area server-area">
-        <legend>Server</legend>
-        <label>Host:</label><input id="host" type="text" value="http://"/><br/>
-        <label>Port:</label><input id="port" type="text"/><br/>
-    </fieldset>
-       
-    <fieldset class="form-area gen-api-area">
-        <legend>Generate API key / Register owner</legend>
-        <label>e-mail:</label><input style="width: 250px;" id="owner-email" type="text"/><br/>
-        <input id="gen-api-key" type="button" value="Generate API key"/>
-    </fieldset>
+        <fieldset class="form-area server-area">
+            <legend>Server</legend>
+            <label>Host:</label><input id="host" type="text" value="http://"/><br/>
+            <label>Port:</label><input id="port" type="text"/><br/>
+        </fieldset>
+        
+        <fieldset class="form-area gen-api-area">
+            <legend>Generate API key / Register owner</legend>
+            <label>e-mail:</label><input style="width: 250px;" id="owner-email" type="text"/><br/>
+            <input id="gen-api-key" type="button" value="Generate API key"/>
+        </fieldset>
 
-    <fieldset class="form-area game-secr-area">
-        <legend>Game secrets</legend>
-        <label>API key:</label><input class="api-key-field" type="text"/><br/>
-        <label>Secret:</label><input class="api-secret-field" type="text"/><br/>
-        <input id="del-game" type="button" value="Delete game" disabled/>
-    </fieldset>
+        <fieldset class="form-area game-secr-area">
+            <legend>Game secrets</legend>
+            <label>API key:</label><input class="api-key-field" type="text"/><br/>
+            <label>Secret:</label><input class="api-secret-field" type="text"/><br/>
+            <input id="del-game" type="button" value="Delete game" disabled/>
+        </fieldset>
 
-    <fieldset class="form-area player-auth-area">
-        <legend>Player Facebook authorization</legend>
-        <label>Facebook id:</label><input class="player-facebookid-field" type="text"/><br/>
-        <input id="player-auth" type="button" value="Do it"/>
-        <span>Status: <span id="auth-status">Not authorized</span></span>
-    </fieldset>
+        <fieldset class="form-area player-auth-area">
+            <legend>Player Facebook authorization</legend>
+            <label>Facebook id:</label><input class="player-facebookid-field" type="text"/><br/>
+            <input id="player-auth" type="button" value="Do it"/>
+            <span>Status: <span id="auth-status">Not authorized</span></span>
+        </fieldset>
 
-    <fieldset class="form-area reg-game-area">
-        <legend>Register game</legend>
-        <label>Game name:</label><input class="game-name-field" type="text"/><br/>
-        <label>Game package:</label><input class="game-package-field" type="text"/><br/>
-        <label>Game type:</label><input class="game-type-field" type="text"/><br/>
-        <input id="fill-test-data" type="button" value="Fill test data"/><br/>
-        <input id="reg-game" type="button" value="Register game"/><span class="desc">Register game and create tables "players", "levels", "boosts"</span><br/>
-        <input class="clear-fields" type="button" value="Clear fileds"/>
-    </fieldset>
+        <fieldset class="form-area reg-game-area">
+            <legend>Register game</legend>
+            <label>Game name:</label><input class="game-name-field" type="text"/><br/>
+            <label>Game package:</label><input class="game-package-field" type="text"/><br/>
+            <label>Game type:</label><input class="game-type-field" type="text"/><br/>
+            <input id="fill-test-data" type="button" value="Fill test data"/><br/>
+            <input id="reg-game" type="button" value="Register game"/><span class="desc">Register game and create tables "players", "levels", "boosts"</span><br/>
+            <input class="clear-fields" type="button" value="Clear fileds"/>
+        </fieldset>
 
-    <fieldset class="form-area area-of-select">
-        <legend>Select data</legend>
-        <label>Table:</label><input class="table-field" type="text"/><br/>
-        <label>Where:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-        <input id="select" type="button" value="Request"/><br/>
-        <input class="clear-fields" type="button" value="Clear fileds"/>
-    </fieldset>
+        <fieldset class="form-area area-of-select">
+            <legend>Select data</legend>
+            <label>Table:</label><input class="table-field" type="text"/><br/>
+            <label>Where:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
+            <input id="select" type="button" value="Request"/><br/>
+            <input class="clear-fields" type="button" value="Clear fileds"/>
+        </fieldset>
 
-    <fieldset class="form-area area-of-insert">
-        <legend>Insert data</legend>
-        <label>Table:</label><input class="table-field" type="text"/><br/>
-        <label>Data:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-        <input id="update-if-exists" type="checkbox" value=""/>Update if exists
-        <span style="display:none" id="check-fields-label"><br/><label>If fields equals:</label><input id="check-fields" type="text"/><span class="desc">fieldName1,fieldName2,fieldName3</span></span><br/>
-        <input id="insert" type="button" value="Send"/><br/>
-        <input class="clear-fields" type="button" value="Clear fileds"/>
-    </fieldset>
+        <fieldset class="form-area area-of-insert">
+            <legend>Insert data</legend>
+            <label>Table:</label><input class="table-field" type="text"/><br/>
+            <label>Data:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
+            <input id="update-if-exists" type="checkbox" value=""/>Update if exists
+            <span style="display:none" id="check-fields-label"><br/><label>If fields equals:</label><input id="check-fields" type="text"/><span class="desc">fieldName1,fieldName2,fieldName3</span></span><br/>
+            <input id="insert" type="button" value="Send"/><br/>
+            <input class="clear-fields" type="button" value="Clear fileds"/>
+        </fieldset>
 
-    <fieldset class="form-area area-of-update">
-        <legend>Update data</legend>
-        <label>Table:</label><input class="table-field" type="text"/><br/>
-        <label>Set:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-        <label>Where:</label><input class="where-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-        <input id="update" type="button" value="Send"/><br/>
-        <input class="clear-fields" type="button" value="Clear fileds"/>
-    </fieldset>
+        <fieldset class="form-area area-of-update">
+            <legend>Update data</legend>
+            <label>Table:</label><input class="table-field" type="text"/><br/>
+            <label>Set:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
+            <label>Where:</label><input class="where-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
+            <input id="update" type="button" value="Send"/><br/>
+            <input class="clear-fields" type="button" value="Clear fileds"/>
+        </fieldset>
 
+        </div>
+
+        <div style="margin-top: 12px; margin-bottom: 12px;">
+            <label style="width: 80px;">Response:</label><br/><textarea name="" id="response-area" cols="30" rows="10"></textarea>
+        </div>
+
+        </form>
+        
+        <b>Generate API key / Register owner:</b><br/>
+        <div class="code-block">
+        /system/generate_api_key<br/><br/>
+        <b>email</b>=fake@fake.net
+        </div>
+        
+        <b>Register game:</b><br/>
+        <div class="code-block">
+        /system/register_game<br/><br/>
+        <b>api_key</b>=348t7hre48eruif78e74g4&<b>game_name</b>=Magic Forest&<b>game_package</b>=com.magicgames.magicforest&<b>game_type</b>=assetname
+        </div>
+        
+        <b>Delete game:</b><br/>
+        <div class="code-block">
+        /system/delete_game?<b>api_key</b>=348t7hre48eruif78e74g4
+        </div>
+        
+        <b>Insert data:</b><br/>
+        <div class="code-block">
+        /api/insert?<b>api_key</b>=348t7hre48eruif78e74g4&<b>table</b>=tablename<br/><br/>
+        
+        [<br/>&emsp;
+        [<br/>&emsp;&emsp;
+        {<br/>&emsp;&emsp;&emsp;
+        type : "INTEGER",<span style="color: rgb(28, 143, 85);">&emsp;&emsp;&emsp;&emsp;&lt;-- Параметр <b>type</b> не обязательный, так как работает автоматическое приведение типов</span><br/>&emsp;&emsp;&emsp;
+        name : "field_name1",<br/>&emsp;&emsp;&emsp;
+        value : 3050<br/>&emsp;&emsp;
+        },<br/>&emsp;&emsp;
+        {<br/>&emsp;&emsp;&emsp;
+        type : "FLOAT",<br/>&emsp;&emsp;&emsp;
+        name : "field_name2",<br/>&emsp;&emsp;&emsp;
+        value : 7.55<br/>&emsp;&emsp;
+        },<br/>&emsp;&emsp;
+        {<br/>&emsp;&emsp;&emsp;
+        type : "STRING",<br/>&emsp;&emsp;&emsp;
+        name : "field_name3",<br/>&emsp;&emsp;&emsp;
+        value : "hahaha"<br/>&emsp;&emsp;
+        }<br/>&emsp;
+        ],<br/>&emsp;
+        [<br/>&emsp;&emsp;
+        {<br/>&emsp;&emsp;&emsp;
+        type : "INTEGER",<br/>&emsp;&emsp;&emsp;
+        name : "field_name1",<br/>&emsp;&emsp;&emsp;
+        value : 3300<br/>&emsp;&emsp;
+        },<br/>&emsp;&emsp;
+        {<br/>&emsp;&emsp;&emsp;
+        type : "FLOAT",<br/>&emsp;&emsp;&emsp;
+        name : "field_name2",<br/>&emsp;&emsp;&emsp;
+        value : 8.0<br/>&emsp;&emsp;
+        },<br/>&emsp;&emsp;
+        {<br/>&emsp;&emsp;&emsp;
+        type : "STRING",<br/>&emsp;&emsp;&emsp;
+        name : "field_name3",<br/>&emsp;&emsp;&emsp;
+        value : "what?"<br/>&emsp;&emsp;
+        }<br/>&emsp;
+        ]<br/>
+        ]
+        </div>
+        
+        <b>Insert data or update if exists:</b><br/>
+        
+        <div class="code-block">
+            /api/insert?<b>api_key</b>=348t7hre48eruif78e74g4&<b>table</b>=tablename&<b>checkAndUpdate</b>=field_name1,field_name2<br/><br/>
+            <json-block>
+                [{type : "INTEGER",name : "field_name1",value : 3050},{type : "FLOAT",name : "field_name2",value : 7.55},{type : "STRING",name : "field_name3",value : "hahaha"}]
+            </json-block>
+        </div>
+        
+        <b>Select data:</b><br/>
+        <div class="code-block">
+            /api/select?<b>api_key</b>=348t7hre48eruif78e74g4&<b>table</b>=tablename<br/><br/>
+            <span style="color: rgb(28, 143, 85);">Объеденяется с помощью AND</span><br/>
+            <json-block>
+            [{
+                type : "INTEGER",
+                name : "field_name1",
+                value : 3300
+            },{
+                type : "FLOAT",
+                name : "field_name2",
+                value : 8.0
+            },{
+                type : "STRING",
+                name : "field_name3",
+                value : "what?"
+            }]
+            </json-block>
+        </div>
+        
+        <b>Update data:</b><br/>
+        <div class="code-block">
+            /api/update?<b>api_key</b>=348t7hre48eruif78e74g4&<b>table</b>=tablename<br/><br/>
+            <span style="color: rgb(28, 143, 85);">Блоки данных SET и WHERE, SQL запроса UPDATE:</span><br/>
+            <json-block>
+            { set :
+                [{
+                    type : "INTEGER",
+                    name : "field_name1",
+                    value : 3050
+                },{
+                    type : "FLOAT",
+                    name : "field_name2",
+                    value : 7.55
+                },{
+                    type : "STRING",
+                    name : "field_name3",
+                    value : "hahaha"
+                }],
+              where :
+                [{
+                    type : "INTEGER",
+                    name : "field_name1",
+                    value : 3300
+                },{
+                    type : "FLOAT",
+                    name : "field_name2",
+                    value : 8.0
+                },{
+                    type : "STRING",
+                    name : "field_name3",
+                    value : "what?"
+                }]
+            }
+            </json-block>
+        </div>
     </div>
-
-    <div style="margin-top: 12px; margin-bottom: 12px;">
-        <label style="width: 80px;">Response:</label><br/><textarea name="" id="response-area" cols="30" rows="10"></textarea>
-    </div>
-
-    </form>
-    
-    <b>Generate API key / Register owner:</b><br/>
-    <div class="code-block">
-    https://candy-smith.info:3636/system/generate_api_key?<b>email</b>=fake@fake.net
-    </div>
-    
-    <b>Register game:</b><br/>
-    <div class="code-block">
-    https://candy-smith.info:3636/system/register_game<br/>
-    <span style="color: rgb(28, 143, 85);">Эти данные отправляются в теле POST запроса:</span><br/>
-    <b>api_key</b>=348t7hre48eruif78e74g4&<b>game_name</b>=Magic Forest&<b>game_package</b>=com.magicgames.magicforest&<b>game_type</b>=assetname
-    </div>
-    
-    <b>Delete game:</b><br/>
-    <div class="code-block">
-    https://candy-smith.info:3636/system/delete_game?<b>api_key</b>=348t7hre48eruif78e74g4
-    </div>
-    
-    <b>Insert data:</b><br/>
-    <div class="code-block">
-    https://candy-smith.info:3636/api/insert?<b>api_key</b>=348t7hre48eruif78e74g4&<b>table</b>=tablename<br/><br/>
-    
-    <span style="color: rgb(28, 143, 85);">Эти данные отправляются в теле POST запроса. В данном примере отправляются 2 строки данных.</span><br/>
-    [<br/>&emsp;
-    [<br/>&emsp;&emsp;
-    {<br/>&emsp;&emsp;&emsp;
-    type : "INTEGER",<span style="color: rgb(28, 143, 85);">&emsp;&emsp;&emsp;&emsp;&lt;-- Параметр <b>type</b> не обязательный, так как работает автоматическое приведение типов</span><br/>&emsp;&emsp;&emsp;
-    name : "field_name1",<br/>&emsp;&emsp;&emsp;
-    value : 3050<br/>&emsp;&emsp;
-    },<br/>&emsp;&emsp;
-    {<br/>&emsp;&emsp;&emsp;
-    type : "FLOAT",<br/>&emsp;&emsp;&emsp;
-    name : "field_name2",<br/>&emsp;&emsp;&emsp;
-    value : 7.55<br/>&emsp;&emsp;
-    },<br/>&emsp;&emsp;
-    {<br/>&emsp;&emsp;&emsp;
-    type : "STRING",<br/>&emsp;&emsp;&emsp;
-    name : "field_name3",<br/>&emsp;&emsp;&emsp;
-    value : "hahaha"<br/>&emsp;&emsp;
-    }<br/>&emsp;
-    ],<br/>&emsp;
-    [<br/>&emsp;&emsp;
-    {<br/>&emsp;&emsp;&emsp;
-    type : "INTEGER",<br/>&emsp;&emsp;&emsp;
-    name : "field_name1",<br/>&emsp;&emsp;&emsp;
-    value : 3300<br/>&emsp;&emsp;
-    },<br/>&emsp;&emsp;
-    {<br/>&emsp;&emsp;&emsp;
-    type : "FLOAT",<br/>&emsp;&emsp;&emsp;
-    name : "field_name2",<br/>&emsp;&emsp;&emsp;
-    value : 8.0<br/>&emsp;&emsp;
-    },<br/>&emsp;&emsp;
-    {<br/>&emsp;&emsp;&emsp;
-    type : "STRING",<br/>&emsp;&emsp;&emsp;
-    name : "field_name3",<br/>&emsp;&emsp;&emsp;
-    value : "what?"<br/>&emsp;&emsp;
-    }<br/>&emsp;
-    ]<br/>
-    ]
-    </div>
-    
-    <b>Insert data and update if exists:</b><br/>
-    
-    <div class="code-block">
-    https://candy-smith.info:3636/api/insert?<b>api_key</b>=348t7hre48eruif78e74g4&<b>table</b>=tablename&<b>updateIfExists=true&checkField1=field_name1&checkField2=field_name2</b><br/><br/>
-    
-    [<br/>&emsp;
-    {<br/>&emsp;&emsp;
-    type : "INTEGER",<br/>&emsp;&emsp;
-    name : "field_name1",<br/>&emsp;&emsp;
-    value : 3050<br/>&emsp;
-    },<br/>&emsp;
-    {<br/>&emsp;&emsp;
-    type : "FLOAT",<br/>&emsp;&emsp;
-    name : "field_name2",<br/>&emsp;&emsp;
-    value : 7.55<br/>&emsp;
-    },<br/>&emsp;
-    {<br/>&emsp;&emsp;
-    type : "STRING",<br/>&emsp;&emsp;
-    name : "field_name3",<br/>&emsp;&emsp;
-    value : "hahaha"<br/>&emsp;
-    }<br/>
-    ]
-    </div>
-    
-    <b>Select data:</b><br/>
-    <div class="code-block">
-    https://candy-smith.info:3636/api/select?<b>api_key</b>=348t7hre48eruif78e74g4&<b>table</b>=tablename<br/><br/>
-    <span style="color: rgb(28, 143, 85);">Условие WHERE, SQL запроса, ревращается в field_name1=330 AND field_name2=8.0 AND field_name3='what?'</span><br/>
-    [<br/>&emsp;&emsp;
-    {<br/>&emsp;&emsp;&emsp;
-    type : "INTEGER",<br/>&emsp;&emsp;&emsp;
-    name : "field_name1",<br/>&emsp;&emsp;&emsp;
-    value : 3300<br/>&emsp;&emsp;
-    },<br/>&emsp;&emsp;
-    {<br/>&emsp;&emsp;&emsp;
-    type : "FLOAT",<br/>&emsp;&emsp;&emsp;
-    name : "field_name2",<br/>&emsp;&emsp;&emsp;
-    value : 8.0<br/>&emsp;&emsp;
-    },<br/>&emsp;&emsp;
-    {<br/>&emsp;&emsp;&emsp;
-    type : "STRING",<br/>&emsp;&emsp;&emsp;
-    name : "field_name3",<br/>&emsp;&emsp;&emsp;
-    value : "what?"<br/>&emsp;&emsp;
-    }<br/>
-    ]
-    </div>
-    
-    <b>Update data:</b><br/>
-    <div class="code-block">
-    https://candy-smith.info:3636/api/update?<b>api_key</b>=348t7hre48eruif78e74g4&<b>table</b>=tablename<br/><br/>
-    <span style="color: rgb(28, 143, 85);">Блоки данных SET и WHERE, SQL запроса UPDATE:</span><br/>
-    {<br/>&emsp;
-    set :<br/>&emsp;&emsp;
-    [<br/>&emsp;&emsp;&emsp;
-    {<br/>&emsp;&emsp;&emsp;&emsp;
-    type : "INTEGER",<br/>&emsp;&emsp;&emsp;&emsp;
-    name : "field_name1",<br/>&emsp;&emsp;&emsp;&emsp;
-    value : 3050<br/>&emsp;&emsp;&emsp;
-    },<br/>&emsp;&emsp;&emsp;
-    {<br/>&emsp;&emsp;&emsp;&emsp;
-    type : "FLOAT",<br/>&emsp;&emsp;&emsp;&emsp;
-    name : "field_name2",<br/>&emsp;&emsp;&emsp;&emsp;
-    value : 7.55<br/>&emsp;&emsp;&emsp;
-    },<br/>&emsp;&emsp;&emsp;
-    {<br/>&emsp;&emsp;&emsp;&emsp;
-    type : "STRING",<br/>&emsp;&emsp;&emsp;&emsp;
-    name : "field_name3",<br/>&emsp;&emsp;&emsp;&emsp;
-    value : "hahaha"<br/>&emsp;&emsp;&emsp;
-    }<br/>&emsp;&emsp;
-    ],<br/>&emsp;
-    where :<br/>&emsp;&emsp;
-    [<br/>&emsp;&emsp;&emsp;
-    {<br/>&emsp;&emsp;&emsp;&emsp;
-    type : "INTEGER",<br/>&emsp;&emsp;&emsp;&emsp;
-    name : "field_name1",<br/>&emsp;&emsp;&emsp;&emsp;
-    value : 3300<br/>&emsp;&emsp;&emsp;
-    },<br/>&emsp;&emsp;&emsp;
-    {<br/>&emsp;&emsp;&emsp;&emsp;
-    type : "FLOAT",<br/>&emsp;&emsp;&emsp;&emsp;
-    name : "field_name2",<br/>&emsp;&emsp;&emsp;&emsp;
-    value : 8.0<br/>&emsp;&emsp;&emsp;
-    },<br/>&emsp;&emsp;&emsp;
-    {<br/>&emsp;&emsp;&emsp;&emsp;
-    type : "STRING",<br/>&emsp;&emsp;&emsp;&emsp;
-    name : "field_name3",<br/>&emsp;&emsp;&emsp;&emsp;
-    value : "what?"<br/>&emsp;&emsp;&emsp;
-    }<br/>&emsp;&emsp;
-    ]<br/>
-    }
-    </div></div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/hmac-sha256.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/enc-base64.min.js"></script>
     <script>
-            var hmac = true;
-            var playerId;
-            //var hash = CryptoJS.HmacSHA256("Message", "secret");
-            //var hashInBase64 = CryptoJS.enc.Base64.stringify(hash);
+            let hmac = true;
+            let playerId;
+            //let hash = CryptoJS.HmacSHA256("Message", "secret");
+            //let hashInBase64 = CryptoJS.enc.Base64.stringify(hash);
             function sendAjax(url, postData, additionalHeaders) {
                 $("#response-area").text("Wait response");
                 
@@ -416,7 +392,7 @@
                     },
                     beforeSend: function(request) {
                         /*if(hmac) {
-                            var gameHash = sha256.hmac(apiSecret, testApiKey);
+                            let gameHash = sha256.hmac(apiSecret, testApiKey);
                             request.setRequestHeader("Authorization", sha256.hmac(apiSecret, gameHash.substring(0, 8)+url)+':'+gameHash);
                         }*/
                         $.each(additionalHeaders, function(index, value) {
@@ -431,7 +407,7 @@
             }
 
             function apiRequest(request, uri, postData) {
-                var headers = {Player_id : playerId};
+                let headers = {Player_id : playerId};
                 
                 if(hmac) {
                     headers.Authorization = generateHmac(uri);
@@ -443,7 +419,7 @@
             }
 
             function playerAuth(host, uri) {
-                var headers = {};
+                let headers = {};
                 
                 if(hmac) {
                     headers.Authorization = generateHmac(uri);
@@ -477,17 +453,17 @@
             }
 
             function generateHmac(uri) {
-                var apiKey = $('.api-key-field').val();
-                var apiSecret = $('.api-secret-field').val();
-                var gameHash = CryptoJS.HmacSHA256(apiKey, apiSecret);
-                var b64GameHash = CryptoJS.enc.Base64.stringify(gameHash);
-                var requestHash = CryptoJS.HmacSHA256(b64GameHash.substring(0, 8)+uri, b64GameHash);
-                var b64RequestHash = CryptoJS.enc.Base64.stringify(requestHash);
+                let apiKey = $('.api-key-field').val();
+                let apiSecret = $('.api-secret-field').val();
+                let gameHash = CryptoJS.HmacSHA256(apiKey, apiSecret);
+                let b64GameHash = CryptoJS.enc.Base64.stringify(gameHash);
+                let requestHash = CryptoJS.HmacSHA256(b64GameHash.substring(0, 8)+uri, b64GameHash);
+                let b64RequestHash = CryptoJS.enc.Base64.stringify(requestHash);
                 return b64RequestHash+':'+b64GameHash;
             }
 
             function playerFacebookAuthorization() {
-                var uri = "/player/authorization?facebookId="+$(".player-facebookid-field").val()
+                let uri = "/player/authorization?facebookId="+$(".player-facebookid-field").val()
                 playerAuth($("#host").val()+":"+$("#port").val(), uri);
             }
     
@@ -510,11 +486,11 @@
             });
     
             $('#insert').on('click', function() {
-                var request = "/api/insert?&table="+$('.area-of-insert .table-field').val();
+                let request = "/api/insert?&table="+$('.area-of-insert .table-field').val();
 
                 if($('#update-if-exists').is(':checked') && $("#check-fields").val().trim().length > 0) {
                     request += "&updateIfExists=true";
-                    var fields = $("#check-fields").val().trim().split(",");
+                    let fields = $("#check-fields").val().trim().split(",");
                     fields.forEach(function(el, i) {
                         request += "&checkField"+(i+1)+"="+el;
                     });
@@ -547,20 +523,20 @@
             });
 
             function dataToJson(data) {
-                var result = [];
+                let result = [];
                 if(data.includes("&")) {
-                    var array1 = data.split("&");
+                    let array1 = data.split("&");
                     array1.forEach(function(item) {
-                        var array2 = item.split("=");
-                        var value = array2[1];
+                        let array2 = item.split("=");
+                        let value = array2[1];
                         if(value.startsWith('[')) {
                             value = JSON.parse(value);
                         }
                         result.push({name : array2[0], value : value});
                     });
                 } else if(data.includes("="))  {
-                    var array2 = data.split("=");
-                    var value = array2[1];
+                    let array2 = data.split("=");
+                    let value = array2[1];
                     if(value.startsWith('[')) {
                         value = JSON.parse(value);
                     }
@@ -571,16 +547,54 @@
             }
 
             $('.clear-fields').on('click', function() {
-                var parent = $(this).parent();
+                let parent = $(this).parent();
                 $('input[type=text]', parent).val("");
             });
 
             $('#fill-test-data').on('click', function() {
-                var parent = $(this).parent();
+                let parent = $(this).parent();
                 $('input.game-name-field', parent).val("Magic Forest");
                 $('input.game-package-field', parent).val("com.magicgames.magicforest");
                 $('input.game-type-field', parent).val("quest");
             });
+
+            function prettyJson(jsonCode) {
+                jsonCode = jsonCode.trim();
+                let indentSize = 0;
+                for (let i = 0; i < jsonCode.length; i++) {
+                    
+                    let ch = jsonCode.charAt(i);
+                    let trigger = indentSize;
+                    let breakIndex = i;
+
+                    if(ch == '{' || ch == '[') {
+                        indentSize++;
+                        breakIndex++;
+                    } else if(ch == '}' || ch == ']') {
+                        indentSize--;
+                    } else if(ch == ',') {
+                        breakIndex++;
+                    }
+
+                    if(indentSize < 0) indentSize = 0;
+
+                    if(trigger != indentSize || breakIndex != i) {
+                        let indentValue = '';
+                        for (let j = 0; j < indentSize; j++) {
+                            indentValue += '&emsp;';
+                        }
+                        jsonCode = jsonCode.substring(0, breakIndex) + "<br/>" + indentValue + jsonCode.substring(breakIndex, jsonCode.length);
+                        i+=indentValue.length+5;
+                    }
+                }
+
+                return jsonCode;
+            }
+            
+            let jsonBlocks = document.getElementsByTagName('json-block');
+            for (let i = 0; i < jsonBlocks.length; i++) {
+                jsonBlocks[i].innerHTML = prettyJson(jsonBlocks[i].innerHTML);
+            }
         </script>
 </body>
 </html>
