@@ -2,6 +2,7 @@ package com.my.gamesdataserver;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Base64;
 
@@ -9,7 +10,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.my.gamesdataserver.dbengineclasses.Game;
-import com.my.gamesdataserver.dbengineclasses.GamesDbEngine;
+import com.my.gamesdataserver.dbengineclasses.DataBaseMethods;
 
 import io.netty.handler.codec.http.FullHttpRequest;
 
@@ -69,7 +70,7 @@ public class Authorization {
 		return true;
 	}
 	
-	public boolean authorization(FullHttpRequest httpRequest, Game game, GamesDbEngine dbManager) throws InvalidKeyException, NoSuchAlgorithmException, SQLException {
+	public boolean authorization(FullHttpRequest httpRequest, Game game, Connection connection) throws InvalidKeyException, NoSuchAlgorithmException, SQLException {
 		
 		if(!requestAuthentication(httpRequest)) {
 			statusCode = Code.REQUEST_AUTH_FAIL;
@@ -81,7 +82,7 @@ public class Authorization {
 		
 		String playerId = httpRequest.headers().get(Authorization.PLAYER_ID_HEADER);
 		
-		if(playerId == null || "".equals(playerId) || playerId.contains("%") || playerId.contains("_") || dbManager.getPlayerById(playerId, game.getPrefix()) == null) {
+		if(playerId == null || "".equals(playerId) || playerId.contains("%") || playerId.contains("_") || DataBaseMethods.getPlayerById(playerId, game.getPrefix(), connection) == null) {
 			statusCode = Code.PLAYER_AUTH_FAIL;
 			return false;
 		}

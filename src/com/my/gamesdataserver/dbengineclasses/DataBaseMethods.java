@@ -1,5 +1,6 @@
 package com.my.gamesdataserver.dbengineclasses;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -16,10 +17,11 @@ import java.util.Set;
 import org.json.JSONException;
 
 import com.my.gamesdataserver.DataBaseConnectionParameters;
+import com.my.gamesdataserver.DatabaseConnectionManager;
 import com.my.gamesdataserver.SqlExpression;
 import com.my.gamesdataserver.basedbclasses.CellData;
 import com.my.gamesdataserver.basedbclasses.ColData;
-import com.my.gamesdataserver.basedbclasses.DataBaseInterface;
+import com.my.gamesdataserver.basedbclasses.SqlMethods;
 import com.my.gamesdataserver.basedbclasses.Decrement;
 import com.my.gamesdataserver.basedbclasses.Increment;
 import com.my.gamesdataserver.basedbclasses.Row;
@@ -29,35 +31,28 @@ import com.my.gamesdataserver.basedbclasses.SqlUpdate;
 import com.my.gamesdataserver.helpers.RandomKeyGenerator;
 import com.my.gamesdataserver.template1classes.Player;
 
-public class GamesDbEngine  {
+public class DataBaseMethods  {
 	
-	private DataBaseInterface dataBaseInterface;
-
-	public GamesDbEngine(DataBaseInterface dataBaseInterface) {
-		this.dataBaseInterface = dataBaseInterface;
-	}
-	
-	public void createGameTables(GameTemplate gameTemplate, String prefix) throws SQLException {
-		
+	public static void createGameTables(GameTemplate gameTemplate, String prefix, Connection connection) throws SQLException {
 		for(TableTemplate tableTemplate : gameTemplate.getTableTemplates()) {
 			
-			dataBaseInterface.createTable(prefix+tableTemplate.getName(), tableTemplate.getCols(), tableTemplate.getPrimaryKey());
+			SqlMethods.createTable(prefix+tableTemplate.getName(), tableTemplate.getCols(), tableTemplate.getPrimaryKey(), connection);
 			
 			for(TableIndex tIndex : tableTemplate.getIndices()) {
-				dataBaseInterface.createIndex(tIndex.getName(), prefix+tableTemplate.getName(), tIndex.getFields(), tIndex.isUnique());
+				SqlMethods.createIndex(tIndex.getName(), prefix+tableTemplate.getName(), tIndex.getFields(), tIndex.isUnique(), connection);
 			}
 		}
 	}
 	
-	public int writeNewOwnerSecrets(int ownerId, String apiKey, String apiSecret) throws SQLException {
+	public static int writeNewOwnerSecrets(int ownerId, String apiKey, String apiSecret, Connection connection) throws SQLException {
 		List<CellData> row = new ArrayList<>();
 		row.add(new CellData(Types.INTEGER, "ownerId", ownerId));
 		row.add(new CellData(Types.VARCHAR, "api_key", apiKey));
 		row.add(new CellData(Types.VARCHAR, "api_secret", apiSecret));
-		return dataBaseInterface.insertIntoTable("owner_secrets", row);
+		return SqlMethods.insertIntoTable("owner_secrets", row, connection);
 	}
 	
-	public int updateGame(String name, String gameJavaPackage) {
+	public static int updateGame(String name, String gameJavaPackage) {
 		return 0;
 	}
 	
@@ -68,15 +63,15 @@ public class GamesDbEngine  {
 		return insertIntoTable("pre_reg_owners", row);
 	}*/
 	
-	public int regOwner(String email) throws SQLException {
+	public static int regOwner(String email, Connection connection) throws SQLException {
 		List<CellData> row = new ArrayList<>();
 		row.add(new CellData(Types.VARCHAR, "email", email));
-		return dataBaseInterface.insertIntoTable("owners", row);
+		return SqlMethods.insertIntoTable("owners", row, connection);
 	}
 	
-	public Owner getOwnerByEmail(String email) throws SQLException {
+	public static Owner getOwnerByEmail(String email, Connection connection) throws SQLException {
 		Owner owner = null;
-		List<Row> rows = dataBaseInterface.selectAll("owners", "email="+email);
+		List<Row> rows = SqlMethods.selectAll("owners", "email="+email, connection);
 		
 		if(rows.size() > 0) {
 			Row firstRow = rows.get(0);
@@ -86,9 +81,9 @@ public class GamesDbEngine  {
 		return owner;
 	}
 	
-	public String getOwnerEmailById(int id) throws SQLException {
+	public static String getOwnerEmailById(int id, Connection connection) throws SQLException {
 		Owner owner = null;
-		List<Row> rows = dataBaseInterface.selectAll("owners", "id="+id);
+		List<Row> rows = SqlMethods.selectAll("owners", "id="+id, connection);
 		
 		if(rows.size() > 0) {
 			Row firstRow = rows.get(0);
@@ -98,32 +93,32 @@ public class GamesDbEngine  {
 		return result;
 	}
 	
-	public boolean checkGameByKey(String apiKey) throws SQLException {
+	public static boolean checkGameByKey(String apiKey, Connection connection) throws SQLException {
 		
-		return dataBaseInterface.selectAll("games", "api_key="+apiKey).size() > 0;
+		return SqlMethods.selectAll("games", "api_key="+apiKey, connection).size() > 0;
 	}
 	
-	public Game deleteGame(String apiKey) throws SQLException {
-		Game game = getGameByKey(apiKey);
+	public static Game deleteGame(String apiKey, Connection connection) throws SQLException {
+		Game game = getGameByKey(apiKey, connection);
 		
 		if(game != null) {
-			dataBaseInterface.deleteFrom("games", "api_key='"+apiKey+"'");
+			SqlMethods.deleteFrom("games", "api_key='"+apiKey+"'", connection);
 			return game;
 		}
 		
 		return null;
 	}
 	
-	public void deleteGameTables(String prefix, String[] templateNames) throws SQLException {
+	public static void deleteGameTables(String prefix, String[] templateNames, Connection connection) throws SQLException {
 		for(String tableName : templateNames) {
-			dataBaseInterface.dropTable(prefix+tableName);
+			SqlMethods.dropTable(prefix+tableName, connection);
 		}
 	}
 
-	public OwnerSecrets getOwnerSecrets(String apiKey) throws SQLException {
+	public static OwnerSecrets getOwnerSecrets(String apiKey, Connection connection) throws SQLException {
 		OwnerSecrets result = null;
 		
-		List<Row> rows = dataBaseInterface.selectAll("owner_secrets", "api_key="+apiKey);
+		List<Row> rows = SqlMethods.selectAll("owner_secrets", "api_key="+apiKey, connection);
 		
 		if(rows.size() > 0) {
 			Row firstRow = rows.get(0);
@@ -133,11 +128,11 @@ public class GamesDbEngine  {
 		return result;
 	}
 	
-	public void removeApiKey(String apiKey) throws SQLException {
-		dataBaseInterface.deleteFrom("owner_secrets", "api_key='"+apiKey+"'");
+	public static void removeApiKey(String apiKey, Connection connection) throws SQLException {
+		SqlMethods.deleteFrom("owner_secrets", "api_key='"+apiKey+"'", connection);
 	}
 	
-	public int insertGame(String gameName, String gameJavaPackage, int ownerId, String apiKey, String apiSecret, String type, String prefix, String hash) throws SQLException {
+	public static int insertGame(String gameName, String gameJavaPackage, int ownerId, String apiKey, String apiSecret, String type, String prefix, String hash, Connection connection) throws SQLException {
 		
 		List<CellData> row = new ArrayList<>();
 		
@@ -150,18 +145,18 @@ public class GamesDbEngine  {
 		row.add(new CellData("prefix", prefix));
 		row.add(new CellData("hash", hash));
 		
-		return dataBaseInterface.insertIntoTable("games", row);
+		return SqlMethods.insertIntoTable("games", row, connection);
 	}
 	
 	public static String generateTablePrefix(String gameName, String apiKey) {
 		return (gameName.replaceAll(" ", "_")+"_"+apiKey.substring(0, 8)+"_").toLowerCase();
 	}
 	
-	public String[] getTablesNamesOfGame(String prefix) throws SQLException {
-		return dataBaseInterface.findTablesByPrefix(prefix);
+	public static String[] getTablesNamesOfGame(String dataBaseName, String prefix, Connection connection) throws SQLException {
+		return SqlMethods.findTablesByPrefix(dataBaseName, prefix, connection);
 	}
 
-	public boolean isTransactionsEnabled() throws SQLException {
+	/*public boolean isTransactionsEnabled() throws SQLException {
 		return dataBaseInterface.isTransactionsEnabled();
 	}
 
@@ -179,48 +174,48 @@ public class GamesDbEngine  {
 
 	public void disableTransactions() throws SQLException {
 		dataBaseInterface.disableTransactions();
+	}*/
+
+	public static List<Row> executeSelect(SqlSelect sqlRequest, Connection connection) throws SQLException {
+		return SqlMethods.executeSelect(sqlRequest, connection);
 	}
 
-	public List<Row> executeSelect(SqlSelect sqlRequest) throws SQLException {
-		return dataBaseInterface.executeSelect(sqlRequest);
-	}
-
-	public int executeInsert(SqlInsert sqlRequest) throws SQLException {
+	public static int executeInsert(SqlInsert sqlRequest, Connection connection) throws SQLException {
 		
 		if(sqlRequest.getRowToInsert().size() > 0) {
-			return dataBaseInterface.executeInsert(sqlRequest);
+			return SqlMethods.executeInsert(sqlRequest, connection);
 		}
 		
 		return 0;
 	}
 
-	public int executeUpdate(SqlUpdate sqlRequest) throws SQLException {
-		return dataBaseInterface.executeUpdate(sqlRequest);
+	public static int executeUpdate(SqlUpdate sqlRequest, Connection connection) throws SQLException {
+		return SqlMethods.executeUpdate(sqlRequest, connection);
 	}
 
 	/*public boolean executeIncrement(Increment increment) throws SQLException, JSONException {
 		return dataBaseInterface.executeIncrement(increment);
 	}*/
 
-	public int executeDecrement(Decrement sqlRequest) {
+	public static int executeDecrement(Decrement sqlRequest) {
 		return 0;
 	}
 	
-	public Game getGameByKey(String apiKey) throws SQLException {
+	public static Game getGameByKey(String apiKey, Connection connection) throws SQLException {
 		List<SqlExpression> where = new ArrayList<>();
 		where.add(new SqlExpression(Types.VARCHAR, "api_key", apiKey));
-		return getGame(where);
+		return getGame(where, connection);
 	}
 
-	public Game getGameByHash(String gameHash) throws SQLException {
+	public static Game getGameByHash(String gameHash, Connection connection) throws SQLException {
 		List<SqlExpression> where = new ArrayList<>();
 		where.add(new SqlExpression(Types.VARCHAR, "hash", gameHash));
-		return getGame(where);
+		return getGame(where, connection);
 	}
 	
-	private Game getGame(List<SqlExpression> where) throws SQLException {
+	private static Game getGame(List<SqlExpression> where, Connection connection) throws SQLException {
 		Game game = null;
-		List<Row> rows = dataBaseInterface.selectAll("games", where);
+		List<Row> rows = SqlMethods.selectAll("games", where, connection);
 		
 		if(rows.size() > 0) {
 			Row firstRow = rows.get(0);
@@ -238,16 +233,16 @@ public class GamesDbEngine  {
 		return game;
 	}
 
-	public Player getPlayerById(String playerId, String gamePrefix) throws SQLException {
-		return getPlayer(gamePrefix+"players", "playerId="+playerId);
+	public static Player getPlayerById(String playerId, String gamePrefix, Connection connection) throws SQLException {
+		return getPlayer(gamePrefix+"players", "playerId="+playerId, connection);
 	}
 	
-	public Player getPlayerByFacebookId(String facebookId, String gamePrefix) throws SQLException {
-		return getPlayer(gamePrefix+"players", "facebookId="+facebookId);
+	public static Player getPlayerByFacebookId(String facebookId, String gamePrefix, Connection connection) throws SQLException {
+		return getPlayer(gamePrefix+"players", "facebookId="+facebookId, connection);
 	}
 	
-	private Player getPlayer(String tableName, String expression) throws SQLException {
-		List<Row> rows = dataBaseInterface.selectAll(tableName, expression);
+	private static Player getPlayer(String tableName, String expression, Connection connection) throws SQLException {
+		List<Row> rows = SqlMethods.selectAll(tableName, expression, connection);
 		
 		if(rows.size() <= 0) {
 			return null;
@@ -258,19 +253,19 @@ public class GamesDbEngine  {
 		return new Player((String)firstRow.get("playerId"), (String)firstRow.get("facebookId"), (int)firstRow.get("maxLevel"));
 	}
 	
-	public String registrationPlayerByFacebookId(String facebookId, String gamePrefix) throws SQLException {
+	public static String registrationPlayerByFacebookId(String facebookId, String gamePrefix, Connection connection) throws SQLException {
 		List<CellData> row = new ArrayList<>();
 		String playerId = generatePlayerId();
 		row.add(new CellData("playerId", playerId));
 		row.add(new CellData("facebookId", facebookId));
 		row.add(new CellData("maxLevel", 0));
-		if(dataBaseInterface.insertIntoTable(gamePrefix+"players", row) <= 0) {
+		if(SqlMethods.insertIntoTable(gamePrefix+"players", row, connection) <= 0) {
 			return null;
 		}
 		return playerId;
 	}
 	
-	private String generatePlayerId() {
+	private static String generatePlayerId() {
 		return RandomKeyGenerator.nextString(8).toLowerCase()+"-"+RandomKeyGenerator.nextString(8).toLowerCase();
 	}
 }

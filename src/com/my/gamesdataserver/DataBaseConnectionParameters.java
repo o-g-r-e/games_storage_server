@@ -1,5 +1,7 @@
 package com.my.gamesdataserver;
 
+import java.util.Objects;
+
 public class DataBaseConnectionParameters {
 	private String schema;
 	private String host;
@@ -9,12 +11,12 @@ public class DataBaseConnectionParameters {
 	private String password;
 	
 	public DataBaseConnectionParameters(String schema, String host, String port, String dataBaseName, String user, String password) {
-		this.schema = schema;
-		this.host = host;
-		this.port = port;
-		this.dataBaseName = dataBaseName;
-		this.user = user;
-		this.password = password;
+		this.schema = Objects.requireNonNull(schema);
+		this.host = Objects.requireNonNull(host);
+		this.port = Objects.requireNonNull(port);
+		this.dataBaseName = Objects.requireNonNull(dataBaseName);
+		this.user = Objects.requireNonNull(user);
+		this.password = Objects.requireNonNull(password);
 	}
 
 	public String getSchema() {
@@ -41,7 +43,8 @@ public class DataBaseConnectionParameters {
 		return password;
 	}
 	
-	public String getUrl() {
+	@Override
+	public String toString() {
 		return schema+"://"+host+":"+port+"/"+dataBaseName+"?autoReconnect=true&useSSL=false";
 	}
 }

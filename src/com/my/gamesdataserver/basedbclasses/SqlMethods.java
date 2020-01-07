@@ -1,4 +1,5 @@
 package com.my.gamesdataserver.basedbclasses;
+import java.beans.PropertyVetoException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -10,78 +11,62 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.mchange.v2.c3p0.ComboPooledDataSource;
 import com.my.gamesdataserver.DataBaseConnectionParameters;
+import com.my.gamesdataserver.DatabaseConnectionManager;
+import com.my.gamesdataserver.DatabaseConnectionPool;
 import com.my.gamesdataserver.SqlExpression;
-import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
-public class DataBaseInterface {
-	private Connection driverManagerConnection;
-	private MysqlDataSource mysqlDataSource;
-	private boolean printQuery = true;
-	private boolean transaction = false;
-	private DataBaseConnectionParameters dbConnectionParameters;
+public class SqlMethods {
+	
+	/*private boolean transaction = false;
+	
+	private DatabaseConnection databaseConnection;
+	
 
-	public DataBaseInterface(DataBaseConnectionParameters dbConnectionParameters) throws SQLException {
-		this.dbConnectionParameters = dbConnectionParameters;
-		driverManagerConnection = DriverManager.getConnection(dbConnectionParameters.getUrl(), dbConnectionParameters.getUser(), dbConnectionParameters.getPassword());
-		
-		/*mysqlDataSource = new MysqlDataSource();
-		mysqlDataSource.setUser(dbConnectionParameters.getUser());
-		mysqlDataSource.setPassword(dbConnectionParameters.getPassword());
-		mysqlDataSource.setDatabaseName("games_data");
-		mysqlDataSource.setUseSSL(false);*/
-		//d.setUrl("jdbc:mysql://localhost:3306/games_data");
-		
-		/*ConnectionFactory connectionFactory = new DriverManagerConnectionFactory("jdbc://localhost", null);
-	    PoolableConnectionFactory poolableConnectionFactory = new PoolableConnectionFactory(connectionFactory, null);
-	    ObjectPool<PoolableConnection> connectionPool = new GenericObjectPool<>(poolableConnectionFactory);
-	    poolableConnectionFactory.setPool(connectionPool);
-	    PoolingDataSource<PoolableConnection> dataSource = new PoolingDataSource<>(connectionPool);*/
-	}
-
-	protected Connection getCon() throws SQLException {
-		return driverManagerConnection;
-		//return mysqlDataSource.getConnection();
+	public DataBaseInterface(DatabaseConnection databaseConnection) throws SQLException {
+		this.databaseConnection = databaseConnection;
 	}
 	
 	public void enableTransactions() throws SQLException {
-		getCon().setAutoCommit(false);
+		databaseConnection.getConnection().setAutoCommit(false);
 		transaction = true;
 	}
 	
 	public void disableTransactions() throws SQLException {
-		getCon().setAutoCommit(true);
+		databaseConnection.getConnection().setAutoCommit(true);
 		transaction = false;
 	}
 	
 	public void commit() throws SQLException {
-		getCon().commit();
+		databaseConnection.getConnection().commit();
 	}
 	
 	public void rollback() throws SQLException {
-		getCon().rollback();
-	}
+		databaseConnection.getConnection().rollback();
+	}*/
 	
-	public boolean isTransactionsEnabled() throws SQLException {
-		//return getCon().getAutoCommit();
-		return transaction;
-	}
+	//public boolean isTransactionsEnabled() throws SQLException {
+		////return getCon().getAutoCommit();
+		//return transaction;
+	//}
 	
-	public void deleteFrom(String tableName, String where) throws SQLException {
+	public static void deleteFrom(String tableName, String where, Connection connection) throws SQLException {
 		
 		if(where.contains("&")) {
 			where = where.replaceAll("&", " AND ");
 		}
 		
-		getCon().prepareStatement("DELETE FROM `"+tableName+"` WHERE ("+where+")").execute();
+		connection.prepareStatement("DELETE FROM `"+tableName+"` WHERE ("+where+")").execute();
 	}
 	
-	public void createTable(String name, ColData[] fields, String primaryKey) throws SQLException {
+	public static void createTable(String name, ColData[] fields, String primaryKey, Connection connection) throws SQLException {
 		StringBuilder query = new StringBuilder("CREATE TABLE IF NOT EXISTS "+name+" (");
 		
 		for (int i = 0; i < fields.length; i++) {
@@ -128,14 +113,14 @@ public class DataBaseInterface {
 		
 		query.append(");");
 		
-		getCon().prepareStatement(query.toString()).execute();
+		connection.prepareStatement(query.toString()).execute();
 	}
 	
-	public void dropTable(String tableName) throws SQLException {
-		getCon().prepareStatement("DROP TABLE `"+tableName+"`").execute();
+	public static void dropTable(String tableName, Connection connection) throws SQLException {
+		connection.prepareStatement("DROP TABLE `"+tableName+"`").execute();
 	}
 	
-	public int insertIntoTable(String tableName, List<CellData> row) throws SQLException {
+	public static int insertIntoTable(String tableName, List<CellData> row, Connection connection) throws SQLException {
 		StringBuilder fieldsNames = new StringBuilder("(");
 		StringBuilder fieldsValues = new StringBuilder("(");
 		int width = row.size();
@@ -152,7 +137,7 @@ public class DataBaseInterface {
 		fieldsNames.append(")");
 		fieldsValues.append(")");
 		
-		PreparedStatement pstmt = getCon().prepareStatement(String.format("INSERT INTO %s %s VALUES %s", tableName, fieldsNames, fieldsValues));
+		PreparedStatement pstmt = connection.prepareStatement(String.format("INSERT INTO %s %s VALUES %s", tableName, fieldsNames, fieldsValues));
 		
 		for (int i = 0; i < row.size(); i++) {
 			setQueryValue(pstmt, row.get(i).getType(), row.get(i).getValue(), i+1);
@@ -161,11 +146,11 @@ public class DataBaseInterface {
 		return pstmt.executeUpdate();
 	}
 	
-	public int insertIntoTableMultiRows(String tableName, List<List<CellData>> row) throws SQLException {
+	public static int insertIntoTableMultiRows(String tableName, List<List<CellData>> row) throws SQLException {
 		return 0;
 	}
 	
-	public int updateTable(String tableName, List<CellData> set, List<SqlExpression> where) throws SQLException {
+	public static int updateTable(String tableName, List<CellData> set, List<SqlExpression> where, Connection connection) throws SQLException {
 		StringBuilder sqlUpdate = new StringBuilder("UPDATE ");
 		sqlUpdate.append(tableName);
 		sqlUpdate.append(" SET ");
@@ -188,7 +173,7 @@ public class DataBaseInterface {
 		}
 		sqlUpdate.append(")");
 		
-		PreparedStatement pstmt = getCon().prepareStatement(sqlUpdate.toString());//con.prepareStatement(String.format("UDPATE %s SET %s WHERE %s", tableName, ));
+		PreparedStatement pstmt = connection.prepareStatement(sqlUpdate.toString());//con.prepareStatement(String.format("UDPATE %s SET %s WHERE %s", tableName, ));
 		
 		for (int i = 0; i < set.size(); i++) {
 			setQueryValue(pstmt, set.get(i).getType(), set.get(i).getValue(), i+1);
@@ -201,7 +186,7 @@ public class DataBaseInterface {
 		return pstmt.executeUpdate();
 	}
 	
-	public List<Row> select(String tableName, String[] fields, List<SqlExpression> where) throws SQLException {
+	public static List<Row> select(String tableName, String[] fields, List<SqlExpression> where, Connection connection) throws SQLException {
 		StringBuilder sql = new StringBuilder("SELECT ");
 		if(fields != null) {
 			sql.append(String.join(", ", fields));
@@ -213,7 +198,7 @@ public class DataBaseInterface {
 			sql.append(buildWhere(where));
 		}
 		List<Row> result = new ArrayList<>();
-		PreparedStatement pstmt = getCon().prepareStatement(sql.toString());
+		PreparedStatement pstmt = connection.prepareStatement(sql.toString());
 		int requestValueIndex = 0;
 		int expIndex = 0;
 		for (SqlExpression exp : where) {
@@ -241,7 +226,7 @@ public class DataBaseInterface {
 		return result;
 	}
 	
-	public List<Row> selectAll(String tableName) throws SQLException {
+	public List<Row> selectAll(String tableName, Connection connection) throws SQLException {
 		/*String sql = String.format("SELECT * FROM %s", tableName);
 		PreparedStatement pstmt = getCon().prepareStatement(sql);
 		List<Row> result = new ArrayList<>();
@@ -254,10 +239,10 @@ public class DataBaseInterface {
 			}
 			result.add(new Row(row));
 		}*/
-		return select(tableName, null, null);
+		return select(tableName, null, null, connection);
 	}
 	
-	public List<Row> selectAll(String tableName, List<SqlExpression> where) throws SQLException {
+	public static List<Row> selectAll(String tableName, List<SqlExpression> where, Connection connection) throws SQLException {
 		
 		/*StringBuilder sql = new StringBuilder("SELECT * FROM "+tableName);
 		sql.append(buildWhere(where));
@@ -287,10 +272,10 @@ public class DataBaseInterface {
 			}
 			result.add(new Row(row));
 		}*/
-		return select(tableName, null, where);
+		return select(tableName, null, where, connection);
 	}
 	
-	public List<Row> selectAll(String tableName, String where) throws SQLException {
+	public static List<Row> selectAll(String tableName, String where, Connection connection) throws SQLException {
 		
 		List<SqlExpression> whereData = new ArrayList<>();
 		Map<String, String> wherePairs = new HashMap<>();
@@ -313,12 +298,12 @@ public class DataBaseInterface {
 			whereData.add(new SqlExpression(0, e.getKey(), e.getValue()));
 		}
 		
-		result = selectAll(tableName, whereData);
+		result = selectAll(tableName, whereData, connection);
 		
 		return result;
 	}
 	
-	private String buildWhere(List<SqlExpression> where) {
+	private static String buildWhere(List<SqlExpression> where) {
 		if(where == null || where.size() <= 0) {
 			return "";
 		}
@@ -363,7 +348,7 @@ public class DataBaseInterface {
 		return -1;
 	}
 	
-	private void setQueryValue(PreparedStatement pstmt, int type, Object value, int index) throws SQLException {
+	private static void setQueryValue(PreparedStatement pstmt, int type, Object value, int index) throws SQLException {
 		switch (type) {
 		case Types.INTEGER:
 			pstmt.setInt(index, (int)value);
@@ -380,9 +365,9 @@ public class DataBaseInterface {
 		}
 	}
 	
-	public String[] findTablesByPrefix(String tableNamePrefix) throws SQLException {
-		PreparedStatement pstmt = getCon().prepareStatement("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '?' AND TABLE_NAME LIKE '?%'");
-		pstmt.setString(1, dbConnectionParameters.getDataBaseName());
+	public static String[] findTablesByPrefix(String databaseName, String tableNamePrefix, Connection connection) throws SQLException {
+		PreparedStatement pstmt = connection.prepareStatement("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '?' AND TABLE_NAME LIKE '?%'");
+		pstmt.setString(1, databaseName);
 		pstmt.setString(2, tableNamePrefix);
 		ResultSet resultSet = pstmt.executeQuery();
 		List<String> tableNames = new ArrayList<>();
@@ -392,23 +377,23 @@ public class DataBaseInterface {
 		return tableNames.toArray(new String[] {});
 	}
 	
-	public List<Row> executeSelect(SqlSelect sqlSelect) throws SQLException {
+	public static List<Row> executeSelect(SqlSelect sqlSelect, Connection connection) throws SQLException {
 		if(sqlSelect.getFields() != null) {
-			return select(sqlSelect.getTableName(), sqlSelect.getFields(), sqlSelect.getWhereExpression());
+			return select(sqlSelect.getTableName(), sqlSelect.getFields(), sqlSelect.getWhereExpression(), connection);
 		}
-		return selectAll(sqlSelect.getTableName(), sqlSelect.getWhereExpression());
+		return selectAll(sqlSelect.getTableName(), sqlSelect.getWhereExpression(), connection);
 	}
 	
-	public int executeInsert(SqlInsert sqlInsert) throws SQLException {
-		return insertIntoTable(sqlInsert.getTableName(), sqlInsert.getRowToInsert().get(0));
+	public static int executeInsert(SqlInsert sqlInsert, Connection connection) throws SQLException {
+		return insertIntoTable(sqlInsert.getTableName(), sqlInsert.getRowToInsert().get(0), connection);
 	}
 	
 	public int executeInsertMultiRows(SqlInsert sqlInsert) throws SQLException {
 		return insertIntoTableMultiRows(sqlInsert.getTableName(), sqlInsert.getRowToInsert());
 	}
 	
-	public int executeUpdate(SqlUpdate sqlUpdate) throws SQLException {
-		return updateTable(sqlUpdate.getTableName(), sqlUpdate.getUpdatesData(), sqlUpdate.getWhereExpression());
+	public static int executeUpdate(SqlUpdate sqlUpdate, Connection connection) throws SQLException {
+		return updateTable(sqlUpdate.getTableName(), sqlUpdate.getUpdatesData(), sqlUpdate.getWhereExpression(), connection);
 	}
 	
 	public static List<SqlExpression> parseWhere(JSONArray whereData) throws JSONException {
@@ -436,7 +421,7 @@ public class DataBaseInterface {
 			SqlExpression cd = new SqlExpression(cellObject.getString("name"), value);
 			
 			if(cellObject.has("type")) {
-				cd.setType(DataBaseInterface.parseDataType(cellObject.getString("type")));
+				cd.setType(SqlMethods.parseDataType(cellObject.getString("type")));
 			} 
 			
 			result.add(cd);
@@ -460,7 +445,7 @@ public class DataBaseInterface {
 				continue;
 			}
 			if(cellObject.has("type")) {
-				result.add(new CellData(DataBaseInterface.parseDataType(cellObject.getString("type")), cellObject.getString("name"), cellObject.getString("value")));
+				result.add(new CellData(SqlMethods.parseDataType(cellObject.getString("type")), cellObject.getString("name"), cellObject.getString("value")));
 			} else {
 				result.add(new CellData(cellObject.getString("name"), cellObject.getString("value")));
 			}
@@ -476,8 +461,8 @@ public class DataBaseInterface {
 		return result;
 	}
 	
-	public void createIndex(String indexName, String tableName, String[] fields, boolean unique) throws SQLException {
-		getCon().prepareStatement(String.format("CREATE %s INDEX %s ON %s(%s)", unique?"UNIQUE":"", indexName, tableName, String.join(",", fields))).execute();
+	public static void createIndex(String indexName, String tableName, String[] fields, boolean unique, Connection connection) throws SQLException {
+		connection.prepareStatement(String.format("CREATE %s INDEX %s ON %s(%s)", unique?"UNIQUE":"", indexName, tableName, String.join(",", fields))).execute();
 	}
 
 	/*public boolean executeIncrement(Increment increment) throws SQLException, JSONException {

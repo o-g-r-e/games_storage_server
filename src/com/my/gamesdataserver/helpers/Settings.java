@@ -14,7 +14,9 @@ public class Settings {
 		try {
 			scanner = new Scanner(settingsFile);
 			while (scanner.hasNextLine()) {
-				String[] s = scanner.nextLine().split("=");
+				String line = scanner.nextLine();
+				String[] s = line.split("=");
+				if("".equals(line) || s.length < 2) continue;
 				parameters.put(s[0], s[1]);
 			}
 		} finally {

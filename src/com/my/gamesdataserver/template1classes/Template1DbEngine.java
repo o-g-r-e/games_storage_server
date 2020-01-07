@@ -1,20 +1,16 @@
 package com.my.gamesdataserver.template1classes;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.my.gamesdataserver.SqlExpression;
 import com.my.gamesdataserver.basedbclasses.CellData;
-import com.my.gamesdataserver.basedbclasses.DataBaseInterface;
+import com.my.gamesdataserver.basedbclasses.SqlMethods;
 
 public class Template1DbEngine {
-	private DataBaseInterface dataBaseInterface;
 	private String tablePrefix;
-	
-	public Template1DbEngine(DataBaseInterface dataBaseInterface) {
-		this.dataBaseInterface = dataBaseInterface;
-	}
 	
 	public void setTablePrefix(String tablePrefix) {
 		this.tablePrefix = tablePrefix;
@@ -66,14 +62,14 @@ public class Template1DbEngine {
 		return null;
 	}
 
-	public void addPlayer(String playerId/*, String tablePrefix*/) throws SQLException {
+	public void addPlayer(String playerId/*, String tablePrefix*/, Connection connection) throws SQLException {
 		List<CellData> row = new ArrayList<>();
 		row.add(new CellData("playerId", playerId));
 		row.add(new CellData("max_level", 0));
-		dataBaseInterface.insertIntoTable(tablePrefix+"players", row);
+		SqlMethods.insertIntoTable(tablePrefix+"players", row, connection);
 	}
 
-	public int updateLevel(String playerId, int level, int scores, int stars) throws SQLException {
+	public int updateLevel(String playerId, int level, int scores, int stars, Connection connection) throws SQLException {
 		List<CellData> set = new ArrayList<>();
 		
 		set.add(new CellData("playerId", playerId));
@@ -86,10 +82,10 @@ public class Template1DbEngine {
 		where.add(new SqlExpression("playerId", playerId));
 		where.add(new SqlExpression("level", level));
 		
-		return dataBaseInterface.updateTable(tablePrefix+"scorelevel", set, where);
+		return SqlMethods.updateTable(tablePrefix+"scorelevel", set, where, connection);
 	}
 
-	public int addLevel(String playerId, int level, int scores, int stars) throws SQLException {
+	public int addLevel(String playerId, int level, int scores, int stars, Connection connection) throws SQLException {
 		List<CellData> row = new ArrayList<>();
 		
 		row.add(new CellData("playerId", playerId));
@@ -97,7 +93,7 @@ public class Template1DbEngine {
 		row.add(new CellData("score", scores));
 		row.add(new CellData("stars", stars));
 		
-		return dataBaseInterface.insertIntoTable(tablePrefix+"scorelevel", row);
+		return SqlMethods.insertIntoTable(tablePrefix+"scorelevel", row, connection);
 	}
 	
 	/*public String getPlayersTableName(String apiKey) throws SQLException {

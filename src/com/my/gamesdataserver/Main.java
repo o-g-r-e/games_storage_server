@@ -1,4 +1,5 @@
 package com.my.gamesdataserver;
+import java.beans.PropertyVetoException;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -13,8 +14,8 @@ import java.util.Base64;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import com.my.gamesdataserver.basedbclasses.DataBaseInterface;
-import com.my.gamesdataserver.dbengineclasses.GamesDbEngine;
+import com.my.gamesdataserver.basedbclasses.SqlMethods;
+import com.my.gamesdataserver.dbengineclasses.DataBaseMethods;
 import com.my.gamesdataserver.helpers.EmailSender;
 import com.my.gamesdataserver.helpers.LogManager;
 import com.my.gamesdataserver.helpers.Settings;
@@ -43,16 +44,18 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class Main {
 	
-	private static DataBaseInterface dbInterface;
+	private static SqlMethods dbInterface;
 	private static Settings settings;
+	private static SslContext sslContext;
 	private static LogManager logManager;
-	private static SslContext sslCtx;
+	private static EmailSender emailSender;
 	
 	public static void main(String[] args) {
 		EventLoopGroup bossGroup = null;
 		EventLoopGroup workerGroup = null;
+		
 		try {
-			
+			logManager = new LogManager(8);
 			String settingsPath = null;
 			if(args.length < 1) {
 				settingsPath = new File(".").getCanonicalPath()+File.separator+"settings"+File.separator+".settings";
@@ -60,27 +63,27 @@ public class Main {
 				settingsPath = args[0];
 			}
 			
-			logManager = new LogManager(8);
 			
 			settings = new Settings(new File(settingsPath));
 			
-			dbInterface = new DataBaseInterface(new DataBaseConnectionParameters("jdbc:mysql", settings.get("dbAddr"), 
-																							   settings.get("dbPort"), 
-																							   settings.get("dbName"), 
-																							   settings.get("dbUser"), 
-																							   settings.get("dbPassword")));
+			DatabaseConnectionManager v = new DatabaseConnectionPool(new DataBaseConnectionParameters("jdbc:mysql", settings.get("dbAddr"), 
+																												   settings.get("dbPort"), 
+																												   settings.get("dbName"), 
+																												   settings.get("dbUser"), 
+																												   settings.get("dbPassword")));
+			
+			emailSender = new EmailSender(settings.get("smtpServer"), settings.get("smtpUser"), settings.get("smtpPassword"), settings.get("emailFrom"));
+	        emailSender.enable("Yes".equals(settings.get("sendEmail")));
 			
 			bossGroup = new NioEventLoopGroup();
 	        workerGroup = new NioEventLoopGroup();
-	        
-	        EmailSender.enabled = "Yes".equals(settings.get("sendEmail"));
 	        
 	        boolean sslEnable = "Yes".equals(settings.get("enableSsl"));
 	        
 	        if(sslEnable) {
 	        	File tlsCert = new File(settings.get("cert"));
 	        	File tlsPrivateKey = new File(settings.get("privateKey"));
-	        	sslCtx = SslContextBuilder.forServer(tlsCert, tlsPrivateKey).sslProvider(SslProvider.OPENSSL).clientAuth(ClientAuth.NONE).build();
+	        	sslContext = SslContextBuilder.forServer(tlsCert, tlsPrivateKey).sslProvider(SslProvider.OPENSSL).clientAuth(ClientAuth.NONE).build();
 	        }
 	        CorsConfig corsConfig = CorsConfigBuilder.forAnyOrigin().allowNullOrigin().allowCredentials().allowedRequestHeaders("Authorization", "api_key", "player_id").build();
 	        ServerBootstrap b = new ServerBootstrap();
@@ -90,19 +93,19 @@ public class Main {
 	        		@Override
 	                public void initChannel(SocketChannel channel) throws Exception {
 	        			ChannelPipeline pipeline = channel.pipeline();
-	        			if(sslEnable) pipeline.addLast(sslCtx.newHandler(channel.alloc()));
+	        			if(sslEnable) pipeline.addLast(sslContext.newHandler(channel.alloc()));
 	        			pipeline.addLast(new HttpRequestDecoder());
 	        			pipeline.addLast(new HttpResponseEncoder());
 	        			pipeline.addLast(new HttpObjectAggregator(1048576));
 	                	//channel.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(2048));
 	        			pipeline.addLast(new CorsHandler(corsConfig));
-	                	pipeline.addLast(new ClientHandler(dbInterface, logManager));
+	                	pipeline.addLast(new ClientHandler(v, logManager, emailSender));
 	                }
 	        	});
 	            
 	        b.bind(Integer.parseInt(settings.get("serverPort"))).sync().channel().closeFuture().sync();
 	        
-		} catch (SQLException | IOException /*| CertificateException*/ | InterruptedException e) {
+		} catch (SQLException | IOException /*| CertificateException*/ | InterruptedException | PropertyVetoException e) {
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
 			e.printStackTrace(pw);

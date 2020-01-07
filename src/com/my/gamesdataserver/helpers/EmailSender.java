@@ -1,6 +1,7 @@
 package com.my.gamesdataserver.helpers;
 
 import java.util.Date;
+import java.util.Objects;
 import java.util.Properties;
 
 import javax.mail.Message;
@@ -14,21 +15,31 @@ import com.sun.mail.smtp.SMTPTransport;
 
 public class EmailSender {
 	
-    private static final String SMTP_SERVER = "smtp.gmail.com";
-    private static final String USERNAME = "info@candy-smith.com";
-    private static final String PASSWORD = "666slayer333";
-
-    private static final String EMAIL_FROM = "info@candy-smith.com";
-    private static final String EMAIL_TO_CC = "";
+    private String SMTP_SERVER;
+    private String USERNAME;
+    private String PASSWORD;
+    private String EMAIL_FROM;
+    private boolean enabled;
+    private Properties prop;
+    private Session session;
+    private Message message;
     
-    public static boolean enabled = false;
-    
-	private static void sendTo(String emailTo, String subject, String content) throws MessagingException {
-		Properties prop = System.getProperties();
-        prop.put("mail.smtp.host", SMTP_SERVER); //optional, defined in SMTPTransport
+    public EmailSender(String smtpServer, String user, String password, String emailFrom) {
+		
+    	Objects.requireNonNull(smtpServer);
+		Objects.requireNonNull(user);
+		Objects.requireNonNull(password);
+		Objects.requireNonNull(emailFrom);
+		
+    	this.SMTP_SERVER = smtpServer;
+    	this.USERNAME = user;
+    	this.PASSWORD = password;
+    	this.EMAIL_FROM = emailFrom;
+    	
+    	prop = new Properties();
+    	prop.put("mail.smtp.host", SMTP_SERVER);
         prop.put("mail.smtp.auth", "true");
-        prop.put("mail.smtp.port", "25"); // default port 25
-        
+        prop.put("mail.smtp.port", "25");
         prop.put("mail.smtp.from", EMAIL_FROM);
         prop.put("mail.smtp.socketFactory.port", "25");
         prop.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
@@ -36,44 +47,29 @@ public class EmailSender {
         prop.put("mail.smtp.starttls.enable", "true");
         prop.put("mail.smtp.ssl.enable", "false");
         prop.put("mail.smtp.socketFactory.fallback", "true");
-
-        Session session = Session.getInstance(prop, null);
-        Message message = new MimeMessage(session);
         
-			// from
-            message.setFrom(new InternetAddress(EMAIL_FROM));
+        session = Session.getInstance(prop, null);
+        message = new MimeMessage(session);
+    }
+    
+	private void sendTo(String emailTo, String subject, String content) throws MessagingException {
+        message.setFrom(new InternetAddress(EMAIL_FROM));
+        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(emailTo, false));
+        //message.setRecipients(Message.RecipientType.CC, InternetAddress.parse("", false));
+        message.setSubject(subject); 
+        message.setText(content);
+        message.setSentDate(new Date());
+        SMTPTransport smtpTransport = (SMTPTransport) session.getTransport("smtp");
+        smtpTransport.connect(SMTP_SERVER, USERNAME, PASSWORD);
+        smtpTransport.sendMessage(message, message.getAllRecipients());
 
-			// to 
-            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(emailTo, false));
+        //System.out.println("Response: " + t.getLastServerResponse());
 
-			// cc
-            message.setRecipients(Message.RecipientType.CC, InternetAddress.parse(EMAIL_TO_CC, false));
-
-			// subject
-            message.setSubject(subject);
-			
-			// content 
-            message.setText(content);
-			
-            message.setSentDate(new Date());
-
-			// Get SMTPTransport
-            SMTPTransport smtpTransport = (SMTPTransport) session.getTransport("smtp");
-			
-			// connect
-            smtpTransport.connect(SMTP_SERVER, USERNAME, PASSWORD);
-			
-			// send
-            smtpTransport.sendMessage(message, message.getAllRecipients());
-
-            //System.out.println("Response: " + t.getLastServerResponse());
-
-            smtpTransport.close();
+        smtpTransport.close();
 	}
 	
-	public static void send(String emailTo, String subject, String content) {
+	public void send(String emailTo, String subject, String content) {
 		new Thread(new Runnable() {
-			
 			@Override
 			public void run() {
 				try {
@@ -83,5 +79,9 @@ public class EmailSender {
 				}
 			}
 		}).start();
+	}
+	
+	public void enable(boolean enable) {
+		this.enabled = enable;
 	}
 }
