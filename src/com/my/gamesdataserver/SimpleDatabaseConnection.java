@@ -14,6 +14,6 @@ public class SimpleDatabaseConnection implements DatabaseConnectionManager {
 	@Override
 	public Connection getConnection() throws SQLException {
 		// TODO Auto-generated method stub
-		return null;
+		return driverManagerConnection;
 	}
 }

@@ -22,4 +22,14 @@ public class SqlInsert extends SqlRequest {
 	public List<List<CellData>> getRowToInsert() {
 		return rowsToInsert;
 	}
+
+	public List<CellData> getRowToInsert(int index) {
+		return rowsToInsert.get(index);
+	}
+	
+	public void addInsertedValue(CellData val) {
+		for(List<CellData> row : rowsToInsert) {
+			row.add(val);
+		}
+	}
 }

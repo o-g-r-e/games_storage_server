@@ -486,7 +486,7 @@
             });
     
             $('#insert').on('click', function() {
-                let request = "/api/insert?&table="+$('.area-of-insert .table-field').val();
+                let request = "/api/insert?table="+$('.area-of-insert .table-field').val();
 
                 if($('#update-if-exists').is(':checked') && $("#check-fields").val().trim().length > 0) {
                     request += "&updateIfExists=true";
