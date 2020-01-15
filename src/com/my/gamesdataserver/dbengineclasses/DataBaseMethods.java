@@ -20,10 +20,8 @@ import com.my.gamesdataserver.DataBaseConnectionParameters;
 import com.my.gamesdataserver.DatabaseConnectionManager;
 import com.my.gamesdataserver.SqlExpression;
 import com.my.gamesdataserver.basedbclasses.CellData;
-import com.my.gamesdataserver.basedbclasses.ColData;
+import com.my.gamesdataserver.basedbclasses.Field;
 import com.my.gamesdataserver.basedbclasses.SqlMethods;
-import com.my.gamesdataserver.basedbclasses.Decrement;
-import com.my.gamesdataserver.basedbclasses.Increment;
 import com.my.gamesdataserver.basedbclasses.Row;
 import com.my.gamesdataserver.basedbclasses.SqlInsert;
 import com.my.gamesdataserver.basedbclasses.SqlSelect;
@@ -191,14 +189,6 @@ public class DataBaseMethods  {
 
 	public static int executeUpdate(SqlUpdate sqlRequest, Connection connection) throws SQLException {
 		return SqlMethods.executeUpdate(sqlRequest, connection);
-	}
-
-	/*public boolean executeIncrement(Increment increment) throws SQLException, JSONException {
-		return dataBaseInterface.executeIncrement(increment);
-	}*/
-
-	public static int executeDecrement(Decrement sqlRequest) {
-		return 0;
 	}
 	
 	public static Game getGameByKey(String apiKey, Connection connection) throws SQLException {

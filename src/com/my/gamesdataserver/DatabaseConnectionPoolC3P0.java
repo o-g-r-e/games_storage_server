@@ -8,14 +8,14 @@ import java.util.Properties;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 
-public class DatabaseConnectionPool implements DatabaseConnectionManager {
+public class DatabaseConnectionPoolC3P0 implements DatabaseConnectionManager {
 	//private MysqlDataSource mysqlDataSource;
 	private ComboPooledDataSource cpds;
 	
 	//private boolean connectionReleased = true;
 	//private Connection currentConnection;
 	
-	public DatabaseConnectionPool(DataBaseConnectionParameters dbConnectionParameters) throws SQLException, PropertyVetoException {
+	public DatabaseConnectionPoolC3P0(DataBaseConnectionParameters dbConnectionParameters) throws SQLException, PropertyVetoException {
 		
 			cpds = new ComboPooledDataSource();
 			cpds.setDriverClass("com.mysql.jdbc.Driver");

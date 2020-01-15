@@ -3,21 +3,21 @@ package com.my.gamesdataserver.dbengineclasses;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.my.gamesdataserver.basedbclasses.ColData;
+import com.my.gamesdataserver.basedbclasses.Field;
 
 public class TableTemplate {
 	private String name;
-	private ColData[] cols;
+	private Field[] cols;
 	private List<TableIndex> indices = new ArrayList<>();
 	private String primaryKey = null;
 	
-	public TableTemplate(String name, ColData[] cols, String primaryKey) {
+	public TableTemplate(String name, Field[] cols, String primaryKey) {
 		this.name = name;
 		this.cols = cols;
 		this.primaryKey = primaryKey;
 	}
 	
-	public TableTemplate(String name, ColData[] cols) {
+	public TableTemplate(String name, Field[] cols) {
 		this.name = name;
 		this.cols = cols;
 	}
@@ -25,7 +25,7 @@ public class TableTemplate {
 	public String getName() {
 		return name;
 	}
-	public ColData[] getCols() {
+	public Field[] getCols() {
 		return cols;
 	}
 

@@ -163,6 +163,20 @@
             grid-column-start: 5; 
             grid-column-end: 10; 
         }
+
+        .create-spec-req-area {
+            grid-row-start: 5; 
+            grid-row-end: 6; 
+            grid-column-start: 1; 
+            grid-column-end: 6; 
+        }
+
+        .spec-request-area {
+            grid-row-start: 5; 
+            grid-row-end: 6; 
+            grid-column-start: 6; 
+            grid-column-end: 10; 
+        }
     </style>
 </head>
 <body>
@@ -231,6 +245,23 @@
             <label>Where:</label><input class="where-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
             <input id="update" type="button" value="Send"/><br/>
             <input class="clear-fields" type="button" value="Clear fileds"/>
+        </fieldset>
+
+        <fieldset class="form-area create-spec-req-area">
+            <legend>Create special request</legend>
+            <label>Name:</label><input class="spec-req-name" type="text"/><br/>
+            <label>Table:</label><input class="spec-req-table" type="text"/><br/>
+            <label>Fields:</label><input class="spec-req-fields-set" type="text"/><span class="desc">Keep empty if need select all</span><br/>
+            <input id="submit-spec-req" type="button" value="Submit"/><br/>
+            <input class="clear-fields" type="button" value="Clear fileds"/>
+        </fieldset>
+
+        <fieldset class="form-area spec-request-area">
+            <legend>Special request</legend>
+            <label>Name:</label><input class="spec-req-name" type="text"/><br/>
+            <label>Where:</label><input class="where-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
+            <input type="button" value="Submit"/><br/>
+            <input id="spec-req" class="clear-fields" type="button" value="Clear fileds"/>
         </fieldset>
 
         </div>

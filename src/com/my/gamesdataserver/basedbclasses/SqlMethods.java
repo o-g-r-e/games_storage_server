@@ -20,7 +20,7 @@ import org.json.JSONObject;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import com.my.gamesdataserver.DataBaseConnectionParameters;
 import com.my.gamesdataserver.DatabaseConnectionManager;
-import com.my.gamesdataserver.DatabaseConnectionPool;
+import com.my.gamesdataserver.DatabaseConnectionPoolC3P0;
 import com.my.gamesdataserver.SqlExpression;
 
 public class SqlMethods {
@@ -66,7 +66,7 @@ public class SqlMethods {
 		connection.prepareStatement("DELETE FROM `"+tableName+"` WHERE ("+where+")").execute();
 	}
 	
-	public static void createTable(String name, ColData[] fields, String primaryKey, Connection connection) throws SQLException {
+	public static void createTable(String name, Field[] fields, String primaryKey, Connection connection) throws SQLException {
 		StringBuilder query = new StringBuilder("CREATE TABLE IF NOT EXISTS "+name+" (");
 		
 		for (int i = 0; i < fields.length; i++) {

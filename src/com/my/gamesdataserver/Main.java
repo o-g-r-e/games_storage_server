@@ -66,7 +66,7 @@ public class Main {
 			
 			settings = new Settings(new File(settingsPath));
 			
-			DatabaseConnectionManager v = new SimpleDatabaseConnection(new DataBaseConnectionParameters("jdbc:mysql", settings.get("dbAddr"), 
+			DatabaseConnectionManager v = new DatabaseConnectionPoolApache(new DataBaseConnectionParameters("jdbc:mysql", settings.get("dbAddr"), 
 																												   settings.get("dbPort"), 
 																												   settings.get("dbName"), 
 																												   settings.get("dbUser"), 
@@ -105,7 +105,7 @@ public class Main {
 	            
 	        b.bind(Integer.parseInt(settings.get("serverPort"))).sync().channel().closeFuture().sync();
 	        
-		} catch (SQLException | IOException /*| CertificateException*/ | InterruptedException e) {
+		} catch (IOException /*| CertificateException*/ | InterruptedException e) {
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
 			e.printStackTrace(pw);
