@@ -3,6 +3,7 @@ package com.my.gamesdataserver.dbengineclasses;
 import java.util.Set;
 
 public class Game {
+	private int id;
 	private String name;
 	private String javaPackage;
 	private int ownerId;
@@ -13,7 +14,8 @@ public class Game {
 	private String playerIdFieldName;
 	private String hash;
 	
-	public Game(String name, String javaPackage, int ownerId, String apiKey, String secretKey, String type, String prefix, String hash) {
+	public Game(int id, String name, String javaPackage, int ownerId, String apiKey, String secretKey, String type, String prefix, String hash) {
+		this.id = id;
 		this.name = name;
 		this.javaPackage = javaPackage;
 		this.ownerId = ownerId;
@@ -67,5 +69,9 @@ public class Game {
 
 	public String getPlayerIdFieldName() {
 		return playerIdFieldName;
+	}
+	
+	public int getId() {
+		return id;
 	}
 }

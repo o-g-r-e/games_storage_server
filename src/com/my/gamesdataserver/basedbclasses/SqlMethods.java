@@ -120,12 +120,12 @@ public class SqlMethods {
 		connection.prepareStatement("DROP TABLE `"+tableName+"`").execute();
 	}
 	
-	public static int insertIntoTable(String tableName, List<CellData> row, Connection connection) throws SQLException {
+	public static int insertIntoTable(String tableName, List<SqlExpression> row, Connection connection) throws SQLException {
 		StringBuilder fieldsNames = new StringBuilder("(");
 		StringBuilder fieldsValues = new StringBuilder("(");
 		int width = row.size();
 		for (int i = 0; i < width; i++) {
-			CellData d = row.get(i);
+			SqlExpression d = row.get(i);
 			fieldsNames.append(d.getName());
 			fieldsValues.append("?");
 			if(i < width-1) {
@@ -146,17 +146,20 @@ public class SqlMethods {
 		return pstmt.executeUpdate();
 	}
 	
-	public static int insertIntoTableMultiRows(String tableName, List<List<CellData>> row) throws SQLException {
+	public static int insertIntoTable(String tableName, String row, Connection connection) throws SQLException {
+		return insertIntoTable(tableName, parseValuesListLiteral(row), connection);
+	}
+	
+	public static int insertIntoTableMultiRows(String tableName, List<List<SqlExpression>> row) throws SQLException {
 		return 0;
 	}
 	
-	public static int updateTable(String tableName, List<CellData> set, List<SqlExpression> where, Connection connection) throws SQLException {
+	public static int updateTable(String tableName, List<SqlExpression> set, List<SqlExpression> where, Connection connection) throws SQLException {
 		StringBuilder sqlUpdate = new StringBuilder("UPDATE ");
 		sqlUpdate.append(tableName);
 		sqlUpdate.append(" SET ");
 		for (int i = 0; i < set.size(); i++) {
-			CellData d = set.get(i);
-			sqlUpdate.append(d.getName());
+			sqlUpdate.append(set.get(i).getName());
 			sqlUpdate.append("=?");
 			if(i < set.size()-1) {
 				sqlUpdate.append(",");
@@ -186,7 +189,11 @@ public class SqlMethods {
 		return pstmt.executeUpdate();
 	}
 	
-	public static List<Row> select(String tableName, String[] fields, List<SqlExpression> where, Connection connection) throws SQLException {
+	public static int updateTable(String tableName, String set, String where, Connection connection) throws SQLException {
+		return updateTable(tableName, parseValuesListLiteral(set), parseValuesListLiteral(where), connection);
+	}
+	
+	public static List<Row> select(String tableName, List<String> fields, List<SqlExpression> where, Connection connection) throws SQLException {
 		StringBuilder sql = new StringBuilder("SELECT ");
 		if(fields != null) {
 			sql.append(String.join(", ", fields));
@@ -227,63 +234,24 @@ public class SqlMethods {
 	}
 	
 	public List<Row> selectAll(String tableName, Connection connection) throws SQLException {
-		/*String sql = String.format("SELECT * FROM %s", tableName);
-		PreparedStatement pstmt = getCon().prepareStatement(sql);
-		List<Row> result = new ArrayList<>();
-		ResultSet resultSet = pstmt.executeQuery();
-		ResultSetMetaData rsmd = resultSet.getMetaData();
-		while(resultSet.next()) {
-			List<CellData> row = new ArrayList<>();
-			for (int i = 1; i <= rsmd.getColumnCount(); i++) {
-				row.add(new CellData(rsmd.getColumnType(i), rsmd.getColumnName(i), resultSet.getObject(i)));
-			}
-			result.add(new Row(row));
-		}*/
 		return select(tableName, null, null, connection);
 	}
 	
 	public static List<Row> selectAll(String tableName, List<SqlExpression> where, Connection connection) throws SQLException {
-		
-		/*StringBuilder sql = new StringBuilder("SELECT * FROM "+tableName);
-		sql.append(buildWhere(where));
-		PreparedStatement pstmt = getCon().prepareStatement(sql.toString());
-		int requestValueIndex = 0;
-		int expIndex = 0;
-		for (SqlExpression exp : where) {
-			if(exp.getValue() instanceof Object[]) {
-				Object[] valueSet = (Object[]) exp.getValue();
-				for(int i=0;i<valueSet.length;i++) {
-					setQueryValue(pstmt, where.get(expIndex).getType(), valueSet[i], requestValueIndex+1);
-					requestValueIndex++;
-				}
-			} else {
-				setQueryValue(pstmt, where.get(expIndex).getType(), where.get(expIndex).getValue(), requestValueIndex+1);
-				requestValueIndex++;
-			}
-			expIndex++;
-		}
-		ResultSet resultSet = pstmt.executeQuery();
-		ResultSetMetaData rsmd = resultSet.getMetaData();
-		List<Row> result = new ArrayList<>();
-		while(resultSet.next()) {
-			List<CellData> row = new ArrayList<>();
-			for (int i = 1; i <= rsmd.getColumnCount(); i++) {
-				row.add(new CellData(rsmd.getColumnType(i), rsmd.getColumnName(i), resultSet.getObject(i)));
-			}
-			result.add(new Row(row));
-		}*/
 		return select(tableName, null, where, connection);
 	}
 	
 	public static List<Row> selectAll(String tableName, String where, Connection connection) throws SQLException {
-		
+		return selectAll(tableName, parseValuesListLiteral(where), connection);
+	}
+	
+	private static List<SqlExpression> parseValuesListLiteral(String value) {
 		List<SqlExpression> whereData = new ArrayList<>();
 		Map<String, String> wherePairs = new HashMap<>();
-		List<Row> result = new ArrayList<>();
 		
-		String[] pairs = where.split("&");
+		String[] pairs = value.split("&");
 		
-		if(pairs.length >= 2 || where.contains("=")) {
+		if(pairs.length >= 2 || value.contains("=")) {
 			for(String pair : pairs) {
 				String[] params = pair.split("=");
 				
@@ -298,9 +266,7 @@ public class SqlMethods {
 			whereData.add(new SqlExpression(0, e.getKey(), e.getValue()));
 		}
 		
-		result = selectAll(tableName, whereData, connection);
-		
-		return result;
+		return whereData;
 	}
 	
 	private static String buildWhere(List<SqlExpression> where) {
@@ -429,32 +395,32 @@ public class SqlMethods {
 		return result;
 	}
 	
-	public static List<CellData> parseCellDataRow(String jsonCallDataArray) throws JSONException {
+	public static List<SqlExpression> parseCellDataRow(String jsonCallDataArray) throws JSONException {
 		return parseCellDataRow(new JSONArray(jsonCallDataArray));
 	}
 	
-	public static List<List<CellData>> parseCellDataRows(String jsonCallDataArray) throws JSONException {
+	public static List<List<SqlExpression>> parseCellDataRows(String jsonCallDataArray) throws JSONException {
 		return parseCellDataRows(new JSONArray(jsonCallDataArray));
 	}
 	
-	public static List<CellData> parseCellDataRow(JSONArray rowArray) throws JSONException {
-		List<CellData> result = new ArrayList<>();
+	public static List<SqlExpression> parseCellDataRow(JSONArray rowArray) throws JSONException {
+		List<SqlExpression> result = new ArrayList<>();
 		for (int i = 0; i < rowArray.length(); i++) {
 			JSONObject cellObject = rowArray.getJSONObject(i);
 			if(!cellObject.has("name") || !cellObject.has("value")) {
 				continue;
 			}
 			if(cellObject.has("type")) {
-				result.add(new CellData(SqlMethods.parseDataType(cellObject.getString("type")), cellObject.getString("name"), cellObject.getString("value")));
+				result.add(new SqlExpression(SqlMethods.parseDataType(cellObject.getString("type")), cellObject.getString("name"), cellObject.getString("value")));
 			} else {
-				result.add(new CellData(cellObject.getString("name"), cellObject.getString("value")));
+				result.add(new SqlExpression(cellObject.getString("name"), cellObject.getString("value")));
 			}
 		}
 		return result;
 	}
 	
-	public static List<List<CellData>> parseCellDataRows(JSONArray rowsArray) throws JSONException {
-		List<List<CellData>> result = new ArrayList<>();
+	public static List<List<SqlExpression>> parseCellDataRows(JSONArray rowsArray) throws JSONException {
+		List<List<SqlExpression>> result = new ArrayList<>();
 		for (int i = 0; i < rowsArray.length(); i++) {
 			result.add(parseCellDataRow(rowsArray.getJSONArray(i)));
 		}

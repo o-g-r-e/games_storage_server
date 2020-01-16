@@ -43,10 +43,10 @@ public class DataBaseMethods  {
 	}
 	
 	public static int writeNewOwnerSecrets(int ownerId, String apiKey, String apiSecret, Connection connection) throws SQLException {
-		List<CellData> row = new ArrayList<>();
-		row.add(new CellData(Types.INTEGER, "ownerId", ownerId));
-		row.add(new CellData(Types.VARCHAR, "api_key", apiKey));
-		row.add(new CellData(Types.VARCHAR, "api_secret", apiSecret));
+		List<SqlExpression> row = new ArrayList<>();
+		row.add(new SqlExpression(Types.INTEGER, "ownerId", ownerId));
+		row.add(new SqlExpression(Types.VARCHAR, "api_key", apiKey));
+		row.add(new SqlExpression(Types.VARCHAR, "api_secret", apiSecret));
 		return SqlMethods.insertIntoTable("owner_secrets", row, connection);
 	}
 	
@@ -62,8 +62,8 @@ public class DataBaseMethods  {
 	}*/
 	
 	public static int regOwner(String email, Connection connection) throws SQLException {
-		List<CellData> row = new ArrayList<>();
-		row.add(new CellData(Types.VARCHAR, "email", email));
+		List<SqlExpression> row = new ArrayList<>();
+		row.add(new SqlExpression(Types.VARCHAR, "email", email));
 		return SqlMethods.insertIntoTable("owners", row, connection);
 	}
 	
@@ -132,16 +132,16 @@ public class DataBaseMethods  {
 	
 	public static int insertGame(String gameName, String gameJavaPackage, int ownerId, String apiKey, String apiSecret, String type, String prefix, String hash, Connection connection) throws SQLException {
 		
-		List<CellData> row = new ArrayList<>();
+		List<SqlExpression> row = new ArrayList<>();
 		
-		row.add(new CellData("name", gameName));
-		row.add(new CellData("package", gameJavaPackage));
-		row.add(new CellData("owner_id", ownerId));
-		row.add(new CellData("api_key", apiKey));
-		row.add(new CellData("api_secret", apiSecret));
-		row.add(new CellData("type", type));
-		row.add(new CellData("prefix", prefix));
-		row.add(new CellData("hash", hash));
+		row.add(new SqlExpression("name", gameName));
+		row.add(new SqlExpression("package", gameJavaPackage));
+		row.add(new SqlExpression("owner_id", ownerId));
+		row.add(new SqlExpression("api_key", apiKey));
+		row.add(new SqlExpression("api_secret", apiSecret));
+		row.add(new SqlExpression("type", type));
+		row.add(new SqlExpression("prefix", prefix));
+		row.add(new SqlExpression("hash", hash));
 		
 		return SqlMethods.insertIntoTable("games", row, connection);
 	}
@@ -209,6 +209,7 @@ public class DataBaseMethods  {
 		
 		if(rows.size() > 0) {
 			Row firstRow = rows.get(0);
+			int id = (int) firstRow.get("id");
 			String gameName = (String)firstRow.get("name");
 			String javaPackage = (String)firstRow.get("package");
 			int ownerId = (int)firstRow.get("owner_id");
@@ -217,7 +218,7 @@ public class DataBaseMethods  {
 			String type = (String)firstRow.get("type");
 			String prefix = (String)firstRow.get("prefix");
 			String hash = (String)firstRow.get("hash");
-			game = new Game(gameName, javaPackage, ownerId, apiKey, secretKey, type, prefix, hash);
+			game = new Game(id, gameName, javaPackage, ownerId, apiKey, secretKey, type, prefix, hash);
 		}
 		
 		return game;
@@ -244,11 +245,11 @@ public class DataBaseMethods  {
 	}
 	
 	public static String registrationPlayerByFacebookId(String facebookId, String gamePrefix, Connection connection) throws SQLException {
-		List<CellData> row = new ArrayList<>();
+		List<SqlExpression> row = new ArrayList<>();
 		String playerId = generatePlayerId();
-		row.add(new CellData("playerId", playerId));
-		row.add(new CellData("facebookId", facebookId));
-		row.add(new CellData("maxLevel", 0));
+		row.add(new SqlExpression("playerId", playerId));
+		row.add(new SqlExpression("facebookId", facebookId));
+		row.add(new SqlExpression("maxLevel", 0));
 		if(SqlMethods.insertIntoTable(gamePrefix+"players", row, connection) <= 0) {
 			return null;
 		}
@@ -257,5 +258,66 @@ public class DataBaseMethods  {
 	
 	private static String generatePlayerId() {
 		return RandomKeyGenerator.nextString(8).toLowerCase()+"-"+RandomKeyGenerator.nextString(8).toLowerCase();
+	}
+	
+	public static List<SpecialRequest> readSpecialRequests(int gameId, Connection connection) throws SQLException {
+		List<Row> resultRows = SqlMethods.selectAll("special_requests", "game_id="+gameId, connection);
+		
+		List<SpecialRequest> result = new ArrayList<>();
+		
+		for(Row row : resultRows) {
+			int fetchedGameId = (int) row.get("game_id");
+			String requestName = (String) row.get("request_name");
+			String table = (String) row.get("table");
+			String fields = (String) row.get("fields");
+			result.add(new SpecialRequest(fetchedGameId, requestName, table, fields));
+		}
+			
+		return result;
+	}
+	
+	public static SpecialRequest readSpecialRequest(int gameId, String requestName, Connection connection) throws SQLException {
+		List<Row> resultRows = SqlMethods.selectAll("special_requests", "game_id="+gameId+"&request_name="+requestName, connection);
+		
+		SpecialRequest result = null;
+		
+		if(resultRows.size() > 0) {
+			int fetchedGameId = (int) resultRows.get(0).get("game_id");
+			String fetchedRequestName = (String) resultRows.get(0).get("request_name");
+			String table = (String) resultRows.get(0).get("table");
+			String fields = (String) resultRows.get(0).get("fields");
+			result = new SpecialRequest(fetchedGameId, fetchedRequestName, table, fields);
+		}
+			
+		return result;
+	}
+	
+	/*public static void setSpecialRequest(int gameId, String requestName, String table, String fields, Connection connection) throws SQLException {
+		
+		String whereLiteral = "game_id="+gameId+"&request_name="+requestName;
+		String setClause = "request_name="+requestName+"&table="+table+"&fields="+fields;
+		
+		if(SqlMethods.selectAll("special_requests", whereLiteral, connection).size() > 0) {
+			SqlMethods.updateTable("special_requests", setClause, whereLiteral, connection);
+		} else {
+			SqlMethods.insertIntoTable("special_requests", setClause, connection);
+		}
+	}*/
+	
+	public static void addSpecialRequest(int gameId, String requestName, String table, String fields, Connection connection) throws SQLException {
+		String setClause = "request_name="+requestName+"&table="+table+"&fields="+fields;
+		SqlMethods.insertIntoTable("special_requests", setClause, connection);
+	}
+	
+	public static void updateSpecialRequest(int gameId, String requestName, String table, String fields, Connection connection) throws SQLException {
+		String whereLiteral = "game_id="+gameId+"&request_name="+requestName;
+		String setClause = "request_name="+requestName+"&table="+table+"&fields="+fields;
+		SqlMethods.updateTable("special_requests", setClause, whereLiteral, connection);
+	}
+	
+	public static List<Row> executeSpecialRequest(SpecialRequest specialRequest, List<SqlExpression> whereCondition, Connection connection) throws JSONException, SQLException {
+		SqlSelect s = new SqlSelect(specialRequest.getTable(), whereCondition);
+		s.setFields(specialRequest.getFieldsList());
+		return SqlMethods.executeSelect(s, connection);
 	}
 }

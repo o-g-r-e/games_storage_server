@@ -41,6 +41,7 @@ import com.my.gamesdataserver.basedbclasses.SqlRequest;
 import com.my.gamesdataserver.basedbclasses.SqlSelect;
 import com.my.gamesdataserver.basedbclasses.SqlUpdate;
 import com.my.gamesdataserver.dbengineclasses.OwnerSecrets;
+import com.my.gamesdataserver.dbengineclasses.SpecialRequest;
 import com.my.gamesdataserver.dbengineclasses.DataBaseMethods;
 import com.my.gamesdataserver.dbengineclasses.Owner;
 import com.my.gamesdataserver.dbengineclasses.TableIndex;
@@ -85,6 +86,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private static Map<String, RequestName> requestMap;
 	private static Pattern requestNamePattern;
 	
+
+	private static Pattern specialRequestNamePattern;
+	
 	private EmailSender emailSender;
 	
 	static {
@@ -115,6 +119,8 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		requestMap.put("/api/update", RequestName.UPDATE);
 		
 		requestNamePattern = Pattern.compile("^\\/\\w+\\/\\w+");
+		
+		specialRequestNamePattern = Pattern.compile("^\\/\\w+\\/\\w+\\/(\\w+)(\\?|\\/)");
 	}
 	
 	public ClientHandler(DatabaseConnectionManager dbConnectionPool, LogManager logManager, EmailSender emailSender) throws IOException {
@@ -133,6 +139,12 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private RequestName recognizeRequestName(String urlPath) {
 		Matcher requestNameMatcher = requestNamePattern.matcher(urlPath);
 		if(requestNameMatcher.find()) return requestMap.get(requestNameMatcher.group());
+		return null;
+	}
+	
+	private String recognizeSpecialRequestName(String urlPath) {
+		Matcher requestNameMatcher = specialRequestNamePattern.matcher(urlPath);
+		if(requestNameMatcher.find()) return requestNameMatcher.group(1);
 		return null;
 	}
 	
@@ -203,7 +215,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			return;
 		}
 		
-		Map<String, AllowedUnconditionalRequest> allowedRequests = readAllowedRequestFile(game.getApiKey());
+		/*Map<String, AllowedUnconditionalRequest> allowedRequests = readAllowedRequestFile(game.getApiKey());
 		
 		String[] uriParts = fullHttpRequest.uri().split("/");
 
@@ -220,13 +232,13 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		AllowedUnconditionalRequest allowedData = allowedRequests.get(uriParts[2]);
 		List<SqlExpression> whereData = SqlMethods.parseWhere(new JSONArray(fullHttpRequest.content().toString(CharsetUtil.UTF_8)));
 		SqlSelect selectRequest = new SqlSelect(game.getPrefix()+allowedData.getTableName(), whereData);
-		selectRequest.setFields(allowedData.getAllowedFields());
-		List<Row> rows = DataBaseMethods.executeSelect(selectRequest, connection);
-		String responseContent;
+		selectRequest.setFields(allowedData.getAllowedFields());*/
 		
-		responseContent = Row.rowsToJson(rows);
+		List<SqlExpression> whereData = SqlMethods.parseWhere(new JSONArray(fullHttpRequest.content().toString(CharsetUtil.UTF_8)));
+		SpecialRequest sr = DataBaseMethods.readSpecialRequest(game.getId(), recognizeSpecialRequestName(fullHttpRequest.uri()), connection);
+		List<Row> rows = DataBaseMethods.executeSpecialRequest(sr, whereData, connection);
 		
-		sendHttpResponse(ctx, buildResponse(responseContent, HttpResponseStatus.OK));
+		sendHttpResponse(ctx, buildResponse(Row.rowsToJson(rows), HttpResponseStatus.OK));
 	}
 
 	private Game authenticationGame(FullHttpRequest httpRequest) throws SQLException {
@@ -391,9 +403,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			field = field.trim();
 		}
 		
-		List<AllowedUnconditionalRequest> allowedRequest = new ArrayList<>();
+		/*List<AllowedUnconditionalRequest> allowedRequest = new ArrayList<>();
 		allowedRequest.add(new AllowedUnconditionalRequest(game.getApiKey(), requestName, tableName, fieldsArray));
-		addAllowedRequestsToFile(allowedRequest, game.getApiKey());
+		addAllowedRequestsToFile(allowedRequest, game.getApiKey());*/
+		DataBaseMethods.addSpecialRequest(game.getId(), requestName, tableName, fields, connection);
 		
 		sendHttpResponse(ctx, buildSimpleResponse("Success", "Request added successfully", HttpResponseStatus.OK));
 	}
@@ -439,9 +452,12 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		
 		DataBaseMethods.createGameTables(TEMPLATE_1, prefix, connection); //throw exception if not successfully
 		
-		List<AllowedUnconditionalRequest> allowedRequest = new ArrayList<>();
+		/*List<AllowedUnconditionalRequest> allowedRequest = new ArrayList<>();
 		allowedRequest.add(new AllowedUnconditionalRequest(apiKey, "players", "players", new String[] {"facebookId", "maxLevel"}));
-		addAllowedRequestsToFile(allowedRequest, apiKey);
+		addAllowedRequestsToFile(allowedRequest, apiKey);*/
+		Game game = DataBaseMethods.getGameByKey(apiKey, connection);
+		DataBaseMethods.addSpecialRequest(game.getId(), "players", "players", "*", connection);
+		DataBaseMethods.addSpecialRequest(game.getId(), "levels", "levels", "*", connection);
 		
 		String email = DataBaseMethods.getOwnerEmailById(ownerSecrets.getOwnerId(), connection);
 		emailSender.send(email, "Your game registerd", "Your game \""+gameName+"\" registered with key "+apiKey);
@@ -496,14 +512,14 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			result = new SqlSelect(tableName, whereData);
 			break;
 		case INSERT:
-			List<CellData> insertData = SqlMethods.parseCellDataRow(data);
+			List<SqlExpression> insertData = SqlMethods.parseCellDataRow(data);
 			result = new SqlInsert(tableName, insertData);
 			break;
 		case UPDATE:
 			JSONObject updateData = new JSONObject(data);
 			
 			whereData = SqlMethods.parseWhere(updateData.getJSONArray("where"));
-			List<CellData> setData = SqlMethods.parseCellDataRow(updateData.getJSONArray("set"));
+			List<SqlExpression> setData = SqlMethods.parseCellDataRow(updateData.getJSONArray("set"));
 			
 			result = new SqlUpdate(tableName, whereData, setData);
 			break;
@@ -546,13 +562,14 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		if(sqlRequest instanceof SqlSelect || sqlRequest instanceof SqlUpdate) {												   //
 			sqlRequest.addExpression(new SqlExpression(playerIdFieldName, playerId));											   //
 		} else if(sqlRequest instanceof SqlInsert) {																			   //
-			((SqlInsert) sqlRequest).addInsertedValue(new CellData(playerIdFieldName, playerId));								   //
+			((SqlInsert) sqlRequest).addInsertedValue(new SqlExpression(playerIdFieldName, playerId));								   //
 		}																														   //
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		
-		if(sqlRequest instanceof SqlInsert && urlParameters.containsKey("updateIfExists") && urlParameters.containsKey("checkField1")) {
+		/*if(sqlRequest instanceof SqlInsert && urlParameters.containsKey("updateIfExists") && urlParameters.containsKey("checkField1")) {
 			
-			Row insertData = new Row(((SqlInsert) sqlRequest).getRowToInsert(0)/*SqlMethods.parseCellDataRow(httpRequest.content().toString(CharsetUtil.UTF_8))*/);
+			Row insertData = new Row(((SqlInsert) sqlRequest).getRowToInsert(0)*//*SqlMethods.parseCellDataRow(httpRequest.content().toString(CharsetUtil.UTF_8))*//*);
+			List<SqlExpression> insertData = ((SqlInsert) sqlRequest).getRowToInsert(0);
 			List<SqlExpression> whereExpression = new ArrayList<>();
 			int i = 1;
 				
@@ -570,7 +587,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			if(rows.size() > 0) {
 				sqlRequest = new SqlUpdate(sqlRequest.getTableName(), whereExpression, insertData.toList());
 			}
-		}
+		}*/
 		
 		if(sqlRequest instanceof SqlSelect) {
 			List<Row> rows = DataBaseMethods.executeSelect((SqlSelect) sqlRequest, connection);
@@ -705,7 +722,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		return new GameTemplate("Template1", tblTemplates, new ArrayList<>());
 	}
 	
-	private void addAllowedRequestsToFile(List<AllowedUnconditionalRequest> allowedUnconditionalRequest, String fileName) throws FileNotFoundException, IOException, ClassNotFoundException {
+	/*private void addAllowedRequestsToFile(List<AllowedUnconditionalRequest> allowedUnconditionalRequest, String fileName) throws FileNotFoundException, IOException, ClassNotFoundException {
 		File file = new File(new File(".").getCanonicalPath()+File.separator+"games_settings"+File.separator+fileName+".settings");
 
 		List<AllowedUnconditionalRequest> finalData = allowedUnconditionalRequest;
@@ -722,7 +739,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
 		oos.writeObject(finalData);
 		oos.close();
-	}
+	}*/
 	
 	private Map<String, AllowedUnconditionalRequest> readAllowedRequestFile(String apiKey) throws FileNotFoundException, IOException, ClassNotFoundException {
 		File gameSettingsDir = new File(new File(".").getCanonicalPath()+File.separator+"games_settings");

@@ -3,7 +3,7 @@ package com.my.gamesdataserver;
 import java.io.Serializable;
 
 public class AllowedUnconditionalRequest implements Serializable {
-	private String gameApiKey;
+	/*private String gameApiKey;
 	private String requestName;
 	private String tableName;
 	private String[] allowedFields;
@@ -29,5 +29,5 @@ public class AllowedUnconditionalRequest implements Serializable {
 
 	public String[] getAllowedFields() {
 		return allowedFields;
-	}
+	}*/
 }

@@ -63,19 +63,19 @@ public class Template1DbEngine {
 	}
 
 	public void addPlayer(String playerId/*, String tablePrefix*/, Connection connection) throws SQLException {
-		List<CellData> row = new ArrayList<>();
-		row.add(new CellData("playerId", playerId));
-		row.add(new CellData("max_level", 0));
+		List<SqlExpression> row = new ArrayList<>();
+		row.add(new SqlExpression("playerId", playerId));
+		row.add(new SqlExpression("max_level", 0));
 		SqlMethods.insertIntoTable(tablePrefix+"players", row, connection);
 	}
 
 	public int updateLevel(String playerId, int level, int scores, int stars, Connection connection) throws SQLException {
-		List<CellData> set = new ArrayList<>();
+		List<SqlExpression> set = new ArrayList<>();
 		
-		set.add(new CellData("playerId", playerId));
-		set.add(new CellData("level", level));
-		set.add(new CellData("score", scores));
-		set.add(new CellData("stars", stars));
+		set.add(new SqlExpression("playerId", playerId));
+		set.add(new SqlExpression("level", level));
+		set.add(new SqlExpression("score", scores));
+		set.add(new SqlExpression("stars", stars));
 		
 		List<SqlExpression> where = new ArrayList<>();
 		
@@ -86,12 +86,12 @@ public class Template1DbEngine {
 	}
 
 	public int addLevel(String playerId, int level, int scores, int stars, Connection connection) throws SQLException {
-		List<CellData> row = new ArrayList<>();
+		List<SqlExpression> row = new ArrayList<>();
 		
-		row.add(new CellData("playerId", playerId));
-		row.add(new CellData("level", level));
-		row.add(new CellData("score", scores));
-		row.add(new CellData("stars", stars));
+		row.add(new SqlExpression("playerId", playerId));
+		row.add(new SqlExpression("level", level));
+		row.add(new SqlExpression("score", scores));
+		row.add(new SqlExpression("stars", stars));
 		
 		return SqlMethods.insertIntoTable(tablePrefix+"scorelevel", row, connection);
 	}
