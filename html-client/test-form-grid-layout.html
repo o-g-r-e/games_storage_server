@@ -164,7 +164,7 @@
             grid-column-end: 10; 
         }
 
-        .create-spec-req-area {
+        .set-spec-req-area {
             grid-row-start: 5; 
             grid-row-end: 6; 
             grid-column-start: 1; 
@@ -176,6 +176,13 @@
             grid-row-end: 6; 
             grid-column-start: 6; 
             grid-column-end: 10; 
+        }
+
+        .spec-requests-list {
+            grid-row-start: 6; 
+            grid-row-end: 7; 
+            grid-column-start: 1; 
+            grid-column-end: 6; 
         }
     </style>
 </head>
@@ -231,9 +238,10 @@
         <fieldset class="form-area area-of-insert">
             <legend>Insert data</legend>
             <label>Table:</label><input class="table-field" type="text"/><br/>
-            <label>Data:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-            <input id="update-if-exists" type="checkbox" value=""/>Update if exists
-            <span style="display:none" id="check-fields-label"><br/><label>If fields equals:</label><input id="check-fields" type="text"/><span class="desc">fieldName1,fieldName2,fieldName3</span></span><br/>
+            <label>Insert exp:</label><input class="data-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
+            <!--<input id="update-if-exists" type="checkbox" value=""/>Update if exists
+            <span style="display:none" id="check-fields-label"><br/><label>If fields equals:</label><input id="check-fields" type="text"/><span class="desc">fieldName1,fieldName2,fieldName3</span></span><br/>-->
+            <label>Where cond:</label><input class="where-cond" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
             <input id="insert" type="button" value="Send"/><br/>
             <input class="clear-fields" type="button" value="Clear fileds"/>
         </fieldset>
@@ -247,11 +255,11 @@
             <input class="clear-fields" type="button" value="Clear fileds"/>
         </fieldset>
 
-        <fieldset class="form-area create-spec-req-area">
-            <legend>Create special request</legend>
+        <fieldset class="form-area set-spec-req-area">
+            <legend>Set special request</legend>
             <label>Name:</label><input class="spec-req-name" type="text"/><br/>
             <label>Table:</label><input class="spec-req-table" type="text"/><br/>
-            <label>Fields:</label><input class="spec-req-fields-set" type="text"/><span class="desc">Keep empty if need select all</span><br/>
+            <label>Fields:</label><input class="spec-req-fields-set" type="text"/><span class="desc">field1,field2,... or * to select all</span><br/>
             <input id="submit-spec-req" type="button" value="Submit"/><br/>
             <input class="clear-fields" type="button" value="Clear fileds"/>
         </fieldset>
@@ -260,8 +268,13 @@
             <legend>Special request</legend>
             <label>Name:</label><input class="spec-req-name" type="text"/><br/>
             <label>Where:</label><input class="where-field" type="text"/><span class="desc">param1=valueA&amp;param2=valueB</span><br/>
-            <input type="button" value="Submit"/><br/>
+            <input id="send-spec-req" type="button" value="Submit"/><br/>
             <input id="spec-req" class="clear-fields" type="button" value="Clear fileds"/>
+        </fieldset>
+
+        <fieldset class="form-area spec-requests-list">
+            <legend>Special requests list</legend>
+            <input id="req-spec-list" type="button" value="Get list"/><br/>
         </fieldset>
 
         </div>
@@ -402,30 +415,29 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/hmac-sha256.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/enc-base64.min.js"></script>
     <script>
-            let hmac = true;
-            let playerId;
-            //let hash = CryptoJS.HmacSHA256("Message", "secret");
-            //let hashInBase64 = CryptoJS.enc.Base64.stringify(hash);
-            function sendAjax(url, postData, additionalHeaders) {
+            let playerId = "";
+
+            function apiRequestHeaders(uri, apiKey, apiSecret) {
+                return { Authorization : generateHmac(uri, apiKey, apiSecret), Player_id : playerId };
+            }
+
+            function sendAjax(host, uri, postData, additionalHeaders, success) {
                 $("#response-area").text("Wait response");
+
+                let commonSuccess = function (response) {
+                        $("#response-area").text(JSON.stringify(response));
+                    }
                 
                 $.ajax({
-                    url: url,
+                    url: host+uri,
                     type: "POST",
                     crossDomain: true,
                     data: postData,
-                    //dataType: "json",
-                    success: function (response) {
-                        $("#response-area").text(JSON.stringify(response));
-                    },
+                    success: success==undefined?commonSuccess:success,
                     error: function (xhr, status) {
                         $("#response-area").text("Error status: \""+status+"\"");
                     },
                     beforeSend: function(request) {
-                        /*if(hmac) {
-                            let gameHash = sha256.hmac(apiSecret, testApiKey);
-                            request.setRequestHeader("Authorization", sha256.hmac(apiSecret, gameHash.substring(0, 8)+url)+':'+gameHash);
-                        }*/
                         $.each(additionalHeaders, function(index, value) {
                             request.setRequestHeader(index, value);
                         }); 
@@ -433,145 +445,124 @@
                 });
             }
 
-            function ownerRequest(url, postData) {
-                sendAjax(url, postData, {});
-            }
-
-            function apiRequest(request, uri, postData) {
-                let headers = {Player_id : playerId};
-                
-                if(hmac) {
-                    headers.Authorization = generateHmac(uri);
-                } else  {
-                    headers.API_key = $('.api-key-field').val();
-                }
-
-                sendAjax(request+uri, postData, headers);
-            }
-
-            function playerAuth(host, uri) {
-                let headers = {};
-                
-                if(hmac) {
-                    headers.Authorization = generateHmac(uri);
-                } else  {
-                    headers.API_key = $('.api-key-field').val();
-                }
-
-                $.ajax({
-                    url: host+uri,
-                    type: "POST",
-                    crossDomain: true,
-                    success: function (response) {
-                        $("#response-area").text(JSON.stringify(response));
-                        if(response.hasOwnProperty('playerId')) {
-                            playerId = response.playerId;
-                            if(playerId != undefined) {
-                                $('#auth-status').text("Authorized");
-                            }
-                        }
-                    },
-                    error: function (xhr, status) {
-                        $("#response-area").text("Error status: \""+status+"\"");
-                    },
-                    beforeSend: function(request) {
-                        $.each(headers, function(index, value) {
-                            request.setRequestHeader(index, value);
-                        }); 
-                    }
-                });
-
-            }
-
-            function generateHmac(uri) {
-                let apiKey = $('.api-key-field').val();
-                let apiSecret = $('.api-secret-field').val();
+            function generateHmac(uri, apiKey, apiSecret) {
                 let gameHash = CryptoJS.HmacSHA256(apiKey, apiSecret);
                 let b64GameHash = CryptoJS.enc.Base64.stringify(gameHash);
                 let requestHash = CryptoJS.HmacSHA256(b64GameHash.substring(0, 8)+uri, b64GameHash);
                 let b64RequestHash = CryptoJS.enc.Base64.stringify(requestHash);
                 return b64RequestHash+':'+b64GameHash;
             }
-
-            function playerFacebookAuthorization() {
-                let uri = "/player/authorization?facebookId="+$(".player-facebookid-field").val()
-                playerAuth($("#host").val()+":"+$("#port").val(), uri);
-            }
     
             $('#player-auth').on('click', function() {
-                playerFacebookAuthorization();
+                let onSuccess = function (response) {
+                    $("#response-area").text(JSON.stringify(response));
+                    if(response.hasOwnProperty('playerId')) {
+                        playerId = response.playerId;
+                        if(playerId != undefined) {
+                            $('#auth-status').text("Authorized");
+                        }
+                    }
+                }
+                let uri = "/player/authorization";
+                sendAjax($("#host").val()+":"+$("#port").val(), uri, "facebookId="+$(".player-facebookid-field").val(), apiRequestHeaders(uri, $('.api-key-field').val(), $('.api-secret-field').val()), onSuccess);
             });
     
             $('#gen-api-key').on('click', function() {
-                ownerRequest($("#host").val()+":"+$("#port").val()+"/system/generate_api_key?email="+$('#owner-email').val(), {}, "");
+                sendAjax($("#host").val()+":"+$("#port").val(), "/system/generate_api_key", "email="+$('#owner-email').val(), {});
             });
     
             $('#reg-game').on('click', function() {
-                ownerRequest($("#host").val()+":"+$("#port").val()+"/system/register_game", "api_key="+$('.api-key-field').val()+"&game_name="+$('.reg-game-area .game-name-field').val()+ 
+                sendAjax($("#host").val()+":"+$("#port").val(), "/system/register_game", "api_key="+$('.api-key-field').val()+"&game_name="+$('.reg-game-area .game-name-field').val()+ 
                                                                                          "&game_package="+$('.reg-game-area .game-package-field').val()+ 
-                                                                                         "&game_type="+$('.reg-game-area .game-type-field').val(), $('.api-key-field').val());
+                                                                                         "&game_type="+$('.reg-game-area .game-type-field').val(), $('.api-key-field').val(), {});
             });
     
-            $('#del-game').on('click', function() {
+            /*$('#del-game').on('click', function() {
                 ownerRequest($("#host").val()+":"+$("#port").val()+"/system/delete_game", {}, $('.api-key-field').val());
-            });
+            });*/
     
             $('#insert').on('click', function() {
-                let request = "/api/insert?table="+$('.area-of-insert .table-field').val();
 
-                if($('#update-if-exists').is(':checked') && $("#check-fields").val().trim().length > 0) {
-                    request += "&updateIfExists=true";
-                    let fields = $("#check-fields").val().trim().split(",");
-                    fields.forEach(function(el, i) {
-                        request += "&checkField"+(i+1)+"="+el;
-                    });
+                let uri = "/api/insert?table="+$('.area-of-insert .table-field').val();
+
+                let insertData = literalToJson($('.area-of-insert .data-field').val());
+                let whereData = literalToJson($('.area-of-insert .where-cond').val().trim());
+                let requestContent = JSON.stringify({insert_data : insertData});
+
+                if(whereData.length > 0) {
+                    uri += "&updateIfExists=true";
+                    requestContent = JSON.stringify({insert_data : insertData, where_condition : whereData});
                 }
 
-                apiRequest($("#host").val()+":"+$("#port").val(), request, 
-                JSON.stringify(dataToJson($('.area-of-insert .data-field').val())), $('.api-key-field').val());
-            });
-    
-            $('#update-if-exists').on('click', function() {
-                if($(this).is(':checked')) {
-                    $("#check-fields-label").show();
-                    $(this).parent().addClass('area-of-insert-mod1');
-                    $('.area-of-update').addClass('area-of-update-mod1');
-                } else {
-                    $("#check-fields-label").hide();
-                    $(this).parent().removeClass('area-of-insert-mod1');
-                    $('.area-of-update').removeClass('area-of-update-mod1');
-                }
+                sendAjax($("#host").val()+":"+$("#port").val(), 
+                uri, 
+                requestContent, 
+                apiRequestHeaders(uri, $('.api-key-field').val(), $('.api-secret-field').val()));
             });
     
             $('#select').on('click', function() {
-                apiRequest($("#host").val()+":"+$("#port").val(), "/api/select?api_key="+$('.api-key-field').val()+"&table="+$('.area-of-select .table-field').val(), 
-                JSON.stringify(dataToJson($('.area-of-select .data-field').val())), $('.api-key-field').val());
+                let uri = "/api/select?table="+$('.area-of-select .table-field').val();
+                sendAjax($("#host").val()+":"+$("#port").val(), 
+                uri, 
+                JSON.stringify(literalToJson($('.area-of-select .data-field').val())), 
+                apiRequestHeaders(uri, $('.api-key-field').val(), $('.api-secret-field').val()));
             });
     
             $('#update').on('click', function() {
-                apiRequest($("#host").val()+":"+$("#port").val(), "/api/update?table="+$('.area-of-update .table-field').val(), 
-                JSON.stringify({set : dataToJson($('.area-of-update .data-field').val()), where : dataToJson($('.area-of-update .where-field').val())}), $('.api-key-field').val());
+                let uri = "/api/update?table="+$('.area-of-update .table-field').val();
+                sendAjax($("#host").val()+":"+$("#port").val(), 
+                uri, 
+                JSON.stringify({set : literalToJson($('.area-of-update .data-field').val()), where : literalToJson($('.area-of-update .where-field').val())}), 
+                apiRequestHeaders(uri, $('.api-key-field').val(), $('.api-secret-field').val()));
+            });
+    
+            $('#submit-spec-req').on('click', function() {
+                let uri = "/system/set_special_request";
+                sendAjax($("#host").val()+":"+$("#port").val(), 
+                uri, 
+                "request_name="+$(".set-spec-req-area .spec-req-name").val()+"&query_table="+$(".spec-req-table").val()+"&fields_set="+$(".spec-req-fields-set").val(), 
+                apiRequestHeaders(uri, $('.api-key-field').val(), $('.api-secret-field').val()));
+            });
+    
+            $('#send-spec-req').on('click', function() {
+                let uri = "/special/"+$(".spec-request-area .spec-req-name").val();
+                sendAjax($("#host").val()+":"+$("#port").val(), 
+                uri, 
+                JSON.stringify(literalToJson($('.spec-request-area .where-field').val())), 
+                apiRequestHeaders(uri, $('.api-key-field').val(), $('.api-secret-field').val()));
             });
 
-            function dataToJson(data) {
+            $('#req-spec-list').on('click', function() {
+                let uri = "/system/special_request_list";
+                sendAjax($("#host").val()+":"+$("#port").val(), 
+                uri, 
+                "", 
+                apiRequestHeaders(uri, $('.api-key-field').val(), $('.api-secret-field').val()));
+            });
+
+            function literalToJson(data) {
                 let result = [];
                 if(data.includes("&")) {
                     let array1 = data.split("&");
                     array1.forEach(function(item) {
                         let array2 = item.split("=");
+                        if(array2.length >= 2) {
+                            let value = array2[1];
+                            if(value.startsWith('[')) {
+                                value = JSON.parse(value);
+                            }
+                            result.push({name : array2[0], value : value});
+                        }
+                    });
+                } else if(data.includes("="))  {
+                    let array2 = data.split("=");
+                    if(array2.length >= 2) {
                         let value = array2[1];
                         if(value.startsWith('[')) {
                             value = JSON.parse(value);
                         }
                         result.push({name : array2[0], value : value});
-                    });
-                } else if(data.includes("="))  {
-                    let array2 = data.split("=");
-                    let value = array2[1];
-                    if(value.startsWith('[')) {
-                        value = JSON.parse(value);
                     }
-                    result.push({name : array2[0], value : value});
                 }
                 
               return result;  

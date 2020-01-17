@@ -25,6 +25,8 @@ import com.my.gamesdataserver.SqlExpression;
 
 public class SqlMethods {
 	
+	private static boolean printQueries = false;
+	
 	/*private boolean transaction = false;
 	
 	private DatabaseConnection databaseConnection;
@@ -176,6 +178,10 @@ public class SqlMethods {
 		}
 		sqlUpdate.append(")");
 		
+		if(printQueries) {
+			System.out.println(sqlUpdate.toString());
+		}
+		
 		PreparedStatement pstmt = connection.prepareStatement(sqlUpdate.toString());//con.prepareStatement(String.format("UDPATE %s SET %s WHERE %s", tableName, ));
 		
 		for (int i = 0; i < set.size(); i++) {
@@ -195,16 +201,21 @@ public class SqlMethods {
 	
 	public static List<Row> select(String tableName, List<String> fields, List<SqlExpression> where, Connection connection) throws SQLException {
 		StringBuilder sql = new StringBuilder("SELECT ");
-		if(fields != null) {
-			sql.append(String.join(", ", fields));
-		} else {
+		if(fields == null || fields.size() <= 0) {
 			sql.append("*");
+		} else {
+			sql.append(String.join(", ", fields));
 		}
 		sql.append(" FROM ").append(tableName);
 		if(where != null) {
 			sql.append(buildWhere(where));
 		}
 		List<Row> result = new ArrayList<>();
+		
+		if(printQueries) {
+			System.out.println(sql.toString());
+		}
+		
 		PreparedStatement pstmt = connection.prepareStatement(sql.toString());
 		int requestValueIndex = 0;
 		int expIndex = 0;

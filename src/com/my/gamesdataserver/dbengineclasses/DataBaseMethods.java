@@ -268,7 +268,7 @@ public class DataBaseMethods  {
 		for(Row row : resultRows) {
 			int fetchedGameId = (int) row.get("game_id");
 			String requestName = (String) row.get("request_name");
-			String table = (String) row.get("table");
+			String table = (String) row.get("query_table");
 			String fields = (String) row.get("fields");
 			result.add(new SpecialRequest(fetchedGameId, requestName, table, fields));
 		}
@@ -284,7 +284,7 @@ public class DataBaseMethods  {
 		if(resultRows.size() > 0) {
 			int fetchedGameId = (int) resultRows.get(0).get("game_id");
 			String fetchedRequestName = (String) resultRows.get(0).get("request_name");
-			String table = (String) resultRows.get(0).get("table");
+			String table = (String) resultRows.get(0).get("query_table");
 			String fields = (String) resultRows.get(0).get("fields");
 			result = new SpecialRequest(fetchedGameId, fetchedRequestName, table, fields);
 		}
@@ -292,31 +292,30 @@ public class DataBaseMethods  {
 		return result;
 	}
 	
-	/*public static void setSpecialRequest(int gameId, String requestName, String table, String fields, Connection connection) throws SQLException {
+	public static int setSpecialRequest(int gameId, String requestName, String table, String fields, Connection connection) throws SQLException {
 		
 		String whereLiteral = "game_id="+gameId+"&request_name="+requestName;
-		String setClause = "request_name="+requestName+"&table="+table+"&fields="+fields;
+		String setClause = "request_name="+requestName+"&query_table="+table+"&fields="+fields;
 		
 		if(SqlMethods.selectAll("special_requests", whereLiteral, connection).size() > 0) {
-			SqlMethods.updateTable("special_requests", setClause, whereLiteral, connection);
-		} else {
-			SqlMethods.insertIntoTable("special_requests", setClause, connection);
+			return SqlMethods.updateTable("special_requests", setClause, whereLiteral, connection);
 		}
-	}*/
+		return SqlMethods.insertIntoTable("special_requests", setClause, connection);
+	}
 	
-	public static void addSpecialRequest(int gameId, String requestName, String table, String fields, Connection connection) throws SQLException {
-		String setClause = "request_name="+requestName+"&table="+table+"&fields="+fields;
-		SqlMethods.insertIntoTable("special_requests", setClause, connection);
+	public static int addSpecialRequest(int gameId, String requestName, String table, String fields, Connection connection) throws SQLException {
+		String setClause = "request_name="+requestName+"&query_table="+table+"&fields="+fields;
+		return SqlMethods.insertIntoTable("special_requests", setClause, connection);
 	}
 	
 	public static void updateSpecialRequest(int gameId, String requestName, String table, String fields, Connection connection) throws SQLException {
 		String whereLiteral = "game_id="+gameId+"&request_name="+requestName;
-		String setClause = "request_name="+requestName+"&table="+table+"&fields="+fields;
+		String setClause = "request_name="+requestName+"&query_table="+table+"&fields="+fields;
 		SqlMethods.updateTable("special_requests", setClause, whereLiteral, connection);
 	}
 	
-	public static List<Row> executeSpecialRequest(SpecialRequest specialRequest, List<SqlExpression> whereCondition, Connection connection) throws JSONException, SQLException {
-		SqlSelect s = new SqlSelect(specialRequest.getTable(), whereCondition);
+	public static List<Row> executeSpecialRequest(SpecialRequest specialRequest, List<SqlExpression> whereCondition, String tablePrefix, Connection connection) throws JSONException, SQLException {
+		SqlSelect s = new SqlSelect(tablePrefix+specialRequest.getTable(), whereCondition);
 		s.setFields(specialRequest.getFieldsList());
 		return SqlMethods.executeSelect(s, connection);
 	}

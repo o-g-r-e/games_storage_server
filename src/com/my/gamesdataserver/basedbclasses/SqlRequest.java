@@ -33,4 +33,8 @@ public class SqlRequest {
 	public void addExpression(SqlExpression exp) {
 		whereExpression.add(exp);
 	}
+	
+	public void addExpressions(List<SqlExpression> exp) {
+		whereExpression.addAll(exp);
+	}
 }
