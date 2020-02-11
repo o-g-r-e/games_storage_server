@@ -295,7 +295,7 @@ public class DataBaseMethods  {
 	public static int setSpecialRequest(int gameId, String requestName, String table, String fields, Connection connection) throws SQLException {
 		
 		String whereLiteral = "game_id="+gameId+"&request_name="+requestName;
-		String setClause = "request_name="+requestName+"&query_table="+table+"&fields="+fields;
+		String setClause = "game_id="+gameId+"&request_name="+requestName+"&query_table="+table+"&fields="+fields;
 		
 		if(SqlMethods.selectAll("special_requests", whereLiteral, connection).size() > 0) {
 			return SqlMethods.updateTable("special_requests", setClause, whereLiteral, connection);
