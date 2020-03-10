@@ -50,19 +50,19 @@ public class Authorization {
 	}*/
 	
 	public boolean requestAuthentication(FullHttpRequest httpRequest) throws InvalidKeyException, NoSuchAlgorithmException {
-		String authorization = httpRequest.headers().get("Authorization");
+		String authorizationString = httpRequest.headers().get("Authorization");
 		
-		if(authorization == null || "".equals(authorization) || !authorization.contains(":")) {
+		if(authorizationString == null || authorizationString.length() <= 0 || !authorizationString.contains(":")) {
 			statusCode = Code.REQUEST_AUTH_FAIL;
 			return false;
 		}
 		
-		String inputGameHash = authorization.substring(authorization.indexOf(":")+1);
-		String inputRequestHash = authorization.substring(0, authorization.indexOf(":"));
+		String gameHash = authorizationString.substring(authorizationString.indexOf(":")+1);
+		String requestHash = authorizationString.substring(0, authorizationString.indexOf(":"));
 		
-		boolean auth = checkRequestHash(httpRequest.uri(), inputRequestHash, inputGameHash);
+		boolean requestAuthenticationStatus = checkRequestHash(httpRequest.uri(), requestHash, gameHash);
 		
-		if(!auth) {
+		if(!requestAuthenticationStatus) {
 			statusCode = Code.REQUEST_AUTH_FAIL;
 			return false;
 		}
@@ -82,7 +82,7 @@ public class Authorization {
 		
 		String playerId = httpRequest.headers().get(Authorization.PLAYER_ID_HEADER);
 		
-		if(playerId == null || "".equals(playerId) || playerId.contains("%") || playerId.contains("_") || DataBaseMethods.getPlayerById(playerId, game.getPrefix(), connection) == null) {
+		if(playerId == null || playerId.length() <= 0 || playerId.contains("%") || playerId.contains("_") || DataBaseMethods.getPlayerById(playerId, game.getPrefix(), connection) == null) {
 			statusCode = Code.PLAYER_AUTH_FAIL;
 			return false;
 		}
@@ -93,8 +93,8 @@ public class Authorization {
 	
 	private boolean checkRequestHash(String uri, String requestHash, String gameHash) throws InvalidKeyException, NoSuchAlgorithmException {
 		String key = gameHash;
-		String hash = generateHmacHash(key, gameHash.substring(0, 8)+uri);
-		return hash.equals(requestHash);
+		String hmacHash = generateHmacHash(key, gameHash.substring(0, 8)+uri);
+		return hmacHash.equals(requestHash);
 	}
 	
 	public static String generateHmacHash(String key, String data) throws NoSuchAlgorithmException, InvalidKeyException {

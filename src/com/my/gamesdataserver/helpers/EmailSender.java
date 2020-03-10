@@ -15,10 +15,11 @@ import com.sun.mail.smtp.SMTPTransport;
 
 public class EmailSender {
 	
-    private String SMTP_SERVER;
-    private String USERNAME;
-    private String PASSWORD;
-    private String EMAIL_FROM;
+    private String smtpServer;
+    private String port;
+    private String userName;
+    private String password;
+    private String emailFrom;
     private boolean enabled;
     private Properties prop;
     private Session session;
@@ -31,16 +32,17 @@ public class EmailSender {
 		Objects.requireNonNull(password);
 		Objects.requireNonNull(emailFrom);
 		
-    	this.SMTP_SERVER = smtpServer;
-    	this.USERNAME = user;
-    	this.PASSWORD = password;
-    	this.EMAIL_FROM = emailFrom;
+    	this.smtpServer = smtpServer;
+    	this.port = "25";
+    	this.userName = user;
+    	this.password = password;
+    	this.emailFrom = emailFrom;
     	
     	prop = new Properties();
-    	prop.put("mail.smtp.host", SMTP_SERVER);
+    	prop.put("mail.smtp.host", this.smtpServer);
         prop.put("mail.smtp.auth", "true");
-        prop.put("mail.smtp.port", "25");
-        prop.put("mail.smtp.from", EMAIL_FROM);
+        prop.put("mail.smtp.port", port);
+        prop.put("mail.smtp.from", this.emailFrom);
         prop.put("mail.smtp.socketFactory.port", "25");
         prop.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
         prop.put("mail.smtp.socketFactory.fallback", "false");
@@ -52,15 +54,15 @@ public class EmailSender {
         message = new MimeMessage(session);
     }
     
-	private void sendTo(String emailTo, String subject, String content) throws MessagingException {
-        message.setFrom(new InternetAddress(EMAIL_FROM));
+	private void send(String emailTo, String subject, String content) throws MessagingException {
+        message.setFrom(new InternetAddress(emailFrom));
         message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(emailTo, false));
         //message.setRecipients(Message.RecipientType.CC, InternetAddress.parse("", false));
         message.setSubject(subject); 
         message.setText(content);
         message.setSentDate(new Date());
         SMTPTransport smtpTransport = (SMTPTransport) session.getTransport("smtp");
-        smtpTransport.connect(SMTP_SERVER, USERNAME, PASSWORD);
+        smtpTransport.connect(smtpServer, userName, password);
         smtpTransport.sendMessage(message, message.getAllRecipients());
 
         //System.out.println("Response: " + t.getLastServerResponse());
@@ -68,12 +70,14 @@ public class EmailSender {
         smtpTransport.close();
 	}
 	
-	public void send(String emailTo, String subject, String content) {
+	public void asyncSend(String emailTo, String subject, String content) {
+		if(!enabled) return;
+		
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
 				try {
-					if(enabled) sendTo(emailTo, subject, content);
+					send(emailTo, subject, content);
 				} catch (MessagingException e) {
 					e.printStackTrace();
 				}

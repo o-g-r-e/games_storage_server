@@ -11,7 +11,7 @@ public class Game {
 	private String secretKey;
 	private String type;
 	private String prefix;
-	private String playerIdFieldName;
+	//private String playerIdFieldName;
 	private String hash;
 	
 	public Game(int id, String name, String javaPackage, int ownerId, String apiKey, String secretKey, String type, String prefix, String hash) {
@@ -67,9 +67,9 @@ public class Game {
 		return hash;
 	}
 
-	public String getPlayerIdFieldName() {
+	/*public String getPlayerIdFieldName() {
 		return playerIdFieldName;
-	}
+	}*/
 	
 	public int getId() {
 		return id;

@@ -1,21 +1,9 @@
 package com.my.gamesdataserver;
-import java.beans.PropertyVetoException;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
-import java.sql.SQLException;
-import java.util.Base64;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-
-import com.my.gamesdataserver.basedbclasses.SqlMethods;
-import com.my.gamesdataserver.dbengineclasses.DataBaseMethods;
 import com.my.gamesdataserver.helpers.EmailSender;
 import com.my.gamesdataserver.helpers.LogManager;
 import com.my.gamesdataserver.helpers.Settings;
@@ -24,13 +12,11 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
-import io.netty.handler.codec.http.HttpResponseDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
@@ -39,12 +25,9 @@ import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class Main {
 	
-	private static SqlMethods dbInterface;
 	private static Settings settings;
 	private static SslContext sslContext;
 	private static LogManager logManager;
@@ -66,7 +49,7 @@ public class Main {
 			
 			settings = new Settings(new File(settingsPath));
 			
-			DatabaseConnectionManager v = new DatabaseConnectionPoolApache(new DataBaseConnectionParameters("jdbc:mysql", settings.get("dbAddr"), 
+			DatabaseConnectionManager dbcm = new DatabaseConnectionPoolApache(new DataBaseConnectionParameters("jdbc:mysql", settings.get("dbAddr"), 
 																												   settings.get("dbPort"), 
 																												   settings.get("dbName"), 
 																												   settings.get("dbUser"), 
@@ -99,7 +82,7 @@ public class Main {
 	        			pipeline.addLast(new HttpObjectAggregator(1048576));
 	                	//channel.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(2048));
 	        			pipeline.addLast(new CorsHandler(corsConfig));
-	                	pipeline.addLast(new ClientHandler(v, logManager, emailSender));
+	                	pipeline.addLast(new ClientHandler(dbcm, logManager, emailSender));
 	                }
 	        	});
 	            

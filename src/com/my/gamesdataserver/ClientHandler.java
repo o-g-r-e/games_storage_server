@@ -209,7 +209,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
     }
 	
 	private void handleAllowedRequest(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws SQLException, FileNotFoundException, ClassNotFoundException, IOException, JSONException, InvalidKeyException, NoSuchAlgorithmException {
-		Game game = authenticationGame(fullHttpRequest);
+		Game game = game(fullHttpRequest);
 		
 		if(game == null) {
 			sendHttpResponse(ctx, buildSimpleResponse("Error", "Game not found", HttpResponseStatus.OK));
@@ -251,7 +251,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	
 	private void handleSpecailRequestCreation(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, FileNotFoundException, ClassNotFoundException, IOException, InvalidKeyException, NoSuchAlgorithmException {
 		
-		Game game = authenticationGame(httpRequest);
+		Game game = game(httpRequest);
 		
 		if(game == null) {
 			sendHttpResponse(ctx, buildSimpleResponse("Error", "Game not found", HttpResponseStatus.OK));
@@ -291,18 +291,18 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		}
 	}
 
-	private Game authenticationGame(FullHttpRequest httpRequest) throws SQLException {
+	private Game game(FullHttpRequest httpRequest) throws SQLException {
 		
-		String authorization = httpRequest.headers().get("Authorization");
+		String authorizationString = httpRequest.headers().get("Authorization");
 		
-		if(authorization != null && !"".equals(authorization) && authorization.contains(":")) {
-			String inputGameHash = authorization.substring(authorization.indexOf(":")+1);
-			return DataBaseMethods.getGameByHash(inputGameHash, connection);
+		if(authorizationString != null && authorizationString.length() > 0 && authorizationString.contains(":")) {
+			String gameHash = authorizationString.substring(authorizationString.indexOf(":")+1);
+			return DataBaseMethods.getGameByHash(gameHash, connection);
 		}
 
 		String apiKey = httpRequest.headers().get("API_key");
 		
-		if(apiKey == null || "".equals(apiKey)) {
+		if(apiKey != null && apiKey.length() > 0) {
 			return DataBaseMethods.getGameByKey(apiKey, connection);
 		}
 		
@@ -324,7 +324,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				return;
 			}
 			
-			Game game = authenticationGame(fullHttpRequest);
+			Game game = game(fullHttpRequest);
 			
 			if(game == null) {
 				sendHttpResponse(ctx, buildSimpleResponse("Error", "Game not found", HttpResponseStatus.OK));
@@ -410,7 +410,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	}
 	
 	private void handleSpecailRequestsList(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, InvalidKeyException, NoSuchAlgorithmException {
-		Game game = authenticationGame(httpRequest);
+		Game game = game(httpRequest);
 		
 		if(game == null) {
 			sendHttpResponse(ctx, buildSimpleResponse("Error", "Game not found", HttpResponseStatus.OK));
@@ -507,7 +507,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		DataBaseMethods.addSpecialRequest(game.getId(), "levels", "levels", "*", connection);
 		
 		String email = DataBaseMethods.getOwnerEmailById(ownerSecrets.getOwnerId(), connection);
-		emailSender.send(email, "Your game registerd", "Your game \""+gameName+"\" registered with key "+apiKey);
+		emailSender.asyncSend(email, "Your game registerd", "Your game \""+gameName+"\" registered with key "+apiKey);
 		
 		connection.commit();
 		connection.setAutoCommit(true);
@@ -542,7 +542,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		int added = DataBaseMethods.writeNewOwnerSecrets(owner.getId(), newApiKey, newApiSecret, connection);
 		
 		if(added > 0) {
-			emailSender.send(inputEmail, "New API key generation", "Your secret data: \r\n\r\n API key: "+newApiKey+"\r\nAPI secret: "+newApiSecret);
+			emailSender.asyncSend(inputEmail, "New API key generation", "Your secret data: \r\n\r\n API key: "+newApiKey+"\r\nAPI secret: "+newApiSecret);
 			responseContent = simpleJsonObject("Success", "API key generated successfully");
 		} else {
 			responseContent = simpleJsonObject("Error", "An error occurred while creating the key");
@@ -603,7 +603,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			return;
 		}*/
 		
-		Game game = authenticationGame(httpRequest);
+		Game game = game(httpRequest);
 		
 		if(game == null) {
 			sendHttpResponse(ctx, buildSimpleResponse("Error", "Game not found", HttpResponseStatus.OK));
@@ -622,7 +622,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		SqlRequest sqlRequest = buildRequest(httpRequest, tableName);
 		
 		// Player id add to input request always ////////////////////////////////////////////////////////////////////////////////////
-		String playerIdFieldName = game.getPlayerIdFieldName()!=null?game.getPlayerIdFieldName():defaultPlayerIdFieldName;		   //
+		String playerIdFieldName = "playerId";/*game.getPlayerIdFieldName()!=null?game.getPlayerIdFieldName():defaultPlayerIdFieldName;*/  //
 		String playerId = httpRequest.headers().get(Authorization.PLAYER_ID_HEADER);											   //
 		if(sqlRequest instanceof SqlSelect || sqlRequest instanceof SqlUpdate) {												   //
 			sqlRequest.addExpression(new SqlExpression(playerIdFieldName, playerId));											   //
@@ -681,9 +681,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				responseContent = "[]";
 			}
 		} else if(sqlRequest instanceof SqlInsert) {
-			
-			SqlInsert insertRequest = (SqlInsert)sqlRequest;
-			
 			int result = DataBaseMethods.executeInsert((SqlInsert) sqlRequest, connection);
 			if(result > 0) {
 				responseContent = simpleJsonObject("Success", "Insert completed successfully");
