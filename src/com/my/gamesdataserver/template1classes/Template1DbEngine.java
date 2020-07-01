@@ -5,8 +5,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.my.gamesdataserver.SqlExpression;
 import com.my.gamesdataserver.basedbclasses.CellData;
+import com.my.gamesdataserver.basedbclasses.SqlExpression;
 import com.my.gamesdataserver.basedbclasses.SqlMethods;
 
 public class Template1DbEngine {
@@ -62,11 +62,11 @@ public class Template1DbEngine {
 		return null;
 	}
 
-	public void addPlayer(String playerId/*, String tablePrefix*/, Connection connection) throws SQLException {
+	/*public void addPlayer(String playerId, Connection connection) throws SQLException {
 		List<SqlExpression> row = new ArrayList<>();
 		row.add(new SqlExpression("playerId", playerId));
 		row.add(new SqlExpression("max_level", 0));
-		SqlMethods.insertIntoTable(tablePrefix+"players", row, connection);
+		SqlMethods.insert(tablePrefix+"players", row, connection);
 	}
 
 	public int updateLevel(String playerId, int level, int scores, int stars, Connection connection) throws SQLException {
@@ -93,8 +93,8 @@ public class Template1DbEngine {
 		row.add(new SqlExpression("score", scores));
 		row.add(new SqlExpression("stars", stars));
 		
-		return SqlMethods.insertIntoTable(tablePrefix+"scorelevel", row, connection);
-	}
+		return SqlMethods.insert(tablePrefix+"scorelevel", row, connection);
+	}*/
 	
 	/*public String getPlayersTableName(String apiKey) throws SQLException {
 		Game game = getGameByKey(apiKey);

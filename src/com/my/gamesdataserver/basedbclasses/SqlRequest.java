@@ -7,17 +7,15 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.my.gamesdataserver.SqlExpression;
-
 public class SqlRequest {
 	protected String tableName;
-	protected List<SqlExpression> whereExpression = new ArrayList<>();
+	protected SqlExpression whereExpression = new SqlExpression();
 	
 	public SqlRequest(String tableName) throws JSONException {
 		this.tableName = tableName;
 	}
 	
-	public SqlRequest(String tableName, List<SqlExpression> whereExpression) throws JSONException {
+	public SqlRequest(String tableName, SqlExpression whereExpression) throws JSONException {
 		this.whereExpression = whereExpression;
 		this.tableName = tableName;
 	}
@@ -26,15 +24,7 @@ public class SqlRequest {
 		return tableName;
 	}
 
-	public List<SqlExpression> getWhereExpression() {
+	public SqlExpression getWhereExpression() {
 		return whereExpression;
-	}
-	
-	public void addExpression(SqlExpression exp) {
-		whereExpression.add(exp);
-	}
-	
-	public void addExpressions(List<SqlExpression> exp) {
-		whereExpression.addAll(exp);
 	}
 }

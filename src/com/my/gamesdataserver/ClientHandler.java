@@ -31,16 +31,16 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.my.gamesdataserver.SqlExpression;
 import com.my.gamesdataserver.basedbclasses.CellData;
 import com.my.gamesdataserver.basedbclasses.Field;
 import com.my.gamesdataserver.basedbclasses.SqlMethods;
 import com.my.gamesdataserver.basedbclasses.Row;
+import com.my.gamesdataserver.basedbclasses.SqlExpression;
 import com.my.gamesdataserver.basedbclasses.SqlInsert;
 import com.my.gamesdataserver.basedbclasses.SqlRequest;
 import com.my.gamesdataserver.basedbclasses.SqlSelect;
 import com.my.gamesdataserver.basedbclasses.SqlUpdate;
-import com.my.gamesdataserver.dbengineclasses.OwnerSecrets;
+import com.my.gamesdataserver.basedbclasses.SqlWhereValue;
 import com.my.gamesdataserver.dbengineclasses.SpecialRequest;
 import com.my.gamesdataserver.dbengineclasses.DataBaseMethods;
 import com.my.gamesdataserver.dbengineclasses.Owner;
@@ -49,6 +49,7 @@ import com.my.gamesdataserver.dbengineclasses.TableTemplate;
 import com.my.gamesdataserver.helpers.EmailSender;
 import com.my.gamesdataserver.helpers.LogManager;
 import com.my.gamesdataserver.helpers.RandomKeyGenerator;
+import com.my.gamesdataserver.template1classes.LevelsUpdate;
 import com.my.gamesdataserver.template1classes.Player;
 import com.my.gamesdataserver.template1classes.Template1DbEngine;
 import com.my.gamesdataserver.dbengineclasses.Game;
@@ -69,17 +70,17 @@ import io.netty.util.CharsetUtil;
 
 public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 	private DatabaseConnectionManager dbConnectionPool;
-	private Connection connection;
+	private Connection dbConnection;
 	//private GamesDbEngine dbManager;
 	private Template1DbEngine template1DbManager;
 	private LogManager logManager;
 	private String errorLogFilePrefix = "error";
-	private static final GameTemplate TEMPLATE_1;
+	private static final GameTemplate MATCH_3_TEMPLATE;
 	//private static Map<String, String> defaultResponseHeaders;
 	private final String defaultPlayerIdFieldName = "playerId";
 	
-	private enum RequestGroup {BASE, API, TEMPLATE_1_API, PLAYER_REQUEST, ALLOWED_REQUEST, BAD};
-	private enum RequestName {GEN_API_KEY, REGISTER_GAME, CREATE_SPEC_REQUEST, SPEC_REQUEST_LIST, DELETE_GAME, PLAYER_AUTHORIZATION, SELECT, INSERT, UPDATE};
+	private enum RequestGroup {BASE, API, TEMPLATE_1_API, PLAYER_REQUEST, ALLOWED_REQUEST, BAD, GAME};
+	private enum RequestName {GEN_API_KEY, REGISTER_GAME, CREATE_SPEC_REQUEST, SPEC_REQUEST_LIST, DELETE_GAME, PLAYER_AUTHORIZATION, SELECT, INSERT, UPDATE, LEVEL};
 	
 	private static Map<String, RequestGroup> requestGroupMap;
 	private static Pattern requestGroupPattern;
@@ -92,7 +93,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private EmailSender emailSender;
 	
 	static {
-		TEMPLATE_1 = createGameTemplate1();
+		MATCH_3_TEMPLATE = match3Template();
 		/*defaultResponseHeaders = new HashMap<>();
 		defaultResponseHeaders.put("Access-Control-Allow-Origin", "*");
 		defaultResponseHeaders.put("Content-type", "application/json");*/
@@ -105,11 +106,11 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		requestGroupMap.put("player", RequestGroup.PLAYER_REQUEST);
 		requestGroupMap.put("system", RequestGroup.BASE);
 		requestGroupMap.put("special", RequestGroup.ALLOWED_REQUEST);
+		requestGroupMap.put("game", RequestGroup.GAME);
 		
 		requestGroupPattern = Pattern.compile("^\\/(\\w+)\\/?");
 		
 		requestMap = new HashMap<>();
-		requestMap.put("/system/generate_api_key", RequestName.GEN_API_KEY);
 		requestMap.put("/system/register_game", RequestName.REGISTER_GAME);
 		requestMap.put("/system/set_special_request", RequestName.CREATE_SPEC_REQUEST);
 		requestMap.put("/system/special_request_list", RequestName.SPEC_REQUEST_LIST);
@@ -118,6 +119,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		requestMap.put("/api/select", RequestName.SELECT);
 		requestMap.put("/api/insert", RequestName.INSERT);
 		requestMap.put("/api/update", RequestName.UPDATE);
+		requestMap.put("/game/level", RequestName.LEVEL);
 		
 		requestNamePattern = Pattern.compile("^\\/\\w+\\/\\w+");
 		
@@ -152,35 +154,54 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	@Override
     public void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
 		RequestGroup requestGroup = recognizeRequestGroup(fullHttpRequest.uri());
-		try {
-			connection = dbConnectionPool.getConnection();
-			switch (requestGroup) {
 
-			case BASE:
+		try {
+			dbConnection = dbConnectionPool.getConnection();
+			
+			if(requestGroup == RequestGroup.BASE) {
 				handleSystemRequest(ctx, fullHttpRequest);
-				break;
+			} else if(requestGroup != RequestGroup.BAD) {
 				
-			case PLAYER_REQUEST:
-				handlePlayerRequest(ctx, fullHttpRequest);
-				break;
+				Game game = game(fullHttpRequest);
 				
-			case API:
-				handleApiRequest(ctx, fullHttpRequest);
-				break;
+				if(game == null) {
+					sendHttpResponse(ctx, buildSimpleResponse("Error", "Game not found", HttpResponseStatus.OK));
+					return;
+				}
 				
-			case TEMPLATE_1_API:
-				handleTemplateRequest(ctx, fullHttpRequest);
-				break;
+				Authorization auth = new Authorization();
 				
-			case ALLOWED_REQUEST:
-				handleAllowedRequest(ctx, fullHttpRequest);
-				break;
-				
-			case BAD:
+				if(!auth.authorization(fullHttpRequest, game, dbConnection)) {
+					sendHttpResponse(ctx, buildSimpleResponse("Error", auth.getStatusMessage(), HttpResponseStatus.OK));
+					return;
+				}
+
+				switch (requestGroup) {
+					
+				case PLAYER_REQUEST:
+					handlePlayerRequest(ctx, fullHttpRequest, game);
+					break;
+					
+				case API:
+					handleApiRequest(ctx, fullHttpRequest, game);
+					break;
+					
+				case GAME:
+					handleGameRequest(ctx, fullHttpRequest, game);
+					break;
+					
+				case TEMPLATE_1_API:
+					handleTemplateRequest(ctx, fullHttpRequest, game);
+					break;
+					
+				case ALLOWED_REQUEST:
+					handleAllowedRequest(ctx, fullHttpRequest, game);
+					break;
+				}
+			} else {
 				FullHttpResponse httpResponse = buildSimpleResponse("Error", "Bad request group", HttpResponseStatus.BAD_REQUEST);
 				logManager.log(errorLogFilePrefix, httpRequestToString(fullHttpRequest), "ERROR: Bad request group".toUpperCase(), httpResponse.toString());
 				sendHttpResponse(ctx, httpResponse);
-				break;
 			}
 			
 		} catch (JSONException | SQLException | MessagingException | InvalidKeyException | NoSuchAlgorithmException | IOException | ClassNotFoundException e) {
@@ -188,40 +209,51 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			PrintWriter pw = new PrintWriter(sw);
 			
 			try {
-				if(connection != null && !connection.getAutoCommit()) {
-					connection.rollback();
+				if(dbConnection != null && !dbConnection.getAutoCommit()) {
+					dbConnection.rollback();
 				}
 			} catch (SQLException e1) {
 				e1.printStackTrace(pw);
 			}
 			
 			e.printStackTrace(pw);
-			FullHttpResponse httpResponse = buildSimpleResponse("Error", "An error occurred during processing", HttpResponseStatus.INTERNAL_SERVER_ERROR);
+			FullHttpResponse httpResponse = buildSimpleResponse("Error", e.getMessage()/*"An error occurred during processing"*/, HttpResponseStatus.INTERNAL_SERVER_ERROR);
 			logManager.log(errorLogFilePrefix, httpRequestToString(fullHttpRequest), sw.toString(), httpResponse.toString());
 			sendHttpResponse(ctx, httpResponse);
 		} finally {
 			try {
-				if(connection != null) connection.close();
+				if(dbConnection != null) dbConnection.close();
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
 		}
     }
 	
-	private void handleAllowedRequest(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws SQLException, FileNotFoundException, ClassNotFoundException, IOException, JSONException, InvalidKeyException, NoSuchAlgorithmException {
-		Game game = game(fullHttpRequest);
+	private String handleGameRequest(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, Game game) throws SQLException, InvalidKeyException, NoSuchAlgorithmException, JSONException {
+		String resultContent = "";
 		
-		if(game == null) {
-			sendHttpResponse(ctx, buildSimpleResponse("Error", "Game not found", HttpResponseStatus.OK));
-			return;
+		String inputContent = fullHttpRequest.content().toString(CharsetUtil.UTF_8);
+		
+		String playerId = fullHttpRequest.headers().get(Authorization.PLAYER_ID_HEADER);
+		
+		SqlExpression where = new SqlExpression();
+		where.addValue(new SqlWhereValue(new CellData(Types.VARCHAR, "playerId", playerId)));
+		
+		JSONArray jsonLevels = new JSONArray(fullHttpRequest.content().toString(CharsetUtil.UTF_8));
+		
+		for (int i = 0; i < jsonLevels.length(); i++) {
+			where.addValue(new SqlWhereValue(new CellData(Types.VARCHAR, "playerId", playerId)));
 		}
 		
-		Authorization auth = new Authorization();
+		List<Row> exsistingLevels = SqlMethods.select(game.getPrefix()+"levels", where, false, dbConnection);
+
+		LevelsUpdate levelsupdate = new LevelsUpdate(jsonLevels, exsistingLevels, playerId, game.getPrefix()+"levels");
 		
-		if(!auth.authorization(fullHttpRequest, game, connection)) {
-			sendHttpResponse(ctx, buildSimpleResponse("Error", auth.getStatusMessage(), HttpResponseStatus.OK));
-			return;
-		}
+		
+		return resultContent;
+	}
+
+	private void handleAllowedRequest(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, Game game) throws SQLException, FileNotFoundException, ClassNotFoundException, IOException, JSONException, InvalidKeyException, NoSuchAlgorithmException {
 		
 		/*Map<String, AllowedUnconditionalRequest> allowedRequests = readAllowedRequestFile(game.getApiKey());
 		
@@ -241,15 +273,17 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		List<SqlExpression> whereData = SqlMethods.parseWhere(new JSONArray(fullHttpRequest.content().toString(CharsetUtil.UTF_8)));
 		SqlSelect selectRequest = new SqlSelect(game.getPrefix()+allowedData.getTableName(), whereData);
 		selectRequest.setFields(allowedData.getAllowedFields());*/
-		
-		List<SqlExpression> whereData = SqlMethods.parseWhere(new JSONArray(fullHttpRequest.content().toString(CharsetUtil.UTF_8)));
-		SpecialRequest sr = DataBaseMethods.readSpecialRequest(game.getId(), recognizeSpecialRequestName(fullHttpRequest.uri()), connection);
-		List<Row> rows = DataBaseMethods.executeSpecialRequest(sr, whereData, game.getPrefix(), connection);
+		String requestName = recognizeSpecialRequestName(fullHttpRequest.uri());
+		SpecialRequest sr = DataBaseMethods.readSpecialRequest(game.getId(), requestName, dbConnection);
+		List<Row> rows = new ArrayList<>();
+		if(sr != null) {
+			rows = DataBaseMethods.executeSpecialRequest(sr, game.getPrefix(), dbConnection);
+		}
 		
 		sendHttpResponse(ctx, buildResponse(Row.rowsToJson(rows), HttpResponseStatus.OK));
 	}
 	
-	private void handleSpecailRequestCreation(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, FileNotFoundException, ClassNotFoundException, IOException, InvalidKeyException, NoSuchAlgorithmException {
+	/*private void handleSpecailRequestCreation(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, FileNotFoundException, ClassNotFoundException, IOException, InvalidKeyException, NoSuchAlgorithmException {
 		
 		Game game = game(httpRequest);
 		
@@ -260,7 +294,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		
 		Authorization auth = new Authorization();
 		
-		if(!auth.authorization(httpRequest, game, connection)) {
+		if(!auth.authorization(httpRequest, game, dbConnection)) {
 			sendHttpResponse(ctx, buildSimpleResponse("Error", auth.getStatusMessage(), HttpResponseStatus.OK));
 			return;
 		}
@@ -279,17 +313,17 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		String[] fieldsArray = fields.split(",");
 		for(String field : fieldsArray) {
 			field = field.trim();
-		}
+		}*/
 		
 		/*List<AllowedUnconditionalRequest> allowedRequest = new ArrayList<>();
 		allowedRequest.add(new AllowedUnconditionalRequest(game.getApiKey(), requestName, tableName, fieldsArray));
 		addAllowedRequestsToFile(allowedRequest, game.getApiKey());*/
-		if(DataBaseMethods.setSpecialRequest(game.getId(), requestName, tableName, fields, connection) > 0) {
+		/*if(DataBaseMethods.setSpecialRequest(game.getId(), requestName, tableName, fields, dbConnection) > 0) {
 			sendHttpResponse(ctx, buildSimpleResponse("Success", "Request \\\""+requestName+"\\\" has been set successfully", HttpResponseStatus.OK));
 		} else {
 			sendHttpResponse(ctx, buildSimpleResponse("Error", "Fail to create request", HttpResponseStatus.OK));
 		}
-	}
+	}*/
 
 	private Game game(FullHttpRequest httpRequest) throws SQLException {
 		
@@ -297,19 +331,19 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		
 		if(authorizationString != null && authorizationString.length() > 0 && authorizationString.contains(":")) {
 			String gameHash = authorizationString.substring(authorizationString.indexOf(":")+1);
-			return DataBaseMethods.getGameByHash(gameHash, connection);
+			return DataBaseMethods.getGameByHash(gameHash, dbConnection);
 		}
 
 		String apiKey = httpRequest.headers().get("API_key");
 		
 		if(apiKey != null && apiKey.length() > 0) {
-			return DataBaseMethods.getGameByKey(apiKey, connection);
+			return DataBaseMethods.getGameByKey(apiKey, dbConnection);
 		}
 		
 		return null;
 	}
 
-	private void handlePlayerRequest(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws InvalidKeyException, NoSuchAlgorithmException, SQLException {
+	private void handlePlayerRequest(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, Game game) throws InvalidKeyException, NoSuchAlgorithmException, SQLException {
 		Map<String, String> contentParameters = parseParameters(fullHttpRequest.content().toString(CharsetUtil.UTF_8));
 		if(fullHttpRequest.uri().startsWith("/player/authorization")) {
 			
@@ -318,28 +352,15 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				return;
 			}
 			
-			Authorization auth = new Authorization();
-			if(!auth.requestAuthentication(fullHttpRequest)) {
-				sendHttpResponse(ctx, buildSimpleResponse("Error", auth.getStatusMessage(), HttpResponseStatus.OK));
-				return;
-			}
-			
-			Game game = game(fullHttpRequest);
-			
-			if(game == null) {
-				sendHttpResponse(ctx, buildSimpleResponse("Error", "Game not found", HttpResponseStatus.OK));
-				return;
-			}
-			
 			String facebookId = contentParameters.get("facebookId");
-			Player player = DataBaseMethods.getPlayerByFacebookId(facebookId, game.getPrefix(), connection);
+			Player player = DataBaseMethods.getPlayerByFacebookId(facebookId, game.getPrefix(), dbConnection);
 			
 			if(player != null) {
 				sendHttpResponse(ctx, buildSimpleResponse("playerId", player.getPlayerId(), HttpResponseStatus.OK));
 				return;
 			}
 			
-			String playerId = DataBaseMethods.registrationPlayerByFacebookId(contentParameters.get("facebookId"), game.getPrefix(), connection);
+			String playerId = DataBaseMethods.registrationPlayerByFacebookId(contentParameters.get("facebookId"), game.getPrefix(), dbConnection);
 			if(playerId != null) {
 				sendHttpResponse(ctx, buildSimpleResponse("playerId", playerId, HttpResponseStatus.OK));
 			} else {
@@ -348,20 +369,11 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		}
 	}
 
-	private void handleTemplateRequest(ChannelHandlerContext ctx, HttpRequest httpRequest) throws SQLException {
+	private void handleTemplateRequest(ChannelHandlerContext ctx, HttpRequest httpRequest, Game game) throws SQLException {
 		String responseContent = "";
 		Map<String, String> urlParameters = parseUrlParameters(httpRequest.uri());
 		if(!simpleValidation(new String[] {"api_key", "table", "playerId"}, urlParameters)) {
 			sendValidationFailResponse(ctx);
-			return;
-		}
-		
-		String apiKey = urlParameters.get("api_key");
-		
-		Game game = DataBaseMethods.getGameByKey(apiKey, connection);
-		
-		if(game == null) {
-			sendHttpResponse(ctx, buildSimpleResponse("Error", "Game not found", HttpResponseStatus.BAD_REQUEST));
 			return;
 		}
 		
@@ -388,15 +400,12 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		RequestName requestName = recognizeRequestName(httpRequest.uri());
 		
 		switch (requestName) {
-		case GEN_API_KEY:
-			handleGenApiKey(ctx, httpRequest);
-			break;
 		case REGISTER_GAME:
 			handleRegisterGame(ctx, httpRequest);
 			break;
-		case CREATE_SPEC_REQUEST:
+		/*case CREATE_SPEC_REQUEST:
 			handleSpecailRequestCreation(ctx, httpRequest);
-			break;
+			break;*/
 		case SPEC_REQUEST_LIST:
 			handleSpecailRequestsList(ctx, httpRequest);
 			break;
@@ -419,12 +428,12 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		
 		Authorization auth = new Authorization();
 		
-		if(!auth.authorization(httpRequest, game, connection)) {
+		if(!auth.authorization(httpRequest, game, dbConnection)) {
 			sendHttpResponse(ctx, buildSimpleResponse("Error", auth.getStatusMessage(), HttpResponseStatus.OK));
 			return;
 		}
 		
-		List<SpecialRequest> specRequests = DataBaseMethods.readSpecialRequests(game.getId(), connection);
+		List<SpecialRequest> specRequests = DataBaseMethods.readSpecialRequests(game.getId(), dbConnection);
 		StringBuilder output = new StringBuilder();
 		
 		for (int i = 0; i < specRequests.size(); i++) {
@@ -446,14 +455,14 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		
 		String apiKey = urlParameters.get("api_key");
 		
-		Game game = DataBaseMethods.deleteGame(apiKey, connection);
+		Game game = DataBaseMethods.deleteGame(apiKey, dbConnection);
 		
 		if(game == null) {
 			sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while deleting the game", HttpResponseStatus.INTERNAL_SERVER_ERROR));
 			return;
 		}
 		
-		DataBaseMethods.deleteGameTables(game.getPrefix(), TEMPLATE_1.getTableNames(), connection);
+		DataBaseMethods.deleteGameTables(game.getPrefix(), MATCH_3_TEMPLATE.getTableNames(), dbConnection);
 		
 		sendHttpResponse(ctx, buildSimpleResponse("Success", "Deletion was successful", HttpResponseStatus.OK));
 	}
@@ -461,97 +470,63 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private void handleRegisterGame(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, InvalidKeyException, NoSuchAlgorithmException, FileNotFoundException, ClassNotFoundException, IOException {
 		Map<String, String> contentParameters = parseParameters(httpRequest.content().toString(CharsetUtil.UTF_8));
 		
-		if(!simpleValidation(new String[] {"api_key", "game_name", "game_package", "game_type"}, contentParameters)) {
+		if(!simpleValidation(new String[] {"game_name", "email", "match3", "send_mail"}, contentParameters)) {
 			sendValidationFailResponse(ctx);
 			return;
 		}
 		
-		String apiKey = contentParameters.get("api_key");
-		
 		String gameName = contentParameters.get("game_name");
-		String gameJavaPackage = contentParameters.get("game_package");
-		String gameType = contentParameters.get("game_type");
+		String email = contentParameters.get("email");
+		String apiKey = RandomKeyGenerator.nextString(24);
+		String apiSecret = RandomKeyGenerator.nextString(45);
 		
-		if(DataBaseMethods.checkGameByKey(apiKey, connection)) {
+		if(DataBaseMethods.checkGameByKey(apiKey, dbConnection)) {
 			sendHttpResponse(ctx, buildSimpleResponse("Error", "Game alredy exists", HttpResponseStatus.BAD_REQUEST));
 			return;
 		}
 		
-		OwnerSecrets ownerSecrets = DataBaseMethods.getOwnerSecrets(apiKey, connection);
-		
-		if(ownerSecrets == null) {
-			sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while searching for the key", HttpResponseStatus.INTERNAL_SERVER_ERROR));
-			return;
-		}
-		
-		connection.setAutoCommit(false);
-		String prefix = DataBaseMethods.generateTablePrefix(gameName, apiKey);
-		String apiSecret = ownerSecrets.getApiSecret();
-		int added = DataBaseMethods.insertGame(gameName, gameJavaPackage, ownerSecrets.getOwnerId(), apiKey, apiSecret, gameType, prefix, Authorization.generateHmacHash(apiSecret, apiKey), connection);
-		
-		if(added < 1) {
-			connection.rollback();
-			sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while adding the game", HttpResponseStatus.INTERNAL_SERVER_ERROR));
-			return;
-		}
-		
-		DataBaseMethods.removeApiKey(apiKey, connection);
-		
-		DataBaseMethods.createGameTables(TEMPLATE_1, prefix, connection); //throw exception if not successfully
-		
-		/*List<AllowedUnconditionalRequest> allowedRequest = new ArrayList<>();
-		allowedRequest.add(new AllowedUnconditionalRequest(apiKey, "players", "players", new String[] {"facebookId", "maxLevel"}));
-		addAllowedRequestsToFile(allowedRequest, apiKey);*/
-		Game game = DataBaseMethods.getGameByKey(apiKey, connection);
-		DataBaseMethods.addSpecialRequest(game.getId(), "players", "players", "*", connection);
-		DataBaseMethods.addSpecialRequest(game.getId(), "levels", "levels", "*", connection);
-		
-		String email = DataBaseMethods.getOwnerEmailById(ownerSecrets.getOwnerId(), connection);
-		emailSender.asyncSend(email, "Your game registerd", "Your game \""+gameName+"\" registered with key "+apiKey);
-		
-		connection.commit();
-		connection.setAutoCommit(true);
-		
-		sendHttpResponse(ctx, buildSimpleResponse("Success", "Register successed", HttpResponseStatus.OK));
-	}
-
-	private void handleGenApiKey(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException {
-		String responseContent = "";
-		Map<String, String> contentParameters = parseParameters(httpRequest.content().toString(CharsetUtil.UTF_8));
-		
-		if(!simpleValidation(new String[] {"email"}, contentParameters)) {
-			sendValidationFailResponse(ctx);
-			return;
-		}
-		
-		String inputEmail = contentParameters.get("email");
-		Owner owner = DataBaseMethods.getOwnerByEmail(inputEmail, connection);
+		Owner owner = DataBaseMethods.getOwnerByEmail(email, dbConnection);
 		if(owner == null) {
-			int result = DataBaseMethods.regOwner(inputEmail, connection);
+			int result = DataBaseMethods.regOwner(email, dbConnection);
 			
 			if(result <= 0) {
 				sendHttpResponse(ctx, buildSimpleResponse("Error", "Error occurred during registration", HttpResponseStatus.INTERNAL_SERVER_ERROR));
 				return;
 			}
 			
-			owner = DataBaseMethods.getOwnerByEmail(inputEmail, connection);
+			owner = DataBaseMethods.getOwnerByEmail(email, dbConnection);
 		}
 		
-		String newApiKey = RandomKeyGenerator.nextString(24);
-		String newApiSecret = RandomKeyGenerator.nextString(45);
-		int added = DataBaseMethods.writeNewOwnerSecrets(owner.getId(), newApiKey, newApiSecret, connection);
+		dbConnection.setAutoCommit(false);
+		String prefix = DataBaseMethods.generateTablePrefix(gameName, apiKey);
+		int added = DataBaseMethods.insertGame(gameName, owner.getId(), apiKey, apiSecret, prefix, Authorization.generateHmacHash(apiSecret, apiKey), dbConnection);
 		
-		if(added > 0) {
-			emailSender.asyncSend(inputEmail, "New API key generation", "Your secret data: \r\n\r\n API key: "+newApiKey+"\r\nAPI secret: "+newApiSecret);
-			responseContent = simpleJsonObject("Success", "API key generated successfully");
+		if(added < 1) {
+			dbConnection.rollback();
+			sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while adding the game", HttpResponseStatus.INTERNAL_SERVER_ERROR));
+			return;
+		}
+		if("Yes".equals(contentParameters.get("match3"))) {
+			DataBaseMethods.createGameTables(MATCH_3_TEMPLATE, prefix, dbConnection); //throw exception if not successfully
 		} else {
-			responseContent = simpleJsonObject("Error", "An error occurred while creating the key");
+			DataBaseMethods.createGameTable(new TableTemplate("players", new Field[] {new Field(Types.VARCHAR, "playerId").setLength(17).setNull(false), new Field(Types.VARCHAR, "facebookId")}, "playerId"), prefix, dbConnection);
 		}
-		sendHttpResponse(ctx, buildResponse(responseContent, HttpResponseStatus.OK));
+		
+		dbConnection.commit();
+		dbConnection.setAutoCommit(true);
+		
+		//Game game = DataBaseMethods.getGameByKey(apiKey, connection);
+		if("Yes".equals(contentParameters.get("send_mail"))) {
+			emailSender.asyncSend(email, "Your game registerd", "Game name: \""+gameName+"\" ApiKey: "+apiKey+" Api secret: "+apiSecret);
+			sendHttpResponse(ctx, buildSimpleResponse("Success", "Register successed", HttpResponseStatus.OK));
+		} else {
+			sendHttpResponse(ctx, buildSimpleResponse("Success", "Game name: "+gameName+" ApiKey: "+apiKey+" Api secret: "+apiSecret, HttpResponseStatus.OK));
+		}
 	}
 
-	private SqlRequest buildRequest(FullHttpRequest httpRequest/*RequestName requestName, String data*/, String tableName) throws JSONException, SQLException {
-		SqlRequest result = null;
+	/*private SqlRequest buildRequest(FullHttpRequest httpRequest/*RequestName requestName, String data*//*, String tableName) throws JSONException, SQLException {*/
+	
+		/*SqlRequest result = null;
 		List<SqlExpression> whereData;
 		RequestName requestName = recognizeRequestName(httpRequest.uri());
 		switch (requestName) {
@@ -559,9 +534,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			whereData = SqlMethods.parseWhere(new JSONArray(httpRequest.content().toString(CharsetUtil.UTF_8)));
 			result = new SqlSelect(tableName, whereData);
 			break;
-		case INSERT:
+		case INSERT:*/
 			
-			Map<String, String> urlParameters = parseUrlParameters(httpRequest.uri());
+			//Map<String, String> urlParameters = parseUrlParameters(httpRequest.uri());
 			
 			/*if(urlParameters.containsKey("updateIfExists") && "true".equals(urlParameters.get("updateIfExists"))) {
 				JSONObject jsonObject = new JSONObject(httpRequest.content().toString(CharsetUtil.UTF_8));
@@ -574,11 +549,12 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 					result = new SqlInsert(tableName, insertData);
 				}
 			} else {*/
-				List<SqlExpression> insertData = SqlMethods.parseCellDataRow(new JSONObject(httpRequest.content().toString(CharsetUtil.UTF_8)).getJSONArray("insert_data"));
-				result = new SqlInsert(tableName, insertData);
+				//List<SqlExpression> insertData = SqlMethods.parseCellDataRow(new JSONObject(httpRequest.content().toString(CharsetUtil.UTF_8)).getJSONArray("insert_data"));
+				/*List<SqlExpression> insertData = SqlMethods.parseCellDataRow(new JSONArray(httpRequest.content().toString(CharsetUtil.UTF_8)));	
+				result = new SqlInsert(tableName, insertData);*/
 			
 			//}
-			break;
+			/*break;
 		case UPDATE:
 			JSONObject updateData = new JSONObject(httpRequest.content().toString(CharsetUtil.UTF_8));
 			
@@ -593,107 +569,57 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			
 		return result;
 		
-	}
+	}*/
 	
-	private void handleApiRequest(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, JSONException, InvalidKeyException, NoSuchAlgorithmException {
+	private void handleApiRequest(ChannelHandlerContext ctx, FullHttpRequest httpRequest, Game game) throws SQLException, JSONException, InvalidKeyException, NoSuchAlgorithmException {
 		String responseContent = "";
-		/*Map<String, String> urlParameters = parseUrlParameters(httpRequest.uri());
-		if(!simpleValidation(new String[] {"api_key", "table"}, urlParameters)) {
-			sendValidationFailResponse(ctx);
-			return;
-		}*/
 		
-		Game game = game(httpRequest);
-		
-		if(game == null) {
-			sendHttpResponse(ctx, buildSimpleResponse("Error", "Game not found", HttpResponseStatus.OK));
-			return;
-		}
-		
-		Authorization auth = new Authorization();
-		
-		if(!auth.authorization(httpRequest, game, connection)) {
-			sendHttpResponse(ctx, buildSimpleResponse("Error", auth.getStatusMessage(), HttpResponseStatus.OK));
-			return;
-		}
+		RequestName requestName = recognizeRequestName(httpRequest.uri());
+		String requestBody = httpRequest.content().toString(CharsetUtil.UTF_8);
+		String playerId = httpRequest.headers().get(Authorization.PLAYER_ID_HEADER);
 		
 		Map<String, String> urlParameters = parseUrlParameters(httpRequest.uri());
 		String tableName = game.getPrefix()+urlParameters.get("table");
-		SqlRequest sqlRequest = buildRequest(httpRequest, tableName);
 		
-		// Player id add to input request always ////////////////////////////////////////////////////////////////////////////////////
-		String playerIdFieldName = "playerId";/*game.getPlayerIdFieldName()!=null?game.getPlayerIdFieldName():defaultPlayerIdFieldName;*/  //
-		String playerId = httpRequest.headers().get(Authorization.PLAYER_ID_HEADER);											   //
-		if(sqlRequest instanceof SqlSelect || sqlRequest instanceof SqlUpdate) {												   //
-			sqlRequest.addExpression(new SqlExpression(playerIdFieldName, playerId));											   //
-		} else if(sqlRequest instanceof SqlInsert) {																			   //
-			((SqlInsert) sqlRequest).addInsertedValue(new SqlExpression(playerIdFieldName, playerId));							   //
-		}																														   //
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		
-		if(sqlRequest instanceof SqlInsert && urlParameters.containsKey("updateIfExists") && "true".equals(urlParameters.get("updateIfExists"))) {
-			JSONObject jsonObject = new JSONObject(httpRequest.content().toString(CharsetUtil.UTF_8));
-			sqlRequest.addExpressions(SqlMethods.parseWhere(jsonObject.getJSONArray("where_condition")));
-			List<Row> row = SqlMethods.selectAll(tableName, sqlRequest.getWhereExpression(), connection);
-			if(row.size() > 0) {
-				sqlRequest = new SqlUpdate(tableName, sqlRequest.getWhereExpression(), SqlMethods.parseWhere(jsonObject.getJSONArray("insert_data")));
-			} else {
-				List<SqlExpression> insertData = SqlMethods.parseCellDataRow(new JSONArray(httpRequest.content().toString(CharsetUtil.UTF_8)));
-				sqlRequest = new SqlInsert(tableName, insertData);
-			}
-		}
-		
-		/*if(sqlRequest instanceof SqlInsert && urlParameters.containsKey("updateIfExists")) {
+		switch (requestName) {
+		case SELECT:
+			SqlSelect querySelect = new SqlSelect(new JSONObject(requestBody));
+			querySelect.addCondition(new SqlWhereValue(new CellData(Types.VARCHAR, "playerId", playerId)));
 			
-			Row insertRow = new Row(((SqlInsert) sqlRequest).);
+			List<Row> rows = DataBaseMethods.executeSelect(querySelect, dbConnection);
 			
-					List<SqlExpression> insertData = ((SqlInsert) sqlRequest).getRowToInsert(0);
-			List<SqlExpression> whereExpression = new ArrayList<>();
-			int i = 1;
-				
-			while (urlParameters.containsKey("checkField"+i)) {
-				String fieldName = urlParameters.get("checkField"+(i++));
-				if(!insertData.containsCell(fieldName)) {
-					sendHttpResponse(ctx, buildSimpleResponse("Error", "Field name mismatch", HttpResponseStatus.BAD_REQUEST));
-					return;
-				}
-				whereExpression.add(new SqlExpression(fieldName, insertData.getCell(fieldName).getValue()));
-			}
-				
-			List<Row> rows = DataBaseMethods.executeSelect(new SqlSelect(sqlRequest.getTableName(), whereExpression), connection);
-				
 			if(rows.size() > 0) {
-				sqlRequest = new SqlUpdate(sqlRequest.getTableName(), whereExpression, insertData.toList());
-			}
-		}*/
-		
-		if(sqlRequest instanceof SqlSelect) {
-			List<Row> rows = DataBaseMethods.executeSelect((SqlSelect) sqlRequest, connection);
-			
-			//responseContent = new Row(rows.get(0)).removeCell(playerIdFieldName).toJson();
-			if(rows.size() > 0) {
-				//responseContent = rows.get(0).removeCell(playerIdFieldName).toJson();
-				for(Row row : rows) {
-					row.removeCell(playerIdFieldName);
-				}
 				responseContent = Row.rowsToJson(rows);
 			} else {
 				responseContent = "[]";
 			}
-		} else if(sqlRequest instanceof SqlInsert) {
-			int result = DataBaseMethods.executeInsert((SqlInsert) sqlRequest, connection);
-			if(result > 0) {
+			break;
+		case INSERT:
+			SqlInsert queryInsert = new SqlInsert(new JSONObject(requestBody));
+			queryInsert.addValue(new CellData(Types.VARCHAR, "playerId", playerId));
+			int insertResult = DataBaseMethods.executeInsert(queryInsert, dbConnection);
+			if(insertResult > 0) {
 				responseContent = simpleJsonObject("Success", "Insert completed successfully");
 			} else {
 				responseContent = simpleJsonObject("Error", "An error occurred while inserting");
 			}
-		} else if(sqlRequest instanceof SqlUpdate) {
-			int result = DataBaseMethods.executeUpdate((SqlUpdate) sqlRequest, connection);
-			if(result > 0) {
+			break;
+		case UPDATE:
+			SqlUpdate queryUpdate = new SqlUpdate(new JSONObject(requestBody));
+			queryUpdate.addCondition(new SqlWhereValue(new CellData(Types.VARCHAR, "playerId", playerId)));
+			int updateResult = DataBaseMethods.executeUpdate(queryUpdate, dbConnection);
+			if(updateResult > 0) {
 				responseContent = simpleJsonObject("Success", "Update completed successfully");
 			} else {
 				responseContent = simpleJsonObject("Error", "An error occurred while updating");
 			}
+			break;
+		case LEVEL:
+			responseContent = handleGameRequest(ctx, httpRequest, game);
+			break;
+		default:
+			sendHttpResponse(ctx, buildSimpleResponse("Error", "Bad command", HttpResponseStatus.BAD_REQUEST));
+			break;
 		}
 		
 		sendHttpResponse(ctx, buildResponse(responseContent, HttpResponseStatus.OK));
@@ -768,33 +694,34 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	
 	
 	
-	private static GameTemplate createGameTemplate1() {
+	private static GameTemplate match3Template() {
 		
 		List<TableTemplate> tblTemplates = new ArrayList<>();
-		TableTemplate levelsTemplate = new TableTemplate("levels", new Field[] {new Field(Types.VARCHAR, "playerId").setNull(false),
+		TableTemplate levelsTemplate = new TableTemplate("levels", new Field[] {  new Field(Types.INTEGER, "id").setNull(false).setAutoIncrement(true),
+																				  new Field(Types.VARCHAR, "playerId").setNull(false),
 				  																  new Field(Types.INTEGER, "level").setNull(false),
 																				  new Field(Types.INTEGER, "score").setNull(false),
-																				  new Field(Types.INTEGER, "stars").setNull(false)});
+																				  new Field(Types.INTEGER, "stars").setNull(false)}, "id");
 		
 		levelsTemplate.addIndex(new TableIndex("playerId_level", new String[] {"playerId", "level"}, true));
 		
-		TableTemplate playersTemplate = new TableTemplate("players", new Field[] {new Field(Types.VARCHAR, "playerId").setNull(false),
-																					new Field(Types.VARCHAR, "facebookId").setNull(false),
-																					new Field(Types.INTEGER, "maxLevel").setDefaultValue("0").setNull(false)}, "playerId");
+		TableTemplate playersTemplate = new TableTemplate("players", new Field[] {  new Field(Types.VARCHAR, "playerId").setNull(false).setLength(17),
+																					new Field(Types.VARCHAR, "facebookId").setNull(false)}, "playerId");
 		
 		playersTemplate.addIndex(new TableIndex("playerId_unique", new String[] {"facebookId"}, true));
 				
-		TableTemplate boostsTemplate = new TableTemplate("boosts", new Field[] {new Field(Types.VARCHAR, "playerId").setNull(false), 
-				  																  new Field(Types.VARCHAR, "boostName").setNull(false), 
-																				  new Field(Types.INTEGER, "count").setDefaultValue("0")});
+		TableTemplate boostsTemplate = new TableTemplate("boosts", new Field[] {new Field(Types.INTEGER, "id").setNull(false).setAutoIncrement(true),
+																			new Field(Types.VARCHAR, "playerId").setNull(false), 
+				  																  new Field(Types.VARCHAR, "name").setNull(false), 
+																				  new Field(Types.INTEGER, "count").setDefaultValue("0")}, "id");
 		
-		boostsTemplate.addIndex(new TableIndex("playerId_boostName", new String[] {"playerId", "boostName"}, true));
+		boostsTemplate.addIndex(new TableIndex("playerId_boostName", new String[] {"playerId", "name"}, true));
 		
 		tblTemplates.add(levelsTemplate);
 		tblTemplates.add(playersTemplate);
 		tblTemplates.add(boostsTemplate);
 		
-		return new GameTemplate("Template1", tblTemplates, new ArrayList<>());
+		return new GameTemplate("Match 3", tblTemplates);
 	}
 	
 	/*private void addAllowedRequestsToFile(List<AllowedUnconditionalRequest> allowedUnconditionalRequest, String fileName) throws FileNotFoundException, IOException, ClassNotFoundException {

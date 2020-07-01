@@ -3,15 +3,13 @@ package com.my.gamesdataserver.dbengineclasses;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.my.gamesdataserver.AllowedUnconditionalRequest;
 
 public class GameTemplate {
-	private String type;
+	private String name;
 	private List<TableTemplate> tableTemplates;
-	private List<AllowedUnconditionalRequest> allowedReuests;
 	
-	public GameTemplate(String type, List<TableTemplate> tableTemplates, List<AllowedUnconditionalRequest> allowedReuests) {
-		this.type = type;
+	public GameTemplate(String name, List<TableTemplate> tableTemplates) {
+		this.name = name;
 		this.tableTemplates = tableTemplates;
 	}
 
@@ -30,6 +28,6 @@ public class GameTemplate {
 	}
 
 	public String getType() {
-		return type;
+		return name;
 	}
 }
