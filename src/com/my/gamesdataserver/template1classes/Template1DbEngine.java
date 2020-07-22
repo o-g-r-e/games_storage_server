@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.my.gamesdataserver.basedbclasses.CellData;
-import com.my.gamesdataserver.basedbclasses.SqlExpression;
 import com.my.gamesdataserver.basedbclasses.SqlMethods;
+import com.my.gamesdataserver.basedbclasses.queryclasses.SimpleSqlExpression;
 
 public class Template1DbEngine {
 	private String tablePrefix;

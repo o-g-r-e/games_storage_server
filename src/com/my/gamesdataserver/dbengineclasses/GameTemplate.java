@@ -3,6 +3,8 @@ package com.my.gamesdataserver.dbengineclasses;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.my.gamesdataserver.basedbclasses.TableTemplate;
+
 
 public class GameTemplate {
 	private String name;

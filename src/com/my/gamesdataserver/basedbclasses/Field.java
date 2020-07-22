@@ -78,7 +78,7 @@ public class Field {
 	@Override
 	public String toString() {
 		StringBuilder result = new StringBuilder();
-		result.append("`").append(name).append("` ").append(typeToString(type)).append(isNull?" NULL":" NOT NULL").append(autoIncrement?" AUTO_INCREMENT":"").append(defaultValue==null?" DEFAULT "+defaultValue:"");
+		result.append("`").append(name).append("` ").append(typeToString(type)).append(isNull?" NULL":" NOT NULL").append(autoIncrement?" AUTO_INCREMENT":"").append(defaultValue!=null?" DEFAULT "+defaultValue:"");
 		
 		
 		return result.toString();

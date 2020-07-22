@@ -10,6 +10,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.my.gamesdataserver.dbengineclasses.Game;
+import com.my.gamesdataserver.dbengineclasses.PlayerId;
 import com.my.gamesdataserver.dbengineclasses.DataBaseMethods;
 
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -82,7 +83,7 @@ public class Authorization {
 		
 		String playerId = httpRequest.headers().get(Authorization.PLAYER_ID_HEADER);
 		
-		if(playerId == null || playerId.length() <= 0 || playerId.contains("%") || playerId.contains("_") || DataBaseMethods.getPlayerById(playerId, game.getPrefix(), connection) == null) {
+		if(playerId == null || playerId.length() <= 0 || playerId.contains("%") || playerId.contains("_") || DataBaseMethods.getPlayerById(new PlayerId("playerId", playerId), game.getPrefix(), connection) == null) {
 			statusCode = Code.PLAYER_AUTH_FAIL;
 			return false;
 		}

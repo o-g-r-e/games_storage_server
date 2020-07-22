@@ -1,4 +1,4 @@
-package com.my.gamesdataserver.dbengineclasses;
+package com.my.gamesdataserver.basedbclasses;
 
 public class TableIndex {
 	private String name;
