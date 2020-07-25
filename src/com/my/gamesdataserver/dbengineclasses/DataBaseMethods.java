@@ -93,6 +93,11 @@ public class DataBaseMethods  {
 
 	public static Game getGameByHash(String gameHash, Connection connection) throws SQLException {
 		List<Row> rows = SqlMethods.select("SELECT * FROM games WHERE hash=? LIMIT 1", new QueryTypedValue(gameHash), connection);
+		
+		if(rows.size() < 1) {
+			return null;
+		}
+		
 		return rowToGame(rows.get(0), connection);
 	}
 	

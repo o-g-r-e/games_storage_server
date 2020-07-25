@@ -16,6 +16,10 @@ import com.my.gamesdataserver.basedbclasses.CellData;
 import com.my.gamesdataserver.basedbclasses.QueryTypedValue;
 import com.my.gamesdataserver.basedbclasses.Row;
 import com.my.gamesdataserver.basedbclasses.SqlMethods;
+import com.my.gamesdataserver.basedbclasses.queryclasses.Select;
+import com.my.gamesdataserver.basedbclasses.queryclasses.SimpleSqlExpression;
+import com.my.gamesdataserver.basedbclasses.queryclasses.SqlExpression;
+import com.my.gamesdataserver.basedbclasses.queryclasses.SqlLogicExpression;
 
 public class ApiMethods {
 	
@@ -46,10 +50,10 @@ public class ApiMethods {
 		
 		sqlInsert.append(values);
 		
-		return SqlMethods.insert(sqlInsert.toString(), toValueList(jsonValues), connection);
+		return SqlMethods.insert(sqlInsert.toString(), getValuesFromInsert(jsonValues), connection);
 	}
 	
-	public static String generateWhere(JSONArray jsonWhere) throws JSONException {
+	public static String jsonWhereToSql(JSONArray jsonWhere) throws JSONException {
 		StringBuilder result = new StringBuilder();
 		for (int i = 0; i < jsonWhere.length(); i++) {
 			JSONArray andJsonExpression = jsonWhere.getJSONArray(i);
@@ -75,7 +79,7 @@ public class ApiMethods {
 		return result.toString();
 	}
 	
-	public static String generateUpdateSetPart(JSONArray jsonSet) throws JSONException {
+	private static String jsonUpdateSetToSql(JSONArray jsonSet) throws JSONException {
 		StringBuilder result = new StringBuilder();
 		for (int i = 0; i < jsonSet.length(); i++) {
 			JSONObject jsonSetExpression = jsonSet.getJSONObject(i);
@@ -89,23 +93,26 @@ public class ApiMethods {
 		return result.toString();
 	}
 	
-	public static List<QueryTypedValue> toValueList(JSONArray jsonEntArray) throws JSONException {
+	private static List<QueryTypedValue> getValuesFromInsert(JSONArray jsonInsertValues) throws JSONException {
 		List<QueryTypedValue> result = new ArrayList<>();
-		for (int i = 0; i < jsonEntArray.length(); i++) {
-			Object el = jsonEntArray.get(i);
-			if(el instanceof JSONArray) {
-				JSONArray values = (JSONArray)el;
-				for (int j = 0; j < values.length(); j++) {
-					result.add(new QueryTypedValue(values.get(j)));
-				}
-			} else if(el instanceof JSONObject) {
-				result.add(new QueryTypedValue(((JSONObject)el).get("value")));
+		for (int i = 0; i < jsonInsertValues.length(); i++) {
+			JSONArray values = jsonInsertValues.getJSONArray(i);
+			for (int j = 0; j < values.length(); j++) {
+				result.add(new QueryTypedValue(values.get(j)));
 			}
 		}
 		return result;
 	}
 	
-	private static List<QueryTypedValue> parseJsonCondition(JSONArray jsonCondition) throws JSONException {
+	private static List<QueryTypedValue> getValuesFromUpdateSet(JSONArray jsonSet) throws JSONException {
+		List<QueryTypedValue> result = new ArrayList<>();
+		for (int i = 0; i < jsonSet.length(); i++) {
+			result.add(new QueryTypedValue(jsonSet.getJSONObject(i).get("value")));
+		}
+		return result;
+	}
+	
+	private static List<QueryTypedValue> getValuesFromWhere(JSONArray jsonCondition) throws JSONException {
 		List<QueryTypedValue> result = new ArrayList<>();
 		for (int i = 0; i < jsonCondition.length(); i++) {
 			JSONArray andExpressions = jsonCondition.getJSONArray(i);
@@ -128,23 +135,23 @@ public class ApiMethods {
 		}
 		
 		if(jsonQuery.has("condition")) {
-			sqlUpdate.append(generateWhere(jsonQuery.getJSONArray("condition")));
+			sqlUpdate.append(jsonWhereToSql(jsonQuery.getJSONArray("condition")));
 		}
 		
 		if(playerId != null) {
 			sqlUpdate.append(" AND ").append(playerId.getFieldName()).append("=?");
 		}
 		
-		List<QueryTypedValue> whereValues = parseJsonCondition(jsonQuery.getJSONArray("condition"));
+		List<QueryTypedValue> whereValues = getValuesFromWhere(jsonQuery.getJSONArray("condition"));
 		
 		if(playerId != null) {
 			whereValues.add(new QueryTypedValue(playerId.getValue()));
 		}
 		
-		List<QueryTypedValue> resultValues = toValueList(jsonQuery.getJSONArray("set"));
+		List<QueryTypedValue> resultValues = getValuesFromUpdateSet(jsonQuery.getJSONArray("set"));
 		resultValues.addAll(whereValues);
 		
-		String sql = String.format(sqlUpdate.toString(), tableName, generateUpdateSetPart(jsonQuery.getJSONArray("set")));
+		String sql = String.format(sqlUpdate.toString(), tableName, jsonUpdateSetToSql(jsonQuery.getJSONArray("set")));
 		
 		return SqlMethods.update(sql, resultValues, connection);
 	}
@@ -158,28 +165,43 @@ public class ApiMethods {
 		sql.append(" WHERE ").append(playerId.getFieldName()).append("=?");
 		
 		if(jsonQuery.has("condition")) {
-			sql.append(" AND ").append(generateWhere(jsonQuery.getJSONArray("condition")));
+			sql.append(" AND ").append(jsonWhereToSql(jsonQuery.getJSONArray("condition")));
 		}
-		
 		
 		List<QueryTypedValue> resultValues = new ArrayList<>();
 		resultValues.add(new QueryTypedValue(playerId.getValue()));
 		
 		if(jsonQuery.has("condition")) {
-			resultValues.addAll(parseJsonCondition(jsonQuery.getJSONArray("condition")));
+			resultValues.addAll(getValuesFromWhere(jsonQuery.getJSONArray("condition")));
 		}
 		
-		List<String> fieldsArray = new ArrayList<>();
-		
-		if(jsonQuery.has("fields")) {
-			for(int i=0; i<jsonQuery.getJSONArray("fields").length();i++) {
-				fieldsArray.add(jsonQuery.getJSONArray("fields").getString(i));
-			}
-		}
-		
-		String resultSql = String.format(sql.toString(), fieldsArray.size()>0?String.join(",", fieldsArray):"*", tableName);
+		String resultSql = String.format(sql.toString(), jsonQuery.has("fields")?jsonQuery.getJSONArray("fields").join(","):"*", tableName);
 		
 		List<Row> result = SqlMethods.select(resultSql, resultValues, connection);
+		
+		for(Row row : result) {
+			row.removeCell("id");
+			row.removeCell(playerId.getFieldName());
+		}
+		
+		return result;
+	}
+	
+	public static List<Row> select(Select select, PlayerId playerId, String tableNamePrefix, Connection connection) throws SQLException, JSONException {
+		
+		SqlExpression where = select.getWhere();
+		SimpleSqlExpression playerIdWhereExpression = new SimpleSqlExpression(playerId.getFieldName(), playerId.getValue());
+		
+		if(where == null) {
+			where = playerIdWhereExpression;
+		} else {
+			where = new SqlLogicExpression(playerIdWhereExpression, "AND", where);
+		}
+		
+		select.setWhere(where);
+		select.setTable(tableNamePrefix+select.getTable());
+		
+		List<Row> result = SqlMethods.select(select.toString(), where.getTypedValues(), connection);
 		
 		for(Row row : result) {
 			row.removeCell("id");

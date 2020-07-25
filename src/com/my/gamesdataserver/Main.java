@@ -68,7 +68,7 @@ public class Main {
 	        	File tlsPrivateKey = new File(settings.get("privateKey"));
 	        	sslContext = SslContextBuilder.forServer(tlsCert, tlsPrivateKey).sslProvider(SslProvider.OPENSSL).clientAuth(ClientAuth.NONE).build();
 	        }
-	        CorsConfig corsConfig = CorsConfigBuilder.forAnyOrigin().allowNullOrigin().allowCredentials().allowedRequestHeaders("Authorization", "api_key", "player_id").build();
+	        CorsConfig corsConfig = CorsConfigBuilder.forAnyOrigin().allowNullOrigin().allowCredentials().allowedRequestHeaders("Authorization", "api_key", "player_id", "Test-Object-Query").build();
 	        ServerBootstrap b = new ServerBootstrap();
 	        b.group(bossGroup, workerGroup)
 	        	.channel(NioServerSocketChannel.class)

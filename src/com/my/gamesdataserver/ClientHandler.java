@@ -36,6 +36,7 @@ import com.my.gamesdataserver.basedbclasses.Field;
 import com.my.gamesdataserver.basedbclasses.SqlMethods;
 import com.my.gamesdataserver.basedbclasses.TableIndex;
 import com.my.gamesdataserver.basedbclasses.TableTemplate;
+import com.my.gamesdataserver.basedbclasses.queryclasses.Select;
 import com.my.gamesdataserver.basedbclasses.Row;
 import com.my.gamesdataserver.dbengineclasses.SpecialRequest;
 import com.my.gamesdataserver.dbengineclasses.ApiMethods;
@@ -595,18 +596,27 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		RequestName requestName = recognizeRequestName(httpRequest.uri());
 		String requestBody = httpRequest.content().toString(CharsetUtil.UTF_8);
 		PlayerId playerId = new PlayerId("playerId", httpRequest.headers().get(Authorization.PLAYER_ID_HEADER));
+		boolean objectQuery = Boolean.parseBoolean(httpRequest.headers().get("Test-Object-Query"));
 		
 		JSONObject jsonQuery = new JSONObject(requestBody);
 		
 		switch (requestName) {
 		case SELECT:
-			List<Row> rows = ApiMethods.select(jsonQuery, playerId, game.getPrefix(), dbConnection);
+			List<Row> rows = new ArrayList<>();
+			Select select = new Select(jsonQuery);
+			
+			if(objectQuery) {
+				rows = ApiMethods.select(select, playerId, game.getPrefix(), dbConnection);
+			} else {
+				rows = ApiMethods.select(jsonQuery, playerId, game.getPrefix(), dbConnection);
+			}
 			
 			if(rows.size() > 0) {
 				responseContent = Row.rowsToJson(rows);
 			} else {
 				responseContent = "[]";
 			}
+				
 			break;
 		case INSERT:
 			if(ApiMethods.insert(jsonQuery, playerId, game.getPrefix(), dbConnection) > 0) {
