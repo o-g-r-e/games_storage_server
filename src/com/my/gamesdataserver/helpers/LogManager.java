@@ -16,8 +16,8 @@ public class LogManager {
 	class LogService implements Runnable {
 		private String prefix;
 		private String logPart;
-		LogService(String userId, String logMessage) {
-			this.prefix = userId;
+		LogService(String prefix, String logMessage) {
+			this.prefix = prefix;
 			this.logPart = logMessage;
 		}
 		
@@ -38,11 +38,15 @@ public class LogManager {
 		if(!logsDirectory.exists()) logsDirectory.mkdirs();
 	}
 
-	public void log(String filePrefix, String input, String errorMessage, String output) {
-		executorService.submit(new LogService(filePrefix,  input+"\n\n"+errorMessage+"\n\n"+output+"\n\n"));
+	public void log(String filePrefix, String inputRequest, String errorMessage, String response) {
+		executorService.submit(new LogService(filePrefix,  inputRequest+"\n\n"+errorMessage+"\n\n"+response+"\n\n"));
 	}
 
-	public void log(String filePrefix, String input, String errorMessage) {
-		executorService.submit(new LogService(filePrefix,  input+"\n\n"+errorMessage+"\n\n"));
+	public void log(String filePrefix, String inputRequest, String errorMessage) {
+		executorService.submit(new LogService(filePrefix,  inputRequest+"\n\n"+errorMessage+"\n\n"));
+	}
+	
+	public void addLine(String filePrefix, String message) {
+		executorService.submit(new LogService(filePrefix,  message+"\n"));
 	}
 }

@@ -46,6 +46,7 @@ import com.my.gamesdataserver.dbengineclasses.PlayerId;
 import com.my.gamesdataserver.helpers.EmailSender;
 import com.my.gamesdataserver.helpers.LogManager;
 import com.my.gamesdataserver.helpers.RandomKeyGenerator;
+import com.my.gamesdataserver.template1classes.BoostsUpdate;
 import com.my.gamesdataserver.template1classes.LevelsUpdate;
 import com.my.gamesdataserver.template1classes.Player;
 import com.my.gamesdataserver.template1classes.Template1DbEngine;
@@ -77,7 +78,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private final String defaultPlayerIdFieldName = "playerId";
 	
 	private enum RequestGroup {BASE, API, TEMPLATE_1_API, PLAYER_REQUEST, ALLOWED_REQUEST, BAD, GAME};
-	private enum RequestName {GEN_API_KEY, REGISTER_GAME, CREATE_SPEC_REQUEST, SPEC_REQUEST_LIST, DELETE_GAME, PLAYER_AUTHORIZATION, SELECT, INSERT, UPDATE, LEVEL};
+	private enum RequestName {GEN_API_KEY, REGISTER_GAME, CREATE_SPEC_REQUEST, SPEC_REQUEST_LIST, DELETE_GAME, PLAYER_AUTHORIZATION, SELECT, INSERT, UPDATE, LEVEL, BOOST};
 	
 	private static Map<String, RequestGroup> requestGroupMap;
 	private static Pattern requestGroupPattern;
@@ -117,6 +118,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		requestMap.put("/api/insert", RequestName.INSERT);
 		requestMap.put("/api/update", RequestName.UPDATE);
 		requestMap.put("/game/levels", RequestName.LEVEL);
+		requestMap.put("/game/boosts", RequestName.BOOST);
 		
 		requestNamePattern = Pattern.compile("^\\/\\w+\\/\\w+");
 		
@@ -249,30 +251,70 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		
 		PlayerId playerId = new PlayerId("playerId", fullHttpRequest.headers().get(Authorization.PLAYER_ID_HEADER));
 		
-		JSONArray jsonLevels = new JSONArray(inputContent);
-		
-		List<String> inputLevels = new ArrayList<>();
-		
-		for (int i = 0; i < jsonLevels.length(); i++) {
-			inputLevels.add(jsonLevels.getJSONObject(i).getString("level"));
-		}
-		
-		List<Row> exsistingLevels = SqlMethods.select("SELECT * FROM "+game.getPrefix()+"levels WHERE "+playerId.getFieldName()+"='"+playerId.getValue()+"' AND level IN("+String.join(",", inputLevels)+")", dbConnection);
-		
+		RequestName requestName = recognizeRequestName(fullHttpRequest.uri());
 
-		LevelsUpdate levelsupdate = new LevelsUpdate(jsonLevels, exsistingLevels, playerId, game.getPrefix()+"levels");
+		JSONArray jsonData = new JSONArray(inputContent);
 		
-		int updated = 0;
-		int iserted = 0;
-		
-		for(String updateRequest : levelsupdate.getUpdateRequests()) {
-			updated = SqlMethods.update(updateRequest, dbConnection);
+		switch (requestName) {
+		case LEVEL:
+			JSONArray jsonLevels = jsonData;
+			
+			StringBuilder inputLevels = new StringBuilder();
+			
+			for (int i = 0; i < jsonLevels.length(); i++) {
+				inputLevels.append(jsonLevels.getJSONObject(i).getInt("level"));
+				if(i<jsonLevels.length()-1) inputLevels.append(",");
+			}
+			
+			List<Row> exsistingLevels = SqlMethods.select("SELECT * FROM "+game.getPrefix()+"levels WHERE "+playerId.getFieldName()+"='"+playerId.getValue()+"' AND level IN("+inputLevels+")", dbConnection);
+			
+			LevelsUpdate levelsupdate = new LevelsUpdate(jsonLevels, exsistingLevels, playerId, game.getPrefix()+"levels");
+			
+			int lvlUpdated = 0;
+			int lvlIserted = 0;
+			
+			for(String updateRequest : levelsupdate.getUpdateRequests()) {
+				lvlUpdated = SqlMethods.update(updateRequest, dbConnection);
+			}
+			
+			if(levelsupdate.isNeedInsert())
+				lvlIserted = SqlMethods.insert(levelsupdate.getInsertRequest(), dbConnection);
+			
+			sendHttpResponse(ctx, buildResponse("{udpated : "+lvlUpdated+", inserted: "+lvlIserted+"}", HttpResponseStatus.OK));
+			break;
+		case BOOST:
+			JSONArray jsonBoosts = jsonData;
+			
+			StringBuilder inputBoostsNames = new StringBuilder();
+			
+			for (int i = 0; i < jsonBoosts.length(); i++) {
+				inputBoostsNames.append("'"+jsonBoosts.getJSONObject(i).getString("name")+"'");
+				if(i<jsonBoosts.length()-1) inputBoostsNames.append(",");
+			}
+
+			List<Row> exsistingBoosts = SqlMethods.select("SELECT * FROM "+game.getPrefix()+"boosts WHERE "+playerId.getFieldName()+"='"+playerId.getValue()+"' AND name IN("+inputBoostsNames+")", dbConnection);
+			
+			BoostsUpdate boostsUpdate = new BoostsUpdate(jsonBoosts, exsistingBoosts, playerId, game.getPrefix()+"boosts");
+			
+			int bstUpdated = 0;
+			int bstIserted = 0;
+			
+			for(String updateRequest : boostsUpdate.getUpdateRequests()) {
+				bstUpdated = SqlMethods.update(updateRequest, dbConnection);
+			}
+			
+			if(boostsUpdate.isNeedInsert())
+				bstIserted = SqlMethods.insert(boostsUpdate.getInsertRequest(), dbConnection);
+			
+			sendHttpResponse(ctx, buildResponse("{udpated : "+bstUpdated+", inserted: "+bstIserted+"}", HttpResponseStatus.OK));
+			
+			break;
+		default:
+			sendHttpResponse(ctx, buildSimpleResponse("Error", "Bad command", HttpResponseStatus.BAD_REQUEST));
+			break;
 		}
 		
-		if(levelsupdate.isNeedInsert())
-			iserted = SqlMethods.insert(levelsupdate.getInsertRequest(), dbConnection);
 		
-		sendHttpResponse(ctx, buildResponse("{udpated : "+updated+", inserted: "+iserted+"}", HttpResponseStatus.OK));
 	}
 
 	private void handleAllowedRequest(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, Game game) throws SQLException, FileNotFoundException, ClassNotFoundException, IOException, JSONException, InvalidKeyException, NoSuchAlgorithmException {

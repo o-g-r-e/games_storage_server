@@ -34,6 +34,7 @@ public class Main {
 	private static EmailSender emailSender;
 	
 	public static void main(String[] args) {
+		
 		EventLoopGroup bossGroup = null;
 		EventLoopGroup workerGroup = null;
 		
@@ -55,7 +56,7 @@ public class Main {
 																												   settings.get("dbUser"), 
 																												   settings.get("dbPassword")));
 			
-			emailSender = new EmailSender(settings.get("smtpServer"), settings.get("smtpUser"), settings.get("smtpPassword"), settings.get("emailFrom"));
+			emailSender = new EmailSender(settings.get("smtpServer"), settings.get("smtpUser"), settings.get("oauthClientId"), settings.get("oauthClientSecret"), settings.get("oauthRefreshToken"), settings.get("oauthTokenUrl"), settings.get("accessTokenPath"), settings.get("emailFrom"), logManager);
 	        emailSender.enable("Yes".equals(settings.get("sendEmail")));
 			
 			bossGroup = new NioEventLoopGroup();

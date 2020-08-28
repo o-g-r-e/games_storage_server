@@ -35,6 +35,18 @@ public class Row {
 	public Object get(String fieldName) {
 		return sortedCells.get(fieldName).getValue();
 	}
+	
+	public int getInt(String fieldName) {
+		return (int)sortedCells.get(fieldName).getValue();
+	}
+	
+	public float getFloat(String fieldName) {
+		return (float)sortedCells.get(fieldName).getValue();
+	}
+	
+	public String getString(String fieldName) {
+		return String.valueOf(sortedCells.get(fieldName).getValue());
+	}
 
 	public boolean containsCell(String fieldName) {
 		return sortedCells.containsKey(fieldName);

@@ -12,42 +12,36 @@ import org.json.JSONObject;
 import com.my.gamesdataserver.basedbclasses.Row;
 import com.my.gamesdataserver.dbengineclasses.PlayerId;
 
-public class LevelsUpdate {
-	
-	Map<String, Integer> existingLevelsMap = new HashMap<>();
+public class BoostsUpdate {
+	Map<String, String> existingLevelsMap = new HashMap<>();
 	
 	private List<String> updateRequests = new ArrayList<>();
 	private StringBuilder insertRequest = new StringBuilder("INSERT INTO ");
 	private boolean needInsert = false;
 	
-	public LevelsUpdate(JSONArray jsonLevels, List<Row> exsistingLevels, PlayerId playerId, String levelsTableName) throws JSONException {
-		insertRequest.append(levelsTableName).append(" (").append(playerId.getFieldName()).append(", level, score, stars) VALUES ");
+	public BoostsUpdate(JSONArray jsonLevels, List<Row> exsistingLevels, PlayerId playerId, String boostsTableName) throws JSONException {
+		insertRequest.append(boostsTableName).append(" (").append(playerId.getFieldName()).append(", name, count) VALUES ");
 		
 		for(Row r : exsistingLevels) {
-			existingLevelsMap.put(r.getString("level"), r.getInt("level"));
+			existingLevelsMap.put(r.getString("name"), r.getString("name"));
 		}
 		
 		for(int i=0; i<jsonLevels.length(); i++) {
 			
 			JSONObject inputJsonLevel = jsonLevels.getJSONObject(i);
 			
-			int levelValue = inputJsonLevel.getInt("level");
-			int scoreValue = inputJsonLevel.getInt("score");
-			int starsValue = inputJsonLevel.getInt("stars");
+			String name = inputJsonLevel.getString("name");
+			int count = inputJsonLevel.getInt("count");
 			
-			if(isLevelExists(String.valueOf(levelValue))) {
-				updateRequests.add("UPDATE "+levelsTableName+" SET score="+scoreValue+", stars="+starsValue+" WHERE "+
-				playerId.getFieldName()+"='"+playerId.getValue()+"' AND level="+levelValue);
+			if(isLevelExists(name)) {
+				updateRequests.add("UPDATE "+boostsTableName+" SET count="+count+" WHERE "+
+				playerId.getFieldName()+"='"+playerId.getValue()+"' AND name='"+name+"'");
 			} else {
 				needInsert = true;
 				if(insertRequest.charAt(insertRequest.length()-1) == ')') {
 					insertRequest.append(",");
 				}
-				insertRequest.append("(")
-				.append("'"+playerId.getValue()+"',")
-				.append(levelValue).append(",")
-				.append(scoreValue).append(",")
-				.append(starsValue).append(")");
+				insertRequest.append("('"+playerId.getValue()+"',").append("'"+name+"',").append(count).append(")");
 			}
 		}
 	}
