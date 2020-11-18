@@ -5,6 +5,7 @@ import java.util.Set;
 public class Game {
 	private int id;
 	private String name;
+	private String type;
 	private int ownerId;
 	private String apiKey;
 	private String secretKey;
@@ -12,9 +13,10 @@ public class Game {
 	//private String playerIdFieldName;
 	private String hash;
 	
-	public Game(int id, String name, int ownerId, String apiKey, String secretKey, String prefix, String hash) {
+	public Game(int id, String name, String type, int ownerId, String apiKey, String secretKey, String prefix, String hash) {
 		this.id = id;
 		this.name = name;
+		this.type = type;
 		this.ownerId = ownerId;
 		this.apiKey = apiKey;
 		this.secretKey = secretKey;
@@ -24,6 +26,10 @@ public class Game {
 	
 	public String getName() {
 		return name;
+	}
+
+	public String getType() {
+		return type;
 	}
 	
 	public int getOwnerId() {

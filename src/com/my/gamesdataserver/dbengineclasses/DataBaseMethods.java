@@ -14,7 +14,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.my.gamesdataserver.DataBaseConnectionParameters;
 import com.my.gamesdataserver.DatabaseConnectionManager;
@@ -47,7 +49,7 @@ public class DataBaseMethods  {
 	}
 	
 	public static int regOwner(String email, Connection connection) throws SQLException {
-		return SqlMethods.insert("INSERT INTO owners VALUES (?)", new QueryTypedValue(email), connection);
+		return SqlMethods.insert("INSERT INTO owners (email) VALUES (?)", new QueryTypedValue(email), connection);
 	}
 	
 	public static boolean checkGameByKey(String apiKey, Connection connection) throws SQLException {
@@ -71,11 +73,11 @@ public class DataBaseMethods  {
 		}*/
 	}
 	
-	public static int insertGame(String gameName, int ownerId, String apiKey, String apiSecret, String prefix, String hash, Connection connection) throws SQLException {
-		TypedValueArray typedValueArray = new TypedValueArray(gameName, ownerId, apiKey, apiSecret, prefix, hash);
+	public static int insertGame(String gameName, String gameType, int ownerId, String apiKey, String apiSecret, String prefix, String hash, Connection connection) throws SQLException {
+		TypedValueArray typedValueArray = new TypedValueArray(gameName, ownerId, apiKey, apiSecret, gameType, prefix, hash);
 
 		
-		return SqlMethods.insert("INSERT INTO games (name, owner_id, api_key, api_secret, prefix, hash) VALUES (?,?,?,?,?,?)", typedValueArray.getQueryValues(), connection);
+		return SqlMethods.insert("INSERT INTO games (name, owner_id, api_key, api_secret, type, prefix, hash) VALUES (?,?,?,?,?,?,?)", typedValueArray.getQueryValues(), connection);
 	}
 	
 	public static String generateTablePrefix(String gameName, String apiKey) {
@@ -104,12 +106,13 @@ public class DataBaseMethods  {
 	private static Game rowToGame(Row row, Connection connection) throws SQLException {
 		int id = (int) row.get("id");
 		String gameName = (String)row.get("name");
+		String gameType = (String)row.get("type");
 		int ownerId = (int)row.get("owner_id");
 		String apiKey = (String)row.get("api_key");
 		String secretKey = (String)row.get("api_secret");
 		String prefix = (String)row.get("prefix");
 		String hash = (String)row.get("hash");
-		return new Game(id, gameName, ownerId, apiKey, secretKey, prefix, hash);
+		return new Game(id, gameName, gameType, ownerId, apiKey, secretKey, prefix, hash);
 	}
 
 	public static Player getPlayerById(PlayerId playerId, String gamePrefix, Connection connection) throws SQLException {
@@ -177,18 +180,30 @@ public class DataBaseMethods  {
 		return result;
 	}
 	
+	private static List<QueryTypedValue> getValuesFromWhere(JSONArray jsonCondition) throws JSONException {
+		List<QueryTypedValue> result = new ArrayList<>();
+		for (int i = 0; i < jsonCondition.length(); i++) {
+			JSONArray andExpressions = jsonCondition.getJSONArray(i);
+			for (int j = 0; j < andExpressions.length(); j++) {
+				JSONObject jsonExpression = andExpressions.getJSONObject(j);
+				result.add(new QueryTypedValue(jsonExpression.get("value")));
+			}
+		}
+		return result;
+	}
+	
 	public static int addSpecialRequest(int gameId, String requestName, String table, String fields, Connection connection) throws SQLException {
 		return SqlMethods.insert("INSERT INTO special_requests VALUES (?,?,?,?)", new TypedValueArray(gameId, requestName, table, fields).getQueryValues(), connection);
 	}
 	
-	public static List<Row> executeSpecialRequest(int gameId, String specialRequestName, String tablePrefix, Connection connection) throws JSONException, SQLException {
+	public static List<Row> executeSpecialRequest(int gameId, String specialRequestName, String tablePrefix, JSONArray where, Connection connection) throws JSONException, SQLException {
 		SpecialRequest specialRequest = getSpecialRequestByName(gameId, specialRequestName, connection);
 		
-		if(specialRequest == null) {
-			return new ArrayList<Row>();
-		}
+		if(specialRequest == null) return new ArrayList<Row>();
 		
-		return SqlMethods.select("SELECT "+specialRequest.getFields()+" FROM "+specialRequest.getTable(), connection);
+		specialRequest.setTable(tablePrefix+specialRequest.getTable());
+		specialRequest.setWhere(where);
+		return SqlMethods.select(specialRequest.toString(), getValuesFromWhere(where), connection);
 	}
 
 	public static Owner getOwnerByEmail(String email, Connection dbConnection) throws SQLException {

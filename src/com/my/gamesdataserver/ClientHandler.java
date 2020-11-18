@@ -33,6 +33,7 @@ import org.json.JSONObject;
 
 import com.my.gamesdataserver.basedbclasses.CellData;
 import com.my.gamesdataserver.basedbclasses.Field;
+import com.my.gamesdataserver.basedbclasses.QueryTypedValue;
 import com.my.gamesdataserver.basedbclasses.SqlMethods;
 import com.my.gamesdataserver.basedbclasses.TableIndex;
 import com.my.gamesdataserver.basedbclasses.TableTemplate;
@@ -64,6 +65,7 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
+import io.netty.handler.codec.json.JsonObjectDecoder;
 import io.netty.util.CharsetUtil;
 
 public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
@@ -78,7 +80,22 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private final String defaultPlayerIdFieldName = "playerId";
 	
 	private enum RequestGroup {BASE, API, TEMPLATE_1_API, PLAYER_REQUEST, ALLOWED_REQUEST, BAD, GAME};
-	private enum RequestName {GEN_API_KEY, REGISTER_GAME, CREATE_SPEC_REQUEST, SPEC_REQUEST_LIST, DELETE_GAME, PLAYER_AUTHORIZATION, SELECT, INSERT, UPDATE, LEVEL, BOOST};
+	
+	private enum RequestName {
+		GEN_API_KEY, 
+		REGISTER_GAME, 
+		CREATE_SPEC_REQUEST, 
+		SPEC_REQUEST_LIST, 
+		DELETE_GAME, 
+		PLAYER_AUTHORIZATION, 
+		SELECT, 
+		INSERT, 
+		UPDATE, 
+		LEVEL, 
+		BOOST,
+		LEADBOARD,
+		PLAYERPROGRESS,
+		MAXPLAYERPROGRESS};
 	
 	private static Map<String, RequestGroup> requestGroupMap;
 	private static Pattern requestGroupPattern;
@@ -119,6 +136,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		requestMap.put("/api/update", RequestName.UPDATE);
 		requestMap.put("/game/levels", RequestName.LEVEL);
 		requestMap.put("/game/boosts", RequestName.BOOST);
+		requestMap.put("/game/leaderboard", RequestName.LEADBOARD);
+		requestMap.put("/game/playerprogress", RequestName.PLAYERPROGRESS);
+		requestMap.put("/game/maxplayerprogress", RequestName.MAXPLAYERPROGRESS);
 		
 		requestNamePattern = Pattern.compile("^\\/\\w+\\/\\w+");
 		
@@ -132,8 +152,8 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		this.emailSender = emailSender;
 	}
 	
-	private RequestGroup recognizeRequestGroup(String urlPath) {
-		Matcher requestGroupMatcher = requestGroupPattern.matcher(urlPath);
+	private RequestGroup requestGroup(String uri) {
+		Matcher requestGroupMatcher = requestGroupPattern.matcher(uri);
 		if(requestGroupMatcher.find()) return requestGroupMap.get(requestGroupMatcher.group(1));
 		return RequestGroup.BAD;
 	}
@@ -158,7 +178,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	
 	@Override
     public void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
-		RequestGroup requestGroup = recognizeRequestGroup(fullHttpRequest.uri());
+		RequestGroup requestGroup = requestGroup(fullHttpRequest.uri());
 
 		try {
 			dbConnection = dbConnectionPool.getConnection();
@@ -179,6 +199,11 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			
 			if(requestGroup != RequestGroup.BASE && requestGroup != RequestGroup.PLAYER_REQUEST && !auth.authorization(fullHttpRequest, game, dbConnection)) {
 				sendHttpResponse(ctx, buildSimpleResponse("Error", auth.getStatusMessage(), HttpResponseStatus.OK));
+				return;
+			}
+			
+			if(requestGroup == RequestGroup.GAME && "math3".equals(game.getType())) {
+				sendHttpResponse(ctx, buildSimpleResponse("Error", "You try match3 request", HttpResponseStatus.OK));
 				return;
 			}
 			
@@ -252,12 +277,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		PlayerId playerId = new PlayerId("playerId", fullHttpRequest.headers().get(Authorization.PLAYER_ID_HEADER));
 		
 		RequestName requestName = recognizeRequestName(fullHttpRequest.uri());
-
-		JSONArray jsonData = new JSONArray(inputContent);
 		
 		switch (requestName) {
 		case LEVEL:
-			JSONArray jsonLevels = jsonData;
+			JSONArray jsonLevels = new JSONArray(inputContent);
 			
 			StringBuilder inputLevels = new StringBuilder();
 			
@@ -283,7 +306,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			sendHttpResponse(ctx, buildResponse("{udpated : "+lvlUpdated+", inserted: "+lvlIserted+"}", HttpResponseStatus.OK));
 			break;
 		case BOOST:
-			JSONArray jsonBoosts = jsonData;
+			JSONArray jsonBoosts = new JSONArray(inputContent);
 			
 			StringBuilder inputBoostsNames = new StringBuilder();
 			
@@ -308,6 +331,79 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			
 			sendHttpResponse(ctx, buildResponse("{udpated : "+bstUpdated+", inserted: "+bstIserted+"}", HttpResponseStatus.OK));
 			
+			break;
+		case LEADBOARD:
+			String playersTableName = game.getPrefix()+"players";
+			String levelsTableName = game.getPrefix()+"levels";
+			
+			String sql = "SELECT p.facebookId, max(l.level) max_lvl FROM %s l " + 
+						 "JOIN %s p ON p.playerId = l.playerId " + 
+						 "GROUP BY p.facebookId " + 
+						 "ORDER BY max_lvl DESC";
+			
+			List<Row> rows = SqlMethods.select(String.format(sql, levelsTableName, playersTableName), dbConnection);
+			sendHttpResponse(ctx, buildResponse(Row.rowsToJson(rows), HttpResponseStatus.OK));
+			
+			break;
+		case PLAYERPROGRESS:
+			JSONObject filter = new JSONObject(inputContent);
+			
+			JSONArray fbIds = filter.has("f_ids")?filter.getJSONArray("f_ids"):null;
+			int level = filter.has("level")?filter.getInt("level"):0;
+			
+			if(fbIds == null || fbIds.length() <= 0 || level <= 0) {
+				sendHttpResponse(ctx, buildSimpleResponse("Error", "Filter fail", HttpResponseStatus.BAD_REQUEST));
+				break;
+			}
+			
+			String playersTableName1 = game.getPrefix()+"players";
+			String levelsTableName1 = game.getPrefix()+"levels";
+			
+			String sql1 = "SELECT p.facebookId, l.level, l.score, l.stars FROM %s l " + 
+						  "JOIN %s p ON p.playerId = l.playerId " +
+						  "WHERE l.level=? AND p.facebookId IN (";
+			
+			List<QueryTypedValue> queryValues = new ArrayList<>();
+			queryValues.add(new QueryTypedValue(level));
+			
+			for(int i=0; i<fbIds.length(); i++) {
+				queryValues.add(new QueryTypedValue(fbIds.getString(i)));
+				sql1+="?" + ( i<fbIds.length()-1?",":"" );
+			}
+			
+			sql1+=")";
+			
+			List<Row> rows1 = SqlMethods.select(String.format(sql1, levelsTableName1, playersTableName1), queryValues, dbConnection);
+			sendHttpResponse(ctx, buildResponse(Row.rowsToJson(rows1), HttpResponseStatus.OK));
+			break;
+		case MAXPLAYERPROGRESS:
+			JSONArray fbIds1 = new JSONArray(inputContent);
+			
+			String playersTableName2 = game.getPrefix()+"players";
+			String levelsTableName2 = game.getPrefix()+"levels";
+			
+			String sql2 = "SELECT p.facebookId, t1.level, t1.score, t1.stars FROM %s p\r\n" + 
+					"JOIN (SELECT lb.playerId, lb.level, lb.score, lb.stars FROM %s lb\r\n" + 
+					"      JOIN ( SELECT la.playerId, max(la.level) max_lvl FROM %s la\r\n" + 
+					"             GROUP BY la.playerId\r\n" + 
+					"			 ORDER BY max_lvl DESC ) lc\r\n" + 
+					"      ON lb.playerId = lc.playerId AND lb.level = lc.max_lvl) t1\r\n" + 
+					"ON p.playerId = t1.playerId";
+			
+			List<QueryTypedValue> queryValues1 = new ArrayList<>();
+			
+			if(fbIds1.length() > 0) {
+				sql2 += "\r\nWHERE p.facebookId IN (";
+				for(int i=0; i<fbIds1.length(); i++) {
+					queryValues1.add(new QueryTypedValue(fbIds1.getString(i)));
+					sql2+="?" + ( i<fbIds1.length()-1?",":"" );
+				}
+				
+				sql2+=")";
+			}
+			
+			List<Row> rows2 = SqlMethods.select(String.format(sql2, playersTableName2, levelsTableName2, levelsTableName2), queryValues1, dbConnection);
+			sendHttpResponse(ctx, buildResponse(Row.rowsToJson(rows2), HttpResponseStatus.OK));
 			break;
 		default:
 			sendHttpResponse(ctx, buildSimpleResponse("Error", "Bad command", HttpResponseStatus.BAD_REQUEST));
@@ -338,7 +434,8 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		SqlSelect selectRequest = new SqlSelect(game.getPrefix()+allowedData.getTableName(), whereData);
 		selectRequest.setFields(allowedData.getAllowedFields());*/
 		String requestName = recognizeSpecialRequestName(fullHttpRequest.uri());
-		List<Row> rows = DataBaseMethods.executeSpecialRequest(game.getId(), requestName, game.getPrefix(), dbConnection);
+		String inputContent = fullHttpRequest.content().toString(CharsetUtil.UTF_8);
+		List<Row> rows = DataBaseMethods.executeSpecialRequest(game.getId(), requestName, game.getPrefix(), new JSONArray(inputContent), dbConnection);
 		
 		sendHttpResponse(ctx, buildResponse(Row.rowsToJson(rows), HttpResponseStatus.OK));
 	}
@@ -535,7 +632,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			return;
 		}
 		
+		boolean isMath3 = "Yes".equals(bodyParameters.get("match3"));
+		
 		String gameName = bodyParameters.get("game_name");
+		String gameType = isMath3?"math3":"default";
 		String email = bodyParameters.get("email");
 		String apiKey = RandomKeyGenerator.nextString(24);
 		String apiSecret = RandomKeyGenerator.nextString(45);
@@ -560,7 +660,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		
 		dbConnection.setAutoCommit(false);
 		String prefix = DataBaseMethods.generateTablePrefix(gameName, apiKey);
-		int added = DataBaseMethods.insertGame(gameName, owner.getId(), apiKey, apiSecret, prefix, Authorization.generateHmacHash(apiSecret, apiKey), dbConnection);
+		int added = DataBaseMethods.insertGame(gameName, gameType, owner.getId(), apiKey, apiSecret, prefix, Authorization.generateHmacHash(apiSecret, apiKey), dbConnection);
 		
 		if(added < 1) {
 			dbConnection.rollback();
@@ -581,7 +681,12 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			emailSender.asyncSend(email, "Your game registerd", "Game name: \""+gameName+"\" ApiKey: "+apiKey+" Api secret: "+apiSecret);
 			sendHttpResponse(ctx, buildSimpleResponse("Success", "Register successed", HttpResponseStatus.OK));
 		} else {
-			sendHttpResponse(ctx, buildSimpleResponse("Success", "Game name: "+gameName+" ApiKey: "+apiKey+" Api secret: "+apiSecret, HttpResponseStatus.OK));
+			Map<String, Object> response = new HashMap<>();
+			response.put("status", "success");
+			response.put("game_name", gameName);
+			response.put("api_key", apiKey);
+			response.put("api_secret", apiSecret);
+			sendHttpResponse(ctx, response(jsonObject(response), HttpResponseStatus.OK));
 		}
 	}
 
@@ -653,25 +758,21 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				rows = ApiMethods.select(jsonQuery, playerId, game.getPrefix(), dbConnection);
 			}
 			
-			if(rows.size() > 0) {
-				responseContent = Row.rowsToJson(rows);
-			} else {
-				responseContent = "[]";
-			}
+			responseContent = Row.rowsToJson(rows);
 				
 			break;
 		case INSERT:
 			if(ApiMethods.insert(jsonQuery, playerId, game.getPrefix(), dbConnection) > 0) {
-				responseContent = simpleJsonObject("Success", "Insert completed successfully");
+				responseContent = jsonObject("Success", "Insert completed successfully");
 			} else {
-				responseContent = simpleJsonObject("Error", "An error occurred while inserting");
+				responseContent = jsonObject("Error", "An error occurred while inserting");
 			}
 			break;
 		case UPDATE:
 			if(ApiMethods.update(jsonQuery, playerId, game.getPrefix(), dbConnection) > 0) {
-				responseContent = simpleJsonObject("Success", "Update completed successfully");
+				responseContent = jsonObject("Success", "Update completed successfully");
 			} else {
-				responseContent = simpleJsonObject("Error", "An error occurred while updating");
+				responseContent = jsonObject("Error", "An error occurred while updating");
 			}
 			break;
 		default:
@@ -682,12 +783,16 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		sendHttpResponse(ctx, buildResponse(responseContent, HttpResponseStatus.OK));
 	}
 	
-	private FullHttpResponse buildSimpleResponse(String status, String message, HttpResponseStatus httpStatus, /*HttpHeaders headers*/Map<String, String> headers) {
-		return buildResponse(simpleJsonObject(status, message), httpStatus, headers);
-	}
+	/*private FullHttpResponse buildSimpleResponse(String status, String message, HttpResponseStatus httpStatus, Map<String, String> headers) {
+		return buildResponse(jsonObject(status, message), httpStatus, headers);
+	}*/
 	
 	private FullHttpResponse buildSimpleResponse(String status, String message, HttpResponseStatus httpStatus) {
-		return buildResponse(simpleJsonObject(status, message), httpStatus);
+		return buildResponse(jsonObject(status, message), httpStatus);
+	}
+	
+	private FullHttpResponse response(String message, HttpResponseStatus httpStatus) {
+		return buildResponse(message, httpStatus);
 	}
 	
 	private FullHttpResponse buildResponse(String content, HttpResponseStatus httpStatus, /*HttpHeaders headers*/Map<String, String> headers) {
@@ -837,7 +942,22 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		ctx.writeAndFlush(httpResponse);
 	}
 	
-	private String simpleJsonObject(String name, String value) {
+	private String jsonObject(String name, String value) {
 		return "{ \""+name+"\" : \""+value+"\" }";
+	}
+	
+	private String jsonObject(Map<String, Object> vars) {
+		StringBuilder result = new StringBuilder("{");
+		for(Map.Entry<String, Object> e : vars.entrySet()) {
+			Object value = e.getValue();
+			result.append("\"").append(e.getKey()).append("\"").append(":");
+
+			if(value instanceof String) {
+				result.append("\"").append(value).append("\",");
+			} else {
+				result.append(value).append(",");
+			}
+		}
+		return result.substring(0, result.lastIndexOf(","))+"}";
 	}
 }

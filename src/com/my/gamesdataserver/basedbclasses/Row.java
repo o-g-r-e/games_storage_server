@@ -88,6 +88,7 @@ public class Row {
 	}
 	
 	public static String rowsToJson(List<Row> rows) {
+		if(rows == null) return "[]";
 		StringBuilder sb = new StringBuilder();
 		sb.append("[");
 		for (int i = 0; i < rows.size(); i++) {

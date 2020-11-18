@@ -15,11 +15,18 @@ public class Select {
 	private SqlExpression where;
 	private int limit;
 	
-	public Select(String table, String felds, SqlExpression where, int limit) {
+	public Select(String table, String felds, SqlExpression where) {
 		this.table = table;
 		this.fields = felds;
 		this.where = where;
-		this.limit = limit;
+		this.limit = 0;
+	}
+	
+	public Select(String table, String felds) {
+		this.table = table;
+		this.fields = felds;
+		this.where = null;
+		this.limit = 0;
 	}
 	
 	public Select(JSONObject jsonQuery) throws JSONException {
@@ -52,8 +59,14 @@ public class Select {
 		return limit;
 	}
 
-	public void setWhere(SqlExpression where) {
+	public Select setWhere(SqlExpression where) {
 		this.where = where;
+		return this;
+	}
+
+	public Select setWhere(JSONArray jsonWhere) throws JSONException {
+		this.where = Helpers.jsonWhereToObject(jsonWhere);
+		return this;
 	}
 
 	public void setTable(String table) {
