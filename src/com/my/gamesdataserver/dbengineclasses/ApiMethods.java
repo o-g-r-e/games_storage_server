@@ -7,6 +7,8 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -23,6 +25,50 @@ import com.my.gamesdataserver.basedbclasses.queryclasses.SqlLogicExpression;
 
 public class ApiMethods {
 	
+	private static Pattern helpPattern = Pattern.compile("\"([\\w\"]+)\"");
+	
+	private static String fieldsWithoutQuotes(JSONArray jsonArray) throws JSONException {
+		Matcher m = helpPattern.matcher(jsonArray.join(","));
+		String[] resultValues = new String[jsonArray.length()];
+		
+		int i=0;
+		while (m.find()) 
+			resultValues[i++] = m.group(1);
+		
+		return String.join(",", resultValues);
+	}
+	
+	/*private static String questionMarks(int count) {
+		if(count <= 0) return "";
+		return new String(new char[count]).replace("\0", "?").replaceAll("\\?(?=\\?)", "?,");
+	}*/
+	
+	private static String repeat(String string, int count) {
+		StringBuilder result = new StringBuilder();
+		for (int i = 0; i < count; i++) {
+			result.append(string);
+		}
+		return result.toString();
+	}
+	
+	/*private static String valuesArea(int valuesCount, int insertRowsCount) {
+		String firstRowResult = questionMarks(valuesCount);
+		
+		if("".equals(firstRowResult)) {
+			return "";
+		}
+		
+		String values = "("+questionMarks(valuesCount)+")";*/
+		/*values += new String(new char[jsonValues.length()-1]).replace("\0", values);
+		values = values.replaceAll("\\)\\(", "),(");*/
+		/*StringBuilder result = new StringBuilder((values.length()*insertRowsCount)+insertRowsCount-1);
+		result.append(values);
+		for (int i = 1; i < insertRowsCount; i++) {
+			result.append(",").append(values);
+		}
+		return result.toString();
+	}*/
+	
 	public static int insert(JSONObject jsonQuery, PlayerId playerId, String tableNamePrefix, Connection connection) throws SQLException, JSONException {
 		
 		String tableName = jsonQuery.getString("table");
@@ -32,24 +78,30 @@ public class ApiMethods {
 		StringBuilder sqlInsert = new StringBuilder("INSERT INTO ").append(tableNamePrefix+tableName);
 		
 		if(jsonQuery.has("fields") && jsonQuery.getJSONArray("fields").length() > 0) {
-			sqlInsert.append(" (id,").append(playerId.getFieldName()).append(",").append(jsonQuery.getJSONArray("fields").join(", ")).append(")");
+			sqlInsert.append(" (id,")
+			.append(playerId.getFieldName())
+			.append(",")
+			.append(fieldsWithoutQuotes(jsonQuery.getJSONArray("fields")))
+			.append(")");
 		}
 		
 		sqlInsert.append(" VALUES ");
-		
-		String values = "("+new String(new char[jsonValues.getJSONArray(0).length()]).replace("\0", "?").replaceAll("\\?(?=\\?)", "?,")+")";
+		String values = "(DEFAULT,?"+repeat(",?",jsonValues.getJSONArray(0).length())+")";
+		values += repeat(","+values, jsonValues.length()-1);
+		sqlInsert.append(values);
+		/*String values = "("+questionMarks(jsonValues.getJSONArray(0).length())+")";
 		values += new String(new char[jsonValues.length()-1]).replace("\0", values);
-		values = values.replaceAll("\\)\\(", "),(");
+		values = values.replaceAll("\\)\\(", "),(");*/
+		//String valuesQueryArea = valuesArea(jsonValues.getJSONArray(0).length(), jsonValues.length());
 		
 		
-		values = values.replaceAll("\\(", "(DEFAULT,?,");
+		//valuesQueryArea = valuesQueryArea.replaceAll("\\(", "(DEFAULT,?,"); //DEFAULT - auto increment id, ? - player_id
 		for (int i = 0; i < jsonValues.length(); i++) {
 			JSONArray jsonRow = jsonValues.getJSONArray(i);
 			jsonValues.put(i, new JSONArray("['"+playerId.getValue()+"',"+jsonRow.join(",")+"]"));
 		}
 		
-		sqlInsert.append(values);
-		
+		//sqlInsert.append(valuesQueryArea);
 		return SqlMethods.insert(sqlInsert.toString(), getValuesFromInsert(jsonValues), connection);
 	}
 	
@@ -128,23 +180,22 @@ public class ApiMethods {
 		
 		String tableName = tableNamePrefix+jsonQuery.getString("table");
 		
-		StringBuilder sqlUpdate = new StringBuilder("UPDATE %s SET %s");
+		StringBuilder sqlUpdate = new StringBuilder("UPDATE %s SET %s WHERE ");
 		
-		if(jsonQuery.has("condition") || playerId != null) {
-			sqlUpdate.append(" WHERE ");
+		if(playerId == null) {
+			return 0;
 		}
 		
-		if(jsonQuery.has("condition")) {
+		List<QueryTypedValue> whereValues = new ArrayList<>();
+		
+		if(jsonQuery.has("condition") && jsonQuery.getJSONArray("condition").length() > 0) {
 			sqlUpdate.append(jsonWhereToSql(jsonQuery.getJSONArray("condition")));
+			whereValues = getValuesFromWhere(jsonQuery.getJSONArray("condition"));
+			sqlUpdate.append(" AND ");
 		}
 		
 		if(playerId != null) {
-			sqlUpdate.append(" AND ").append(playerId.getFieldName()).append("=?");
-		}
-		
-		List<QueryTypedValue> whereValues = getValuesFromWhere(jsonQuery.getJSONArray("condition"));
-		
-		if(playerId != null) {
+			sqlUpdate.append(playerId.getFieldName()).append("=?");
 			whereValues.add(new QueryTypedValue(playerId.getValue()));
 		}
 		
@@ -175,7 +226,7 @@ public class ApiMethods {
 			resultValues.addAll(getValuesFromWhere(jsonQuery.getJSONArray("condition")));
 		}
 		
-		String resultSql = String.format(sql.toString(), jsonQuery.has("fields")?jsonQuery.getJSONArray("fields").join(","):"*", tableName);
+		String resultSql = String.format(sql.toString(), jsonQuery.has("fields")?fieldsWithoutQuotes(jsonQuery.getJSONArray("fields")):"*", tableName);
 		
 		List<Row> result = SqlMethods.select(resultSql, resultValues, connection);
 		

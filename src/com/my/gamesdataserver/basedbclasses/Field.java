@@ -69,7 +69,7 @@ public class Field {
 		case Types.VARCHAR:
 			return "VARCHAR("+length+")";
 		case Types.FLOAT:
-			return "FLOAT";
+			return "DECIMAL(5,2)";
 		}
 		
 		return null;

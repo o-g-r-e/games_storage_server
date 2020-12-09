@@ -202,11 +202,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				return;
 			}
 			
-			if(requestGroup == RequestGroup.GAME && "math3".equals(game.getType())) {
-				sendHttpResponse(ctx, buildSimpleResponse("Error", "You try match3 request", HttpResponseStatus.OK));
-				return;
-			}
-			
 			switch (requestGroup) {
 			
 			case BASE:
@@ -323,7 +318,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			int bstIserted = 0;
 			
 			for(String updateRequest : boostsUpdate.getUpdateRequests()) {
-				bstUpdated = SqlMethods.update(updateRequest, dbConnection);
+				bstUpdated += SqlMethods.update(updateRequest, dbConnection);
 			}
 			
 			if(boostsUpdate.isNeedInsert())
@@ -943,7 +938,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	}
 	
 	private String jsonObject(String name, String value) {
-		return "{ \""+name+"\" : \""+value+"\" }";
+		return "{\""+name+"\":\""+value+"\"}";
 	}
 	
 	private String jsonObject(Map<String, Object> vars) {

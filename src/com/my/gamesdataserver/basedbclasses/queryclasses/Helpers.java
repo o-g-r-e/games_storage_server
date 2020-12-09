@@ -25,7 +25,7 @@ public class Helpers {
 				exp = new SqlLogicExpression(lExp, "AND", rExp);
 					
 				if(orExpressions.length() >= 3 ) {
-					for (int j = orExpressions.length()-3; j <= 0; j--) {
+					for (int j = orExpressions.length()-3; j >= 0; j--) {
 						JSONObject andExpression = orExpressions.getJSONObject(j);
 						SimpleSqlExpression curExp = new SimpleSqlExpression(andExpression.getString("name"), andExpression.get("value"));
 						exp = new SqlLogicExpression(curExp, "AND", exp);
