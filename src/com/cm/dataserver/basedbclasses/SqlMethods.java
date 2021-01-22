@@ -1,7 +1,5 @@
 package com.cm.dataserver.basedbclasses;
-import java.beans.PropertyVetoException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -9,25 +7,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import com.cm.dataserver.DataBaseConnectionParameters;
-import com.cm.dataserver.DatabaseConnectionManager;
-import com.cm.dataserver.DatabaseConnectionPoolC3P0;
-import com.cm.dataserver.dbengineclasses.DataBaseMethods;
-import com.cm.dataserver.dbengineclasses.PlayerId;
-import com.mchange.v2.c3p0.ComboPooledDataSource;
 
 public class SqlMethods {
 	
