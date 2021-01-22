@@ -22,7 +22,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Test;
 
-import com.my.gamesdataserver.dbengineclasses.DataBaseMethods;
+import com.cm.dataserver.dbengineclasses.DataBaseMethods;
 import com.mysql.jdbc.Connection;
 import com.mysql.jdbc.Statement;
 
