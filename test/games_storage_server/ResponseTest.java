@@ -210,8 +210,8 @@ public class ResponseTest {
 			testApiRequest("[{name:\"boost1\",count:2},{name:\"boost2\",count:4},{name:\"boost3\",count:6}]", "/game/boosts", "{udpated : 0, inserted: 3}");	
 			testApiRequest("[{name:\"boost1\",count:3},{name:\"boost2\",count:4},{name:\"boost3\",count:7},{name:\"boost4\",count:1},{name:\"boost5\",count:1}]", "/game/boosts", "{udpated : 3, inserted: 2}");
 			
-			testApiRequest("[{level:\"1\",score:200,stars:3},{level:\"2\",score:350,stars:3},{level:\"3\",score:500,stars:3}]", "/game/levels", "{udpated : 0, inserted: 3}");
-			testApiRequest("[{level:\"3\",score:590,stars:3},{level:\"4\",score:600,stars:3}]", "/game/levels", "{udpated : 1, inserted: 1}");
+			testApiRequest("[{level:1,score:200,stars:3},{level:2,score:350,stars:3},{level:3,score:500,stars:3}]", "/game/levels", "{udpated : 0, inserted: 3}");
+			testApiRequest("[{level:3,score:590,stars:3},{level:4,score:600,stars:3}]", "/game/levels", "{udpated : 1, inserted: 1}");
 			
 			testApiRequest("", "/game/leaderboard", "[{\"facebookId\":\"8373351478\",\"max_lvl\":4},{\"facebookId\":\"1464368749\",\"max_lvl\":2},{\"facebookId\":\"3006020705\",\"max_lvl\":2},{\"facebookId\":\"3294251159\",\"max_lvl\":2},{\"facebookId\":\"3998823149\",\"max_lvl\":2},{\"facebookId\":\"4979193465\",\"max_lvl\":2},{\"facebookId\":\"6186682720\",\"max_lvl\":2}]");
 			
