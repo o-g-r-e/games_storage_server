@@ -50,7 +50,7 @@ public class Authorization {
 		return false;
 	}*/
 	
-	public boolean requestAuthentication(FullHttpRequest httpRequest) throws InvalidKeyException, NoSuchAlgorithmException {
+	public boolean checkAuthorizationHeader(FullHttpRequest httpRequest) throws InvalidKeyException, NoSuchAlgorithmException {
 		String authorizationString = httpRequest.headers().get("Authorization");
 		
 		if(authorizationString == null || authorizationString.length() <= 0 || !authorizationString.contains(":")) {
@@ -71,19 +71,32 @@ public class Authorization {
 		return true;
 	}
 	
+	private boolean checkPlayerId(String playerId, String gamePrefix, Connection connection) throws SQLException {
+		if( playerId == null || 
+			playerId.length() <= 0 || 
+			playerId.contains("%") || 
+			playerId.contains("_") || 
+			DataBaseMethods.getPlayerById(new PlayerId("playerId", playerId), gamePrefix, connection) == null) {
+			return false;
+		}
+		return true;
+	}
+	
 	public boolean authorization(FullHttpRequest httpRequest, Game game, Connection connection) throws InvalidKeyException, NoSuchAlgorithmException, SQLException {
 		
-		if(!requestAuthentication(httpRequest)) {
+		if(!checkAuthorizationHeader(httpRequest)) {
 			statusCode = Code.REQUEST_AUTH_FAIL;
 			return false;
-		} /*if(!gameAuthentication(httpRequest, game, dbManager)) {
+		} 
+		
+		/*if(!gameAuthentication(httpRequest, game, dbManager)) {
 			statusCode = Code.GAME_AUTH_FAIL;
 			return false;
 		}*/
 		
 		String playerId = httpRequest.headers().get(Authorization.PLAYER_ID_HEADER);
 		
-		if(playerId == null || playerId.length() <= 0 || playerId.contains("%") || playerId.contains("_") || DataBaseMethods.getPlayerById(new PlayerId("playerId", playerId), game.getPrefix(), connection) == null) {
+		if(!checkPlayerId(playerId, game.getPrefix(), connection)) {
 			statusCode = Code.PLAYER_AUTH_FAIL;
 			return false;
 		}

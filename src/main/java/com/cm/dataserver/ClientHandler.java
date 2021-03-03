@@ -192,7 +192,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			
 			Authorization auth = new Authorization();
 			
-			if(requestGroup == RequestGroup.PLAYER_REQUEST && !auth.requestAuthentication(fullHttpRequest)) {
+			if(requestGroup == RequestGroup.PLAYER_REQUEST && !auth.checkAuthorizationHeader(fullHttpRequest)) {
 				sendHttpResponse(ctx, buildSimpleResponse("Error", auth.getStatusMessage(), HttpResponseStatus.OK));
 				return;
 			}
