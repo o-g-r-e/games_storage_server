@@ -47,7 +47,7 @@ public class Field {
 		return this;
 	}
 
-	public Field setNull(boolean isNull) {
+	public Field defNull(boolean isNull) {
 		this.isNull = isNull;
 		return this;
 	}

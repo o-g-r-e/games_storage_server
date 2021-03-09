@@ -31,6 +31,7 @@ import com.cm.dataserver.basedbclasses.TypedValueArray;
 import com.cm.dataserver.basedbclasses.queryclasses.SimpleSqlExpression;
 import com.cm.dataserver.helpers.RandomKeyGenerator;
 import com.cm.dataserver.template1classes.Player;
+import com.cm.dataserver.template1classes.PlayerMessage;
 
 public class DataBaseMethods  {
 	
@@ -75,8 +76,6 @@ public class DataBaseMethods  {
 	
 	public static int insertGame(String gameName, String gameType, int ownerId, String apiKey, String apiSecret, String prefix, String hash, Connection connection) throws SQLException {
 		TypedValueArray typedValueArray = new TypedValueArray(gameName, ownerId, apiKey, apiSecret, gameType, prefix, hash);
-
-		
 		return SqlMethods.insert("INSERT INTO games (name, owner_id, api_key, api_secret, type, prefix, hash) VALUES (?,?,?,?,?,?,?)", typedValueArray.getQueryValues(), connection);
 	}
 	
@@ -91,6 +90,37 @@ public class DataBaseMethods  {
 	public static Game getGameByKey(String apiKey, Connection connection) throws SQLException {
 		List<Row> rows = SqlMethods.select("SELECT * FROM games WHERE api_key=? LIMIT 1", new QueryTypedValue(apiKey), connection);
 		return rowToGame(rows.get(0), connection);
+	}
+	
+	/*public static List<PlayerMessage> getPlayerMessages(String gamePrefix, String playerId, Connection connection) throws SQLException {
+		List<PlayerMessage> result = new ArrayList<>();
+		
+		List<Row> rows = SqlMethods.select(  "SELECT player_messages.id, player_messages.type, facebookId AS sender_facebook_id, player_messages.message_content FROM players\r\n"
+										   + "    JOIN ( SELECT id, type, sender_id, message_content FROM messages WHERE recipient_id=? ) player_messages\r\n"
+										   + "ON playerId = player_messages.sender_id", new QueryTypedValue(playerId), connection);
+		
+		for (Row row : rows) {
+			result.add(new PlayerMessage(row.getString("id"), 
+										 row.getString("sender_facebook_id"), 
+										 row.getString("type"), 
+										 row.getString("message_content")));
+		}
+		return result;
+	}*/
+	
+	public static int insertMessage(String gamePrefix, String type, String sederId, String recipientId, String messageContent, Connection connection) throws SQLException {
+		TypedValueArray typedValueArray = new TypedValueArray(type, sederId, recipientId, messageContent);
+		return SqlMethods.insert("INSERT INTO "+gamePrefix+"messages (type, sender_id, recipient_id, message_content) VALUES (?,?,?,?)", typedValueArray.getQueryValues(), connection);
+	}
+	
+	public static List<Row> getPlayerMessages(String gamePrefix, String playerId, Connection connection) throws SQLException {
+		return SqlMethods.select(  "SELECT player_messages.id, player_messages.type, facebookId AS sender_facebook_id, player_messages.message_content FROM "+gamePrefix+"players\r\n"
+										   + "    JOIN ( SELECT id, type, sender_id, message_content FROM "+gamePrefix+"messages WHERE recipient_id=? ) player_messages\r\n"
+										   + "ON playerId = player_messages.sender_id", new QueryTypedValue(playerId), connection);
+	}
+	
+	public static int deleteMessage(String gamePrefix, String playerId, String messageId, Connection connection) throws SQLException {
+		return SqlMethods.delete("DELETE FROM "+gamePrefix+"messages WHERE id=? AND recipient_id=?", new TypedValueArray(messageId, playerId).getQueryValues(), connection);
 	}
 
 	public static Game getGameByHash(String gameHash, Connection connection) throws SQLException {

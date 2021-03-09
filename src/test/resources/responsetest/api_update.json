@@ -1,0 +1,117 @@
+[
+	{
+		"table" : "test_table",
+		"set" : 
+	    [
+	    	{
+	    		"name" : "test_int",
+	    		"value" : 0
+	    	}
+	    ]
+	},
+	{
+		"table" : "test_table",
+		"set" : 
+	    [
+	    	{
+	    		"name" : "test_int",
+	    		"value" : 1
+	    	}
+	    ],
+	    "condition" : 
+	    [   
+	        [
+	            {
+		            "name" : "test_float",
+		            "value" : 7.55
+	            }
+	        ]
+	    ]
+	},
+	{
+		"table" : "test_table",
+		"set" : 
+	    [
+	    	{
+	    		"name" : "test_int",
+	    		"value" : 500
+	    	}
+	    ],
+	    "condition" : 
+	    [   
+	        [
+	            {
+		            "name" : "test_float",
+		            "value" : 7.55,
+		            "is_not" : true
+	            }
+	        ]
+	    ]
+	},
+	{
+		"table" : "test_table",
+		"set" : 
+	    [
+	    	{
+	    		"name" : "test_int",
+	    		"value" : 5
+	    	},
+	    	{
+	    		"name" : "test_float",
+	    		"value" : 0.0
+	    	}
+	    ]
+	},
+	{
+		"table" : "test_table",
+		"set" : 
+	    [
+	    	{
+	    		"name" : "test_int",
+	    		"value" : 100
+	    	},
+	    	{
+	    		"name" : "test_float",
+	    		"value" : 4.0
+	    	}
+	    ],
+	    "condition" : 
+	    [   
+	        [
+	            {
+		            "name" : "test_string",
+		            "value" : "entri2"
+	            }
+	        ]
+	    ]
+	},
+	{
+		"table" : "test_table",
+		"set" : 
+	    [
+	    	{
+	    		"name" : "test_int",
+	    		"value" : 300
+	    	},
+	    	{
+	    		"name" : "test_float",
+	    		"value" : 12.2
+	    	}
+	    ],
+	    "condition" : 
+	    [   
+	        [
+	            {
+		            "name" : "test_string",
+		            "value" : "entri3"
+	            },
+	        ],
+	        [
+	            {
+		            "name" : "test_string",
+		            "value" : "entri4"
+	            }
+	        ]
+	    ]
+	}
+]

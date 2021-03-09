@@ -1,0 +1,58 @@
+[
+    {
+        "table" : "test_table",
+        "values" : 
+        [
+            [
+                10,
+                7.55,
+                "entri1"
+            ]
+        ]
+    },
+    {
+        "table" : "test_table",
+        "values" : 
+        [
+            [
+                100,
+                9.9,
+                "entri2"
+            ],
+            [
+                500,
+                8.0,
+                "entri3"
+            ]
+        ]
+    },
+    {
+        "table" : "test_table",
+        "fields" : ["test_int", "test_float", "test_string"],
+        "values" : 
+        [
+            [
+                10,
+                10.55,
+                "entri4"
+            ]
+        ]
+    },
+    {
+        "table" : "test_table",
+        "fields" : ["test_int", "test_float", "test_string"],
+        "values" : 
+        [
+            [
+                100,
+                99.9,
+                "entri5"
+            ],
+            [
+                500,
+                10.0,
+                "entri6"
+            ]
+        ]
+    }
+]

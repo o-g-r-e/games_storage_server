@@ -52,6 +52,7 @@ import com.cm.dataserver.helpers.RandomKeyGenerator;
 import com.cm.dataserver.template1classes.BoostsUpdate;
 import com.cm.dataserver.template1classes.LevelsUpdate;
 import com.cm.dataserver.template1classes.Player;
+import com.cm.dataserver.template1classes.PlayerMessage;
 import com.cm.dataserver.template1classes.Template1DbEngine;
 
 import io.netty.buffer.Unpooled;
@@ -79,7 +80,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	//private static Map<String, String> defaultResponseHeaders;
 	private final String defaultPlayerIdFieldName = "playerId";
 	
-	private enum RequestGroup {BASE, API, TEMPLATE_1_API, PLAYER_REQUEST, ALLOWED_REQUEST, BAD, GAME};
+	private enum RequestGroup {BASE, API, TEMPLATE_1_API, PLAYER_REQUEST, ALLOWED_REQUEST, BAD, GAME, MESSAGE};
 	
 	private enum RequestName {
 		GEN_API_KEY, 
@@ -95,7 +96,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		BOOST,
 		LEADBOARD,
 		PLAYERPROGRESS,
-		MAXPLAYERPROGRESS};
+		MAXPLAYERPROGRESS,
+		SEND_MESSAGE,
+		FETCH_ALL_MESSAGES,
+		DELETE_MESSAGE};
 	
 	private static Map<String, RequestGroup> requestGroupMap;
 	private static Pattern requestGroupPattern;
@@ -122,6 +126,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		requestGroupMap.put("system", RequestGroup.BASE);
 		requestGroupMap.put("special", RequestGroup.ALLOWED_REQUEST);
 		requestGroupMap.put("game", RequestGroup.GAME);
+		requestGroupMap.put("message", RequestGroup.MESSAGE);
 		
 		requestGroupPattern = Pattern.compile("^\\/(\\w+)\\/?");
 		
@@ -139,6 +144,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		requestMap.put("/game/leaderboard", RequestName.LEADBOARD);
 		requestMap.put("/game/playerprogress", RequestName.PLAYERPROGRESS);
 		requestMap.put("/game/maxplayerprogress", RequestName.MAXPLAYERPROGRESS);
+		requestMap.put("/message/send", RequestName.SEND_MESSAGE);
+		requestMap.put("/message/fetch_my_messages", RequestName.FETCH_ALL_MESSAGES);
+		requestMap.put("/message/delete", RequestName.DELETE_MESSAGE);
 		
 		requestNamePattern = Pattern.compile("^\\/\\w+\\/\\w+");
 		
@@ -226,6 +234,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				
 			case ALLOWED_REQUEST:
 				handleAllowedRequest(ctx, fullHttpRequest, game);
+				break;
+				
+			case MESSAGE:
+				handlePlayerMessage(ctx, fullHttpRequest, game);
 				break;
 				
 			case BAD:
@@ -618,6 +630,56 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		
 		sendHttpResponse(ctx, buildSimpleResponse("Success", "Deletion was successful", HttpResponseStatus.OK));
 	}
+	
+	private void handlePlayerMessage(ChannelHandlerContext ctx, FullHttpRequest httpRequest, Game game) throws SQLException {
+		
+		RequestName requestName = recognizeRequestName(httpRequest.uri());
+		PlayerId playerId = new PlayerId("playerId", httpRequest.headers().get(Authorization.PLAYER_ID_HEADER));
+		switch (requestName) {
+		case SEND_MESSAGE:
+			Map<String, String> bodyParameters = parseParameters(httpRequest.content().toString(CharsetUtil.UTF_8));
+			
+			if(!simpleValidation(new String[] {"type", "recipient_facebook_id", "message"}, bodyParameters)) {
+				sendValidationFailResponse(ctx);
+				return;
+			}
+			
+			Player messageRecipient = DataBaseMethods.getPlayerByFacebookId(bodyParameters.get("recipient_facebook_id"), game.getPrefix(), dbConnection);
+			
+			int added = DataBaseMethods.insertMessage(game.getPrefix(), bodyParameters.get("type"), playerId.getValue(), messageRecipient.getPlayerId(), bodyParameters.get("message"), dbConnection);
+			
+			if(added < 1) {
+				dbConnection.rollback();
+				sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while adding message", HttpResponseStatus.INTERNAL_SERVER_ERROR));
+				return;
+			}
+			sendHttpResponse(ctx, buildSimpleResponse("Success", "Message sent successfully", HttpResponseStatus.OK));
+			break;
+			
+		case FETCH_ALL_MESSAGES:
+			List<Row> playerMessages = DataBaseMethods.getPlayerMessages(game.getPrefix(), playerId.getValue(), dbConnection);
+			sendHttpResponse(ctx, buildResponse(Row.rowsToJson(playerMessages), HttpResponseStatus.OK));
+			break;
+			
+		case DELETE_MESSAGE:
+			Map<String, String> mDeletionBodyParameters = parseParameters(httpRequest.content().toString(CharsetUtil.UTF_8));
+			
+			if(!simpleValidation(new String[] {"id"}, mDeletionBodyParameters)) {
+				sendValidationFailResponse(ctx);
+				return;
+			}
+			
+			int deleted = DataBaseMethods.deleteMessage(game.getPrefix(), playerId.getValue(), mDeletionBodyParameters.get("id"), dbConnection);
+			
+			if(deleted < 1) {
+				sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while deletion message", HttpResponseStatus.INTERNAL_SERVER_ERROR));
+				return;
+			}
+			sendHttpResponse(ctx, buildSimpleResponse("Success", "Message deleted successfully", HttpResponseStatus.OK));
+			break;
+		}
+		
+	}
 
 	private void handleRegisterGame(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, InvalidKeyException, NoSuchAlgorithmException, FileNotFoundException, ClassNotFoundException, IOException {
 		Map<String, String> bodyParameters = parseParameters(httpRequest.content().toString(CharsetUtil.UTF_8));
@@ -665,7 +727,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		if("Yes".equals(bodyParameters.get("match3"))) {
 			DataBaseMethods.createGameTables(MATCH_3_TEMPLATE, prefix, dbConnection); //throw exception if not successfully
 		} else {
-			DataBaseMethods.createGameTable(new TableTemplate("players", new Field[] {new Field(Types.VARCHAR, "playerId").setLength(17).setNull(false), new Field(Types.VARCHAR, "facebookId")}, "playerId"), prefix, dbConnection);
+			DataBaseMethods.createGameTable(new TableTemplate("players", new Field[] {new Field(Types.VARCHAR, "playerId").setLength(17).defNull(false), new Field(Types.VARCHAR, "facebookId")}, "playerId"), prefix, dbConnection);
 		}
 		
 		dbConnection.commit();
@@ -840,6 +902,15 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		return reuslt;
 	}
 	
+	private boolean simpleValidation(String[] names, Map<String, String> parameters) {
+		for(String name : names) {
+			if(!parameters.containsKey(name) || "".equals(parameters.get(name))) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
 	private Map<String, String> parseUrlParameters(String url) {
 		Map<String, String> reuslt = new HashMap<>();
 		Map<String, List<String>> parameters = new QueryStringDecoder(url).parameters();
@@ -854,29 +925,36 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private static GameTemplate match3Template() {
 		
 		List<TableTemplate> tblTemplates = new ArrayList<>();
-		TableTemplate levelsTemplate = new TableTemplate("levels", new Field[] {  new Field(Types.INTEGER, "id").setNull(false).setAutoIncrement(true),
-																				  new Field(Types.VARCHAR, "playerId").setNull(false),
-				  																  new Field(Types.INTEGER, "level").setNull(false),
-																				  new Field(Types.INTEGER, "score").setNull(false),
-																				  new Field(Types.INTEGER, "stars").setNull(false)}, "id");
+		TableTemplate levelsTemplate = new TableTemplate("levels", new Field[] {  new Field(Types.INTEGER, "id").defNull(false).setAutoIncrement(true),
+																				  new Field(Types.VARCHAR, "playerId").defNull(false).setLength(17),
+				  																  new Field(Types.INTEGER, "level").defNull(false),
+																				  new Field(Types.INTEGER, "score").defNull(false),
+																				  new Field(Types.INTEGER, "stars").defNull(false)}, "id");
 		
 		levelsTemplate.addIndex(new TableIndex("playerId_level", new String[] {"playerId", "level"}, true));
 		
-		TableTemplate playersTemplate = new TableTemplate("players", new Field[] {  new Field(Types.VARCHAR, "playerId").setNull(false).setLength(17),
-																					new Field(Types.VARCHAR, "facebookId").setNull(false)}, "playerId");
+		TableTemplate playersTemplate = new TableTemplate("players", new Field[] {  new Field(Types.VARCHAR, "playerId").defNull(false).setLength(17),
+																					new Field(Types.VARCHAR, "facebookId").defNull(false)}, "playerId");
 		
 		playersTemplate.addIndex(new TableIndex("playerId_unique", new String[] {"facebookId"}, true));
 				
-		TableTemplate boostsTemplate = new TableTemplate("boosts", new Field[] {new Field(Types.INTEGER, "id").setNull(false).setAutoIncrement(true),
-																			new Field(Types.VARCHAR, "playerId").setNull(false), 
-				  																  new Field(Types.VARCHAR, "name").setNull(false), 
-																				  new Field(Types.INTEGER, "count").setDefaultValue("0")}, "id");
+		TableTemplate boostsTemplate = new TableTemplate("boosts", new Field[] {new Field(Types.INTEGER, "id").defNull(false).setAutoIncrement(true),
+																				new Field(Types.VARCHAR, "playerId").defNull(false).setLength(17), 
+				  																new Field(Types.VARCHAR, "name").defNull(false).setLength(24), 
+																				new Field(Types.INTEGER, "count").setDefaultValue("0")}, "id");
 		
 		boostsTemplate.addIndex(new TableIndex("playerId_boostName", new String[] {"playerId", "name"}, true));
+		
+		TableTemplate messagesTemplate = new TableTemplate("messages", new Field[] {new Field(Types.INTEGER, "id").defNull(false).setAutoIncrement(true),
+																					new Field(Types.VARCHAR, "type").defNull(false).setLength(15), 
+																					new Field(Types.VARCHAR, "sender_id").defNull(false).setLength(17), 
+																					new Field(Types.VARCHAR, "recipient_id").defNull(false).setLength(17), 
+																					new Field(Types.VARCHAR, "message_content").defNull(false).setLength(24)}, "id");
 		
 		tblTemplates.add(levelsTemplate);
 		tblTemplates.add(playersTemplate);
 		tblTemplates.add(boostsTemplate);
+		tblTemplates.add(messagesTemplate);
 		
 		return new GameTemplate("Match 3", tblTemplates);
 	}
@@ -913,15 +991,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		}
 		return result;
 	}*/
-	
-	private boolean simpleValidation(String[] names, Map<String, String> parameters) {
-		for(String name : names) {
-			if(!parameters.containsKey(name) || "".equals(parameters.get(name))) {
-				return false;
-			}
-		}
-		return true;
-	}
 	
 	private void sendValidationFailResponse(ChannelHandlerContext ctx) {
 		sendHttpResponse(ctx, buildSimpleResponse("Error", "Parameters validation failed", HttpResponseStatus.BAD_REQUEST));

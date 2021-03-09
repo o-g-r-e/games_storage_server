@@ -64,12 +64,17 @@ public class ResponseTest {
 		return result;
 	}
 	
-	private void initTestDatabase(Statement statement, /*String dbName,*/ String[] queries) throws SQLException {
+	private void initTestDatabase(Statement statement, String[] queries) throws SQLException {
 		for (int i = 0; i < queries.length; i++)
 			statement.executeUpdate(queries[i].trim());
 	}
 	
-	private void addTestDataToDatabase(Statement statement) throws SQLException {
+	private void createTables(Statement statement, String[] queries) throws SQLException {
+		for (int i = 0; i < queries.length; i++)
+			statement.executeUpdate(queries[i].trim());
+	}
+	
+	private void createTables(Statement statement) throws SQLException {
 		statement.executeUpdate("CREATE TABLE `"+prefix+"test_table` (\r\n"
 				+ "    `id` int(11) NOT NULL AUTO_INCREMENT,\r\n"
 				+ "    `playerId` varchar(17) NOT NULL,\r\n"
@@ -134,24 +139,28 @@ public class ResponseTest {
 		playerId = new JSONObject(response).getString("playerId");
 	}
 	
-	private String apiRequest(String url, String body) throws InvalidKeyException, MalformedURLException, NoSuchAlgorithmException, IOException {
+	private String authorizedRequest(String url, String body) throws InvalidKeyException, MalformedURLException, NoSuchAlgorithmException, IOException {
 		return new HttpClient(host+url)
 					.addHeader("Authorization", computeRequestHmac(gameHmac, url)+":"+gameHmac)
 					.addHeader("Player_id", playerId)
 					.doPost(body).getResponseBody();
 	}
 	
-	private void testApiRequest(String jsonQuery, String url, String expectedValue) throws JSONException, InvalidKeyException, MalformedURLException, NoSuchAlgorithmException, IOException {
-		String response = apiRequest(url, jsonQuery);
+	private void testRequest(String jsonQuery, String url, String expectedValue) throws JSONException, InvalidKeyException, MalformedURLException, NoSuchAlgorithmException, IOException {
+		String response = authorizedRequest(url, jsonQuery);
 		System.out.println("\""+url+"\" response: "+response);
 		assertEquals("Api request \""+url+"\" fail:", expectedValue, response.trim());
 	}
 	
-	private void testApiRequestArray(JSONArray queries, String command, String expectedValue) throws JSONException, InvalidKeyException, MalformedURLException, NoSuchAlgorithmException, IOException {
+	private void testRequestsArray(JSONArray queries, String command, String expectedValue) throws JSONException, InvalidKeyException, MalformedURLException, NoSuchAlgorithmException, IOException {
 		for (int i = 0; i < queries.length(); i++) {
 			String jsonQuery = queries.getJSONObject(i).toString();
-			testApiRequest(jsonQuery, command, expectedValue);
+			testRequest(jsonQuery, command, expectedValue);
 		}
+	}
+	
+	private void testSendMessage(JSONObject messageQuery) {
+		
 	}
 	
 	@Test
@@ -162,7 +171,7 @@ public class ResponseTest {
 			databaseConnection = createDatabaseConnection("jdbc:mysql://localhost:3306?useSSL=false", "root", "1234567890");
 			Statement statement = (Statement) databaseConnection.createStatement();
 			
-			String sqlFileContent = readFileContent(".\\src\\test\\resources\\responsetest\\test_sql");
+			String sqlFileContent = readFileContent(".\\src\\test\\resources\\responsetest\\schema.sql");
 			
 			if(sqlFileContent == null) {
 				fail("Fail: Error in sql file read");
@@ -177,7 +186,7 @@ public class ResponseTest {
 				return;
 			}
 			
-			addTestDataToDatabase(statement);
+			createTables(statement);
 			
 			testPlayerAuthorization();
 			
@@ -186,38 +195,85 @@ public class ResponseTest {
 				return;
 			}
 			
-			String jsonQueriesFileContent = readFileContent(".\\src\\test\\resources\\responsetest\\test_json_queries");
+			String apiInsertJsonContent = readFileContent(".\\src\\test\\resources\\responsetest\\api_insert.json");
+			String apiSelectJsonContent = readFileContent(".\\src\\test\\resources\\responsetest\\api_select.json");
+			String apiUpdateJsonContent = readFileContent(".\\src\\test\\resources\\responsetest\\api_update.json");
 			
-			if(jsonQueriesFileContent == null) {
-				fail("Fail: Error in json file read");
+			if(apiInsertJsonContent == null || apiSelectJsonContent == null || apiUpdateJsonContent == null) {
+				fail("Fail: Fail to read json files.");
 				return;
 			}
 			
-			JSONObject jsonQueries = new JSONObject(jsonQueriesFileContent);
+			JSONArray insertQueries = new JSONArray(apiInsertJsonContent);
+			JSONArray selectQueries = new JSONArray(apiSelectJsonContent);
+			JSONArray updateQueries = new JSONArray(apiUpdateJsonContent);
 			
-			testApiRequestArray(jsonQueries.getJSONArray("insert_queries"), "/api/insert", "{\"Success\":\"Insert completed successfully\"}");
+			testRequestsArray(insertQueries, "/api/insert", "{\"Success\":\"Insert completed successfully\"}");
 			
-			testApiRequest(jsonQueries.getJSONArray("select_queries").getJSONObject(0).toString(), "/api/select", "[{\"test_float\":7.55,\"test_int\":10,\"test_string\":\"entri1\"},{\"test_float\":9.90,\"test_int\":100,\"test_string\":\"entri2\"},{\"test_float\":8.00,\"test_int\":500,\"test_string\":\"entri3\"},{\"test_float\":10.55,\"test_int\":10,\"test_string\":\"entri4\"},{\"test_float\":99.90,\"test_int\":100,\"test_string\":\"entri5\"},{\"test_float\":10.00,\"test_int\":500,\"test_string\":\"entri6\"}]");
-			testApiRequest(jsonQueries.getJSONArray("select_queries").getJSONObject(1).toString(), "/api/select", "[{\"test_int\":10,\"test_string\":\"entri1\"},{\"test_int\":100,\"test_string\":\"entri2\"},{\"test_int\":500,\"test_string\":\"entri3\"},{\"test_int\":10,\"test_string\":\"entri4\"},{\"test_int\":100,\"test_string\":\"entri5\"},{\"test_int\":500,\"test_string\":\"entri6\"}]");
-			testApiRequest(jsonQueries.getJSONArray("select_queries").getJSONObject(2).toString(), "/api/select", "[{\"test_int\":100,\"test_string\":\"entri2\"},{\"test_int\":100,\"test_string\":\"entri5\"}]");
-			testApiRequest(jsonQueries.getJSONArray("select_queries").getJSONObject(3).toString(), "/api/select", "[{\"test_int\":10,\"test_string\":\"entri1\"},{\"test_int\":500,\"test_string\":\"entri3\"},{\"test_int\":10,\"test_string\":\"entri4\"},{\"test_int\":500,\"test_string\":\"entri6\"}]");
-			testApiRequest(jsonQueries.getJSONArray("select_queries").getJSONObject(4).toString(), "/api/select", "[{\"test_int\":10,\"test_string\":\"entri1\"},{\"test_int\":10,\"test_string\":\"entri4\"}]");
-			testApiRequest(jsonQueries.getJSONArray("select_queries").getJSONObject(5).toString(), "/api/select", "[{\"test_int\":10,\"test_string\":\"entri4\"}]");
-			testApiRequest(jsonQueries.getJSONArray("select_queries").getJSONObject(6).toString(), "/api/select", "[{\"test_int\":100,\"test_string\":\"entri2\"}]");
+			testRequest(selectQueries.getJSONObject(0).toString(), "/api/select", "[{\"test_float\":7.55,\"test_int\":10,\"test_string\":\"entri1\"},{\"test_float\":9.90,\"test_int\":100,\"test_string\":\"entri2\"},{\"test_float\":8.00,\"test_int\":500,\"test_string\":\"entri3\"},{\"test_float\":10.55,\"test_int\":10,\"test_string\":\"entri4\"},{\"test_float\":99.90,\"test_int\":100,\"test_string\":\"entri5\"},{\"test_float\":10.00,\"test_int\":500,\"test_string\":\"entri6\"}]");
+			testRequest(selectQueries.getJSONObject(1).toString(), "/api/select", "[{\"test_int\":10,\"test_string\":\"entri1\"},{\"test_int\":100,\"test_string\":\"entri2\"},{\"test_int\":500,\"test_string\":\"entri3\"},{\"test_int\":10,\"test_string\":\"entri4\"},{\"test_int\":100,\"test_string\":\"entri5\"},{\"test_int\":500,\"test_string\":\"entri6\"}]");
+			testRequest(selectQueries.getJSONObject(2).toString(), "/api/select", "[{\"test_int\":100,\"test_string\":\"entri2\"},{\"test_int\":100,\"test_string\":\"entri5\"}]");
+			testRequest(selectQueries.getJSONObject(3).toString(), "/api/select", "[{\"test_int\":10,\"test_string\":\"entri1\"},{\"test_int\":500,\"test_string\":\"entri3\"},{\"test_int\":10,\"test_string\":\"entri4\"},{\"test_int\":500,\"test_string\":\"entri6\"}]");
+			testRequest(selectQueries.getJSONObject(4).toString(), "/api/select", "[{\"test_int\":10,\"test_string\":\"entri1\"},{\"test_int\":10,\"test_string\":\"entri4\"}]");
+			testRequest(selectQueries.getJSONObject(5).toString(), "/api/select", "[{\"test_int\":10,\"test_string\":\"entri4\"}]");
+			testRequest(selectQueries.getJSONObject(6).toString(), "/api/select", "[{\"test_int\":100,\"test_string\":\"entri2\"}]");
 
-			testApiRequestArray(jsonQueries.getJSONArray("update_queries"), "/api/update", "{\"Success\":\"Update completed successfully\"}");
+			testRequestsArray(updateQueries, "/api/update", "{\"Success\":\"Update completed successfully\"}");
 			
-			testApiRequest("[{name:\"boost1\",count:2},{name:\"boost2\",count:4},{name:\"boost3\",count:6}]", "/game/boosts", "{udpated : 0, inserted: 3}");	
-			testApiRequest("[{name:\"boost1\",count:3},{name:\"boost2\",count:4},{name:\"boost3\",count:7},{name:\"boost4\",count:1},{name:\"boost5\",count:1}]", "/game/boosts", "{udpated : 3, inserted: 2}");
+			testRequest("[{name:\"boost1\",count:2},{name:\"boost2\",count:4},{name:\"boost3\",count:6}]", "/game/boosts", "{udpated : 0, inserted: 3}");	
+			testRequest("[{name:\"boost1\",count:3},{name:\"boost2\",count:4},{name:\"boost3\",count:7},{name:\"boost4\",count:1},{name:\"boost5\",count:1}]", "/game/boosts", "{udpated : 3, inserted: 2}");
 			
-			testApiRequest("[{level:1,score:200,stars:3},{level:2,score:350,stars:3},{level:3,score:500,stars:3}]", "/game/levels", "{udpated : 0, inserted: 3}");
-			testApiRequest("[{level:3,score:590,stars:3},{level:4,score:600,stars:3}]", "/game/levels", "{udpated : 1, inserted: 1}");
+			testRequest("[{level:1,score:200,stars:3},{level:2,score:350,stars:3},{level:3,score:500,stars:3}]", "/game/levels", "{udpated : 0, inserted: 3}");
+			testRequest("[{level:3,score:590,stars:3},{level:4,score:600,stars:3}]", "/game/levels", "{udpated : 1, inserted: 1}");
 			
-			testApiRequest("", "/game/leaderboard", "[{\"facebookId\":\"8373351478\",\"max_lvl\":4},{\"facebookId\":\"1464368749\",\"max_lvl\":2},{\"facebookId\":\"3006020705\",\"max_lvl\":2},{\"facebookId\":\"3294251159\",\"max_lvl\":2},{\"facebookId\":\"3998823149\",\"max_lvl\":2},{\"facebookId\":\"4979193465\",\"max_lvl\":2},{\"facebookId\":\"6186682720\",\"max_lvl\":2}]");
+			testRequest("", "/game/leaderboard", "[{\"facebookId\":\"8373351478\",\"max_lvl\":4},{\"facebookId\":\"1464368749\",\"max_lvl\":2},{\"facebookId\":\"3006020705\",\"max_lvl\":2},{\"facebookId\":\"3294251159\",\"max_lvl\":2},{\"facebookId\":\"3998823149\",\"max_lvl\":2},{\"facebookId\":\"4979193465\",\"max_lvl\":2},{\"facebookId\":\"6186682720\",\"max_lvl\":2}]");
 			
-			testApiRequest("{\"level\":2,\"f_ids\":[\"3294251159\",\"6186682720\"]}", "/game/playerprogress", "[{\"facebookId\":\"3294251159\",\"level\":2,\"score\":222,\"stars\":222},{\"facebookId\":\"6186682720\",\"level\":2,\"score\":0,\"stars\":0}]");
+			testRequest("{\"level\":2,\"f_ids\":[\"3294251159\",\"6186682720\"]}", "/game/playerprogress", "[{\"facebookId\":\"3294251159\",\"level\":2,\"score\":222,\"stars\":222},{\"facebookId\":\"6186682720\",\"level\":2,\"score\":0,\"stars\":0}]");
 		
-			testApiRequest("[\"3006020705\",\"3998823149\"]", "/game/maxplayerprogress", "[{\"facebookId\":\"3998823149\",\"level\":2,\"score\":0,\"stars\":0},{\"facebookId\":\"3006020705\",\"level\":2,\"score\":0,\"stars\":0}]");
+			testRequest("[\"3006020705\",\"3998823149\"]", "/game/maxplayerprogress", "[{\"facebookId\":\"3006020705\",\"level\":2,\"score\":0,\"stars\":0},{\"facebookId\":\"3998823149\",\"level\":2,\"score\":0,\"stars\":0}]");
+			
+			class Mes {
+				public String type;
+				public String recipientFacebookId;
+				public String messageContent;
+				
+				public Mes(String type, String recipientFacebookId) {
+					this.type = type;
+					this.recipientFacebookId = recipientFacebookId;
+				}
+				
+				public Mes withContent(String messageContent) {
+					this.messageContent = messageContent;
+					return this;
+				}
+				
+				@Override
+				public String toString() {
+					return String.format("type=%s&recipient_facebook_id=%s&message=%s", type, recipientFacebookId, messageContent);
+				}
+			}
+			
+			Mes testMessage = new Mes("lives", "3294251159");
+			
+			String messageSuccessResponse = "{\"Success\":\"Message sent successfully\"}";
+			testRequest(testMessage.withContent("1").toString(), "/message/send", messageSuccessResponse);
+			testRequest(testMessage.withContent("2").toString(), "/message/send", messageSuccessResponse);
+			testRequest(testMessage.withContent("3").toString(), "/message/send", messageSuccessResponse);
+			testRequest(testMessage.withContent("1").toString(), "/message/send", messageSuccessResponse);
+			playerId = "emfvv9zi-4wwb3gjc";
+			testRequest("", "/message/fetch_my_messages", "[{\"facebookId\":\"8373351478\",\"id\":1,\"message_content\":\"1\",\"type\":\"lives\"},{\"facebookId\":\"8373351478\",\"id\":2,\"message_content\":\"2\",\"type\":\"lives\"},{\"facebookId\":\"8373351478\",\"id\":3,\"message_content\":\"3\",\"type\":\"lives\"},{\"facebookId\":\"8373351478\",\"id\":4,\"message_content\":\"1\",\"type\":\"lives\"}]");
+			
+			String deleteMessageSuccessResponse = "{\"Success\":\"Message deleted successfully\"}";
+			testMessage.recipientFacebookId = "6186682720";
+			testRequest(testMessage.withContent("10").toString(), "/message/send", messageSuccessResponse);
+			testRequest(testMessage.withContent("20").toString(), "/message/send", messageSuccessResponse);
+			testRequest(testMessage.withContent("30").toString(), "/message/send", messageSuccessResponse);
+			testRequest(testMessage.withContent("40").toString(), "/message/send", messageSuccessResponse);
+			
+			testRequest("id=1", "/message/delete", deleteMessageSuccessResponse);
+			testRequest("id=2", "/message/delete", deleteMessageSuccessResponse);
+			testRequest("id=3", "/message/delete", deleteMessageSuccessResponse);
+			testRequest("id=4", "/message/delete", deleteMessageSuccessResponse);
 		} catch (SQLException e) {
 			e.printStackTrace();
 			fail();

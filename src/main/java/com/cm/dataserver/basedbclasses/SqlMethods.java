@@ -122,6 +122,14 @@ public class SqlMethods {
 		return update(sql, queryValue, connection);
 	}
 	
+	public static int delete(String sql, QueryTypedValue queryValue, Connection connection) throws SQLException {
+		return update(sql, queryValue, connection);
+	}
+	
+	public static int delete(String sql, List<QueryTypedValue> queryValue, Connection connection) throws SQLException {
+		return update(sql, queryValue, connection);
+	}
+	
 	/*public static int parseDataType(String type) {
 		switch (type) {
 		case "INTEGER":

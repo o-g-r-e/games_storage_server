@@ -1,0 +1,94 @@
+[
+	{
+	    "table" : "test_table"
+	},
+	{
+	    "table" : "test_table",
+	    "fields" : [ "test_int", "test_string" ]
+	},
+	{
+	    "table" : "test_table",
+	    "fields" : [ "test_int", "test_string" ],
+	    "condition" : 
+	    [   
+	        [
+	            {
+	                "name" : "test_int",
+	                "value" : 100
+	            }
+	        ]
+	    ]
+	},
+	{
+	    "table" : "test_table",
+	    "fields" : [ "test_int", "test_string" ],
+	    "condition" : 
+	    [   
+	        [
+	            {
+	                "name" : "test_int",
+	                "value" : 100,
+	                "is_not" : true
+	            }
+	        ]
+	    ]
+	},
+	{
+	    "table" : "test_table",
+	    "fields" : [ "test_int", "test_string" ],
+	    "condition" : 
+	    [   
+	        [
+	            {
+	                "name" : "test_int",
+	                "value" : 10
+	            }
+	        ],
+	        [
+	            {
+	            	"name" : "test_float",
+	            	"value" : 10.55
+	            }
+	        ]
+	    ]
+	},
+	{
+	    "table" : "test_table",
+	    "fields" : [ "test_int", "test_string" ],
+	    "condition" : 
+	    [   
+	        [
+	            {
+	                "name" : "test_int",
+	                "value" : 10
+	            },
+	            {
+	            	"name" : "test_float",
+	            	"value" : 10.55
+	            }
+	        ]
+	    ]
+	},
+	{
+	    "table" : "test_table",
+	    "fields" : [ "test_int", "test_string" ],
+	    "condition" : 
+	    [   
+	        [
+	            {
+		            "name" : "test_int",
+		            "value" : 10,
+		            "is_not" : true
+	            },
+	            {
+	            	"name" : "test_float",
+	            	"value" : 9.9
+	            },
+	            {
+	                "name" : "test_string",
+	                "value" : "entri2"
+	            }
+	        ]
+	    ]
+	}
+]
