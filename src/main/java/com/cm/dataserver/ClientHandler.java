@@ -104,10 +104,17 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private static Map<String, RequestGroup> requestGroupMap;
 	private static Pattern requestGroupPattern;
 	private static Map<String, RequestName> requestMap;
-	private static Pattern requestNamePattern;
 	
-
-	private static Pattern specialRequestNamePattern;
+	private static Pattern requestNamePattern = Pattern.compile("^\\/\\w+\\/\\w+");
+	private static Pattern specialRequestNamePattern = Pattern.compile("^\\/\\w+\\/(\\w+)(\\?|\\/)?");
+	
+	
+	private static Pattern facebookIdPattern = Pattern.compile("^\\d{8,}$");
+	
+	private static Pattern gameNamePattern = Pattern.compile("^[a-zA-Z][a-zA-Z0-9\\s]+$");
+	private static Pattern emailPattern = Pattern.compile("^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])$");
+	private static Pattern yesNoPattern = Pattern.compile("^(yes|Yes|no|No)$");
+	private static Pattern playerIdPattern = Pattern.compile("^[a-z0-9]{8}-[a-z0-9]{8}$");
 	
 	private EmailSender emailSender;
 	
@@ -147,10 +154,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		requestMap.put("/message/send", RequestName.SEND_MESSAGE);
 		requestMap.put("/message/fetch_my_messages", RequestName.FETCH_ALL_MESSAGES);
 		requestMap.put("/message/delete", RequestName.DELETE_MESSAGE);
-		
-		requestNamePattern = Pattern.compile("^\\/\\w+\\/\\w+");
-		
-		specialRequestNamePattern = Pattern.compile("^\\/\\w+\\/(\\w+)(\\?|\\/)?");
 	}
 	
 	public ClientHandler(DatabaseConnectionManager dbConnectionPool, LogManager logManager, EmailSender emailSender) throws IOException {
@@ -176,6 +179,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		Matcher requestNameMatcher = specialRequestNamePattern.matcher(urlPath);
 		if(requestNameMatcher.find()) return requestNameMatcher.group(1);
 		return null;
+	}
+	
+	private boolean validateFacebookId(String facebookId) {
+		return facebookIdPattern.matcher(facebookId).find();
 	}
 	
 	private boolean isGameDependsRequest(RequestGroup requestGroup) {
@@ -517,6 +524,12 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			}
 			
 			String facebookId = contentParameters.get("facebookId");
+			
+			if(!validateFacebookId(facebookId)) {
+				sendValidationFailResponse(ctx);
+				return;
+			}
+			
 			Player player = DataBaseMethods.getPlayerByFacebookId(facebookId, game.getPrefix(), dbConnection);
 			
 			if(player != null) {
@@ -680,6 +693,16 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		}
 		
 	}
+	
+	private boolean validateGameCreationParameters(String gameName, String email, String isMathc3) {
+		return gameNamePattern.matcher(gameName).find()&&
+			   emailPattern.matcher(email).find()&&
+			   yesNoPattern.matcher(isMathc3).find();
+	}
+	
+	private boolean validatePlayerId(String playerId) {
+		return playerIdPattern.matcher(playerId).find();
+	}
 
 	private void handleRegisterGame(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, InvalidKeyException, NoSuchAlgorithmException, FileNotFoundException, ClassNotFoundException, IOException {
 		Map<String, String> bodyParameters = parseParameters(httpRequest.content().toString(CharsetUtil.UTF_8));
@@ -689,11 +712,18 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			return;
 		}
 		
-		boolean isMath3 = "Yes".equals(bodyParameters.get("match3"));
 		
+		String m3 = bodyParameters.get("match3");
 		String gameName = bodyParameters.get("game_name");
-		String gameType = isMath3?"math3":"default";
 		String email = bodyParameters.get("email");
+		
+		if(!validateGameCreationParameters(gameName, email, m3)) {
+			sendValidationFailResponse(ctx);
+			return;
+		}
+		
+		boolean isMath3 = "Yes".equals(m3);
+		String gameType = isMath3?"math3":"default";
 		String apiKey = RandomKeyGenerator.nextString(24);
 		String apiSecret = RandomKeyGenerator.nextString(45);
 		
@@ -800,6 +830,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		RequestName requestName = recognizeRequestName(httpRequest.uri());
 		String requestBody = httpRequest.content().toString(CharsetUtil.UTF_8);
 		PlayerId playerId = new PlayerId("playerId", httpRequest.headers().get(Authorization.PLAYER_ID_HEADER));
+		
 		boolean objectQuery = Boolean.parseBoolean(httpRequest.headers().get("Test-Object-Query"));
 		
 		JSONObject jsonQuery = new JSONObject(requestBody);
@@ -896,7 +927,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				reuslt.put(params[0], "");
 				continue;
 			}
-			reuslt.put(params[0], params[1]);
+			reuslt.put(params[0].trim(), params[1].trim());
 		}
 		
 		return reuslt;
