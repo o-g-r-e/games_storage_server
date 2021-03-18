@@ -1,11 +1,6 @@
 package com.cm.dataserver;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.security.InvalidKeyException;
@@ -14,24 +9,19 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import javax.mail.MessagingException;
-import javax.print.attribute.standard.MediaSize.Engineering;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.cm.dataserver.basedbclasses.CellData;
 import com.cm.dataserver.basedbclasses.Field;
 import com.cm.dataserver.basedbclasses.QueryTypedValue;
 import com.cm.dataserver.basedbclasses.Row;
@@ -66,7 +56,6 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
-import io.netty.handler.codec.json.JsonObjectDecoder;
 import io.netty.util.CharsetUtil;
 
 public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
@@ -99,7 +88,14 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		MAXPLAYERPROGRESS,
 		SEND_MESSAGE,
 		FETCH_ALL_MESSAGES,
-		DELETE_MESSAGE};
+		DELETE_MESSAGE,
+		CREATE_LIFE_REQUEST,
+		CONFIRM_LIFE_REQUEST,
+		DENY_LIFE_REQUEST,
+		LIFE_REQUESTS,
+		ACCEPT_LIFE,
+		REFUSE_LIFE,
+		SEND_LIFE};
 	
 	private static Map<String, RequestGroup> requestGroupMap;
 	private static Pattern requestGroupPattern;
@@ -110,6 +106,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	
 	
 	private static Pattern facebookIdPattern = Pattern.compile("^\\d{8,}$");
+	private static Pattern uuidPattern = Pattern.compile("^[a-z0-9]{32}$");
 	
 	private static Pattern gameNamePattern = Pattern.compile("^[a-zA-Z][a-zA-Z0-9\\s]+$");
 	private static Pattern emailPattern = Pattern.compile("^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])$");
@@ -151,6 +148,13 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		requestMap.put("/game/leaderboard", RequestName.LEADBOARD);
 		requestMap.put("/game/playerprogress", RequestName.PLAYERPROGRESS);
 		requestMap.put("/game/maxplayerprogress", RequestName.MAXPLAYERPROGRESS);
+		requestMap.put("/game/create_life_request", RequestName.CREATE_LIFE_REQUEST);
+		requestMap.put("/game/confirm_life_request", RequestName.CONFIRM_LIFE_REQUEST);
+		requestMap.put("/game/deny_life_request", RequestName.DENY_LIFE_REQUEST);
+		requestMap.put("/game/life_requests", RequestName.LIFE_REQUESTS);
+		requestMap.put("/game/accept_life", RequestName.ACCEPT_LIFE);
+		requestMap.put("/game/refuse_life", RequestName.REFUSE_LIFE);
+		requestMap.put("/game/send_life", RequestName.SEND_LIFE);
 		requestMap.put("/message/send", RequestName.SEND_MESSAGE);
 		requestMap.put("/message/fetch_my_messages", RequestName.FETCH_ALL_MESSAGES);
 		requestMap.put("/message/delete", RequestName.DELETE_MESSAGE);
@@ -183,6 +187,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	
 	private boolean validateFacebookId(String facebookId) {
 		return facebookIdPattern.matcher(facebookId).find();
+	}
+	
+	private boolean validateUUID(String uuid) {
+		return uuidPattern.matcher(uuid).find();
 	}
 	
 	private boolean isGameDependsRequest(RequestGroup requestGroup) {
@@ -419,12 +427,135 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			List<Row> rows2 = SqlMethods.select(String.format(sql2, playersTableName2, levelsTableName2, levelsTableName2), queryValues1, dbConnection);
 			sendHttpResponse(ctx, buildResponse(Row.rowsToJson(rows2), HttpResponseStatus.OK));
 			break;
+		case CREATE_LIFE_REQUEST:
+			Map<String, String> bodyParameters = parseParameters(inputContent);
+			
+			if(!simpleValidation(new String[] {"friend_facebook_id"}, bodyParameters)) {
+				sendValidationFailResponse(ctx);
+				return;
+			}
+			
+			String requestedPlayerId = bodyParameters.get("friend_facebook_id");
+			
+			if(!validateFacebookId(requestedPlayerId)) {
+				sendValidationFailResponse(ctx);
+				return;
+			}
+			
+			Player requestedPlayer = DataBaseMethods.getPlayerByFacebookId(requestedPlayerId, game.getPrefix(), dbConnection);
+			
+			int created = ApiMethods.createLifeRequest(game.getPrefix(), generateUuidWithoutDash(), requestedPlayer.getPlayerId(), playerId.getValue(), dbConnection);
+			
+			if(created < 1) {
+				sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while life request creation", HttpResponseStatus.INTERNAL_SERVER_ERROR));
+				return;
+			}
+			
+			sendHttpResponse(ctx, buildSimpleResponse("Success", "Life reuqest created successfully", HttpResponseStatus.OK));
+			break;
+		case SEND_LIFE:
+			
+			//
+			// This case create 'confirmed' life request, that to be able to send life directly to player, without opened request creation
+			//
+			
+			Map<String, String> bodyParameters2 = parseParameters(inputContent);
+			
+			if(!simpleValidation(new String[] {"life_receiver_facebook_id"}, bodyParameters2)) {
+				sendValidationFailResponse(ctx);
+				return;
+			}
+			
+			String lifeRecipientFacebookId = bodyParameters2.get("life_receiver_facebook_id");
+			
+			if(!validateFacebookId(lifeRecipientFacebookId)) {
+				sendValidationFailResponse(ctx);
+				return;
+			}
+			
+			Player lifeRecipient = DataBaseMethods.getPlayerByFacebookId(lifeRecipientFacebookId, game.getPrefix(), dbConnection);
+			
+			int created2 = ApiMethods.createConfirmedLifeRequest(game.getPrefix(), generateUuidWithoutDash(), playerId.getValue(), lifeRecipient.getPlayerId(), dbConnection);
+			
+			if(created2 < 1) {
+				sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while life request creation", HttpResponseStatus.INTERNAL_SERVER_ERROR));
+				return;
+			}
+			
+			sendHttpResponse(ctx, buildSimpleResponse("Success", "Life reuqest created successfully", HttpResponseStatus.OK));
+			break;
+		case CONFIRM_LIFE_REQUEST:
+			Map<String, String> bodyParameters3 = parseParameters(inputContent);
+			
+			if(!simpleValidation(new String[] {"life_request_id"}, bodyParameters3)) {
+				sendValidationFailResponse(ctx);
+				return;
+			}
+			
+			String lifeRequestId = bodyParameters3.get("life_request_id");
+			
+			if(!validateUUID(lifeRequestId)) {
+				sendValidationFailResponse(ctx);
+				return;
+			}
+			
+			int confirmed = ApiMethods.confirmLifeRequest(game.getPrefix(), lifeRequestId, dbConnection);
+			
+			if(confirmed < 1) {
+				sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while life request status upadte", HttpResponseStatus.INTERNAL_SERVER_ERROR));
+				return;
+			}
+			
+			sendHttpResponse(ctx, buildSimpleResponse("Success", "Life reuqest statuss updated successfully", HttpResponseStatus.OK));
+			
+			break;
+		case DENY_LIFE_REQUEST:
+			handleLifeRequestDeletion(ctx, fullHttpRequest, game.getPrefix());
+			break;
+		case ACCEPT_LIFE:
+			handleLifeRequestDeletion(ctx, fullHttpRequest, game.getPrefix());
+			break;
+		case REFUSE_LIFE:
+			handleLifeRequestDeletion(ctx, fullHttpRequest, game.getPrefix());
+			break;
+		case LIFE_REQUESTS:
+			JSONObject lifeRequests = ApiMethods.getLifeRequests(game.getPrefix(), playerId.getValue(), dbConnection);
+			sendHttpResponse(ctx, buildResponse(lifeRequests.toString(), HttpResponseStatus.OK));
+			break;
 		default:
 			sendHttpResponse(ctx, buildSimpleResponse("Error", "Bad command", HttpResponseStatus.BAD_REQUEST));
 			break;
 		}
+	}
+	
+	private void handleLifeRequestDeletion(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, String gamePrefix) throws SQLException {
+		String inputContent = fullHttpRequest.content().toString(CharsetUtil.UTF_8);
+		Map<String, String> bodyParameters = parseParameters(inputContent);
 		
+		if(!simpleValidation(new String[] {"life_request_id"}, bodyParameters)) {
+			sendValidationFailResponse(ctx);
+			return;
+		}
 		
+		String lifeRequestId2 = bodyParameters.get("life_request_id");
+		
+		if(!validateUUID(lifeRequestId2)) {
+			sendValidationFailResponse(ctx);
+			return;
+		}
+		
+		int deleted = ApiMethods.denyLifeRequest(gamePrefix, lifeRequestId2, dbConnection);
+		
+		if(deleted < 1) {
+			sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while life request status upadte", HttpResponseStatus.INTERNAL_SERVER_ERROR));
+			return;
+		}
+		
+		sendHttpResponse(ctx, buildSimpleResponse("Success", "Life reuqest statuss updated successfully", HttpResponseStatus.OK));
+	}
+	
+	private String generateUuidWithoutDash() {
+		return UUID.randomUUID().toString().replace("-", "");
 	}
 
 	private void handleAllowedRequest(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, Game game) throws SQLException, FileNotFoundException, ClassNotFoundException, IOException, JSONException, InvalidKeyException, NoSuchAlgorithmException {
@@ -659,7 +790,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			
 			Player messageRecipient = DataBaseMethods.getPlayerByFacebookId(bodyParameters.get("recipient_facebook_id"), game.getPrefix(), dbConnection);
 			
-			int added = DataBaseMethods.insertMessage(game.getPrefix(), bodyParameters.get("type"), playerId.getValue(), messageRecipient.getPlayerId(), bodyParameters.get("message"), dbConnection);
+			int added = ApiMethods.insertMessage(game.getPrefix(), bodyParameters.get("type"), playerId.getValue(), messageRecipient.getPlayerId(), bodyParameters.get("message"), dbConnection);
 			
 			if(added < 1) {
 				dbConnection.rollback();
@@ -670,7 +801,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			break;
 			
 		case FETCH_ALL_MESSAGES:
-			List<Row> playerMessages = DataBaseMethods.getPlayerMessages(game.getPrefix(), playerId.getValue(), dbConnection);
+			List<Row> playerMessages = ApiMethods.getPlayerMessages(game.getPrefix(), playerId.getValue(), dbConnection);
 			sendHttpResponse(ctx, buildResponse(Row.rowsToJson(playerMessages), HttpResponseStatus.OK));
 			break;
 			
@@ -682,7 +813,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				return;
 			}
 			
-			int deleted = DataBaseMethods.deleteMessage(game.getPrefix(), playerId.getValue(), mDeletionBodyParameters.get("id"), dbConnection);
+			int deleted = ApiMethods.deleteMessage(game.getPrefix(), playerId.getValue(), mDeletionBodyParameters.get("id"), dbConnection);
 			
 			if(deleted < 1) {
 				sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while deletion message", HttpResponseStatus.INTERNAL_SERVER_ERROR));
@@ -982,10 +1113,18 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 																					new Field(Types.VARCHAR, "recipient_id").defNull(false).setLength(17), 
 																					new Field(Types.VARCHAR, "message_content").defNull(false).setLength(24)}, "id");
 		
+		TableTemplate lifeRequestsTemplate = new TableTemplate("life_requests", new Field[] {new Field(Types.VARCHAR, "id").defNull(false).setLength(32),
+																				new Field(Types.VARCHAR, "life_sender").defNull(false).setLength(17), 
+																				new Field(Types.VARCHAR, "life_receiver").defNull(false).setLength(17), 
+																				new Field(Types.VARCHAR, "status").defNull(false).setLength(9)}, "id");
+		
+		lifeRequestsTemplate.addIndex(new TableIndex("sender_receiver", new String[] {"life_sender", "life_receiver"}, true));
+		
 		tblTemplates.add(levelsTemplate);
 		tblTemplates.add(playersTemplate);
 		tblTemplates.add(boostsTemplate);
 		tblTemplates.add(messagesTemplate);
+		tblTemplates.add(lifeRequestsTemplate);
 		
 		return new GameTemplate("Match 3", tblTemplates);
 	}

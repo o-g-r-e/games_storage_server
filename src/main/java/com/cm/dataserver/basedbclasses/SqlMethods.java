@@ -79,7 +79,7 @@ public class SqlMethods {
 		while(resultSet.next()) {
 			Row row = new Row();
 			for (int i = 1; i <= rsmd.getColumnCount(); i++) {
-				row.addCell(new CellData(rsmd.getColumnType(i), rsmd.getColumnName(i), resultSet.getObject(i)));
+				row.addCell(new CellData(rsmd.getColumnType(i), rsmd.getColumnLabel(i), resultSet.getObject(i)));
 			}
 			result.add(row);
 		}

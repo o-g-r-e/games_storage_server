@@ -260,6 +260,7 @@ public class ResponseTest {
 			testRequest(testMessage.withContent("2").toString(), "/message/send", messageSuccessResponse);
 			testRequest(testMessage.withContent("3").toString(), "/message/send", messageSuccessResponse);
 			testRequest(testMessage.withContent("1").toString(), "/message/send", messageSuccessResponse);
+			String playerIdMem = playerId;
 			playerId = "emfvv9zi-4wwb3gjc";
 			testRequest("", "/message/fetch_my_messages", "[{\"facebookId\":\"8373351478\",\"id\":1,\"message_content\":\"1\",\"type\":\"lives\"},{\"facebookId\":\"8373351478\",\"id\":2,\"message_content\":\"2\",\"type\":\"lives\"},{\"facebookId\":\"8373351478\",\"id\":3,\"message_content\":\"3\",\"type\":\"lives\"},{\"facebookId\":\"8373351478\",\"id\":4,\"message_content\":\"1\",\"type\":\"lives\"}]");
 			
@@ -274,6 +275,28 @@ public class ResponseTest {
 			testRequest("id=2", "/message/delete", deleteMessageSuccessResponse);
 			testRequest("id=3", "/message/delete", deleteMessageSuccessResponse);
 			testRequest("id=4", "/message/delete", deleteMessageSuccessResponse);
+			
+			/*playerId = "yh6cgoqh-2sstxb6r";
+			testRequest("friend_facebook_id="+playerFacebookId, "/game/create_life_request", "{\"Success\":\"Life reuqest created successfully\"}");
+			playerId = "emfvv9zi-4wwb3gjc";
+			testRequest("friend_facebook_id="+playerFacebookId, "/game/create_life_request", "{\"Success\":\"Life reuqest created successfully\"}");
+			playerId = "mgw8vrhu-bp3lu9yk";
+			testRequest("friend_facebook_id="+playerFacebookId, "/game/create_life_request", "{\"Success\":\"Life reuqest created successfully\"}");
+			playerId = "weoh98bf-vjyziipb";
+			testRequest("friend_facebook_id="+playerFacebookId, "/game/create_life_request", "{\"Success\":\"Life reuqest created successfully\"}");
+			
+			playerId = playerIdMem;
+			testRequest("friend_facebook_id=6186682720", "/game/create_life_request", "{\"Success\":\"Life reuqest created successfully\"}");
+			testRequest("friend_facebook_id=8373351478", "/game/create_life_request", "{\"Success\":\"Life reuqest created successfully\"}");
+			
+			playerId = "weoh98bf-vjyziipb";
+			testRequest("friend_facebook_id=6186682720", "/game/create_life_request", "{\"Success\":\"Life reuqest created successfully\"}");
+			
+			playerId = playerIdMem;
+			testRequest("friend_facebook_id=3998823149", "/game/create_life_request", "{\"Success\":\"Life reuqest created successfully\"}");
+			
+			playerId = "weoh98bf-vjyziipb";
+			testRequest("life_request_id=3998823149", "/game/confirm_life_request", "{\"Success\":\"Life reuqest created successfully\"}");*/
 		} catch (SQLException e) {
 			e.printStackTrace();
 			fail();
