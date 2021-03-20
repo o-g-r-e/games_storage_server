@@ -1114,39 +1114,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		return new GameTemplate("Match 3", tblTemplates);
 	}
 	
-	/*private void addAllowedRequestsToFile(List<AllowedUnconditionalRequest> allowedUnconditionalRequest, String fileName) throws FileNotFoundException, IOException, ClassNotFoundException {
-		File file = new File(new File(".").getCanonicalPath()+File.separator+"games_settings"+File.separator+fileName+".settings");
-
-		List<AllowedUnconditionalRequest> finalData = allowedUnconditionalRequest;
-		
-		if(!file.exists()) {
-			file.createNewFile();
-		} else {
-			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file));
-			finalData = (List<AllowedUnconditionalRequest>) ois.readObject();
-			ois.close();
-			finalData.addAll(allowedUnconditionalRequest);
-		}
-		
-		ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
-		oos.writeObject(finalData);
-		oos.close();
-	}*/
-	
-	/*private Map<String, AllowedUnconditionalRequest> readAllowedRequestFile(String apiKey) throws FileNotFoundException, IOException, ClassNotFoundException {
-		File gameSettingsDir = new File(new File(".").getCanonicalPath()+File.separator+"games_settings");
-		if(!gameSettingsDir.exists()) {
-			gameSettingsDir.mkdirs();
-		}
-		ObjectInputStream ois = new ObjectInputStream(new FileInputStream(gameSettingsDir.getCanonicalPath()+File.separator+apiKey+".settings"));
-		List<AllowedUnconditionalRequest> allowedUnconditionalRequest = (List<com.my.gamesdataserver.AllowedUnconditionalRequest>) ois.readObject();
-		Map<String, AllowedUnconditionalRequest> result = new HashMap<>();
-		for(AllowedUnconditionalRequest o : allowedUnconditionalRequest) {
-			result.put(o.getRequestName(), o);
-		}
-		return result;
-	}*/
-	
 	private void sendValidationFailResponse(ChannelHandlerContext ctx) {
 		sendHttpResponse(ctx, buildSimpleResponse("Error", "Parameters validation failed", HttpResponseStatus.BAD_REQUEST));
 	}
