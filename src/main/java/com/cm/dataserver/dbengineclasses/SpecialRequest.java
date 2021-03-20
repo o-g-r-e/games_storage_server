@@ -7,7 +7,7 @@ import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONException;
 
-import com.cm.dataserver.basedbclasses.queryclasses.Helpers;
+import com.cm.dataserver.basedbclasses.queryclasses.ObjectSqlHelper;
 import com.cm.dataserver.basedbclasses.queryclasses.Select;
 import com.cm.dataserver.basedbclasses.queryclasses.SqlExpression;
 

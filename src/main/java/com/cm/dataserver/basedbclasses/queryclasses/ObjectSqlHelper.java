@@ -4,7 +4,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class Helpers {
+public class ObjectSqlHelper {
 	public static SqlExpression jsonWhereToObject(JSONArray jsonWhere) throws JSONException {
 		SqlExpression resultExp = null;
 		for (int i = jsonWhere.length()-1; i >= 0; i--) {

@@ -34,7 +34,7 @@ public class Select {
 		fields = jsonQuery.has("fields")?jsonQuery.getJSONArray("fields").join(","):"*";
 		
 		if(jsonQuery.has("condition")) {
-			where = Helpers.jsonWhereToObject(jsonQuery.getJSONArray("condition"));
+			where = ObjectSqlHelper.jsonWhereToObject(jsonQuery.getJSONArray("condition"));
 		}
 	}
 	
@@ -65,7 +65,7 @@ public class Select {
 	}
 
 	public Select setWhere(JSONArray jsonWhere) throws JSONException {
-		this.where = Helpers.jsonWhereToObject(jsonWhere);
+		this.where = ObjectSqlHelper.jsonWhereToObject(jsonWhere);
 		return this;
 	}
 
