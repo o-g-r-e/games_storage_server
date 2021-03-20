@@ -23,6 +23,7 @@ import com.cm.dataserver.basedbclasses.queryclasses.Select;
 import com.cm.dataserver.basedbclasses.queryclasses.SimpleSqlExpression;
 import com.cm.dataserver.basedbclasses.queryclasses.SqlExpression;
 import com.cm.dataserver.basedbclasses.queryclasses.SqlLogicExpression;
+import com.cm.dataserver.template1classes.LifeRequest;
 
 public class ApiMethods {
 	
@@ -48,6 +49,17 @@ public class ApiMethods {
 		StringBuilder result = new StringBuilder();
 		for (int i = 0; i < count; i++) {
 			result.append(string);
+		}
+		return result.toString();
+	}
+	
+	private static String repeat(String string, String delimiter, int count) {
+		StringBuilder result = new StringBuilder();
+		for (int i = 0; i < count; i++) {
+			result.append(string);
+			if(i<count-1) {
+				result.append(delimiter);
+			}
 		}
 		return result.toString();
 	}
@@ -299,23 +311,68 @@ public class ApiMethods {
 		return SqlMethods.insert("INSERT INTO "+gamePrefix+"life_requests (id, life_sender, life_receiver, status) VALUES (?,?,?,'open')", typedValueArray.getQueryValues(), connection);
 	}
 	
-	public static int createConfirmedLifeRequest(String gamePrefix, String requestId, String lifeSender, String lifeReceiver, Connection connection) throws SQLException {
+	public static int createLifeRequests(String gamePrefix, List<LifeRequest> lifeRequestList, Connection connection) {
+		
+		if(gamePrefix == null || lifeRequestList == null || connection == null || lifeRequestList.size() <= 0) {
+			return 0;
+		}
+		
+		/*TypedValueArray typedValueArray = new TypedValueArray();
+		for (LifeRequest lifeRequest : lifeRequestList) {
+			typedValueArray.addValues(lifeRequest.getId(), lifeRequest.getLifeSenderId(), lifeRequest.getLifeReceiverId(), lifeRequest.getStatus());
+		}
+		String sqlValuesPart = repeat("(?,?,?,?)", ",", lifeRequestList.size());
+		return SqlMethods.insert("INSERT INTO "+gamePrefix+"life_requests (id, life_sender, life_receiver, status) VALUES "+sqlValuesPart, typedValueArray.getQueryValues(), connection);*/
+		
+		//
+		// Separate SQL INSERT requests to avoid dublicate key exception, which appear try create repeated request to same player:
+		//
+		
+		int inserted = 0;
+		for (LifeRequest lifeRequest : lifeRequestList) {
+			try {
+				inserted += SqlMethods.insert("INSERT INTO "+gamePrefix+"life_requests (id, life_sender, life_receiver, status) VALUES (?,?,?,?)", new TypedValueArray(lifeRequest.getId(), lifeRequest.getLifeSenderId(), lifeRequest.getLifeReceiverId(), lifeRequest.getStatus()).getQueryValues(), connection);
+			} catch (SQLException e) {
+				//e.printStackTrace();
+			}
+		}
+		return inserted;
+	}
+	
+	//public static int createConfirmedLifeRequest(String gamePrefix, String requestId, String lifeSender, String lifeReceiver, Connection connection) throws SQLException {
 		
 		//
 		// This method create 'confirmed' life request, that to be able to send life directly to player, without opened request creation
 		//
 		
-		TypedValueArray typedValueArray = new TypedValueArray(requestId, lifeSender, lifeReceiver);
-		return SqlMethods.insert("INSERT INTO "+gamePrefix+"life_requests (id, life_sender, life_receiver, status) VALUES (?,?,?,'confirmed')", typedValueArray.getQueryValues(), connection);
-	}
+		//TypedValueArray typedValueArray = new TypedValueArray(requestId, lifeSender, lifeReceiver);
+		//return SqlMethods.insert("INSERT INTO "+gamePrefix+"life_requests (id, life_sender, life_receiver, status) VALUES (?,?,?,'confirmed')", typedValueArray.getQueryValues(), connection);
+	//}
 	
 	public static int confirmLifeRequest(String gamePrefix, String requestId, Connection connection) throws SQLException {
-		TypedValueArray typedValueArray = new TypedValueArray(requestId);
-		return SqlMethods.update("UPDATE "+gamePrefix+"life_requests SET status='confirmed' WHERE id=?", typedValueArray.getQueryValues(), connection);
+		return SqlMethods.update("UPDATE "+gamePrefix+"life_requests SET status='confirmed' WHERE id=?", new TypedValueArray(requestId).getQueryValues(), connection);
+	}
+	
+	public static int confirmLifeRequests(String gamePrefix, List<String> lifeRequestIdList, Connection connection) throws SQLException {
+		TypedValueArray typedValueArray = new TypedValueArray();
+		for (String lifeRequestId : lifeRequestIdList) {
+			typedValueArray.addValue(lifeRequestId);
+		}
+		String updateWherePart = repeat("id=?", " OR ", lifeRequestIdList.size());
+		return SqlMethods.update("UPDATE "+gamePrefix+"life_requests SET status='confirmed' WHERE "+updateWherePart, typedValueArray.getQueryValues(), connection);
 	}
 	
 	public static int denyLifeRequest(String gamePrefix, String requestId, Connection connection) throws SQLException {
 		return SqlMethods.delete("DELETE FROM "+gamePrefix+"life_requests WHERE id=?", new TypedValueArray(requestId).getQueryValues(), connection);
+	}
+	
+	public static int denyLifeRequests(String gamePrefix, List<String> lifeRequestIdList, Connection connection) throws SQLException {
+		TypedValueArray typedValueArray = new TypedValueArray();
+		for (String lifeRequestId : lifeRequestIdList) {
+			typedValueArray.addValue(lifeRequestId);
+		}
+		String updateWherePart = repeat("id=?", " OR ", lifeRequestIdList.size());
+		return SqlMethods.delete("DELETE FROM "+gamePrefix+"life_requests WHERE "+updateWherePart, typedValueArray.getQueryValues(), connection);
 	}
 	
 	public static JSONObject getLifeRequests(String gamePrefix, String playerId, Connection connection) throws SQLException, JSONException {

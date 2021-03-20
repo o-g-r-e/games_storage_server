@@ -41,6 +41,7 @@ import com.cm.dataserver.helpers.LogManager;
 import com.cm.dataserver.helpers.RandomKeyGenerator;
 import com.cm.dataserver.template1classes.BoostsUpdate;
 import com.cm.dataserver.template1classes.LevelsUpdate;
+import com.cm.dataserver.template1classes.LifeRequest;
 import com.cm.dataserver.template1classes.Player;
 import com.cm.dataserver.template1classes.PlayerMessage;
 import com.cm.dataserver.template1classes.Template1DbEngine;
@@ -428,30 +429,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			sendHttpResponse(ctx, buildResponse(Row.rowsToJson(rows2), HttpResponseStatus.OK));
 			break;
 		case CREATE_LIFE_REQUEST:
-			Map<String, String> bodyParameters = parseParameters(inputContent);
-			
-			if(!simpleValidation(new String[] {"friend_facebook_id"}, bodyParameters)) {
-				sendValidationFailResponse(ctx);
-				return;
-			}
-			
-			String requestedPlayerId = bodyParameters.get("friend_facebook_id");
-			
-			if(!validateFacebookId(requestedPlayerId)) {
-				sendValidationFailResponse(ctx);
-				return;
-			}
-			
-			Player requestedPlayer = DataBaseMethods.getPlayerByFacebookId(requestedPlayerId, game.getPrefix(), dbConnection);
-			
-			int created = ApiMethods.createLifeRequest(game.getPrefix(), generateUuidWithoutDash(), requestedPlayer.getPlayerId(), playerId.getValue(), dbConnection);
-			
-			if(created < 1) {
-				sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while life request creation", HttpResponseStatus.INTERNAL_SERVER_ERROR));
-				return;
-			}
-			
-			sendHttpResponse(ctx, buildSimpleResponse("Success", "Life reuqest created successfully", HttpResponseStatus.OK));
+			handleCreateLifeRequest(ctx, fullHttpRequest, game.getPrefix(), LifeRequestCreationType.NORMAL, playerId.getValue());
 			break;
 		case SEND_LIFE:
 			
@@ -459,64 +437,19 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			// This case create 'confirmed' life request, that to be able to send life directly to player, without opened request creation
 			//
 			
-			Map<String, String> bodyParameters2 = parseParameters(inputContent);
-			
-			if(!simpleValidation(new String[] {"life_receiver_facebook_id"}, bodyParameters2)) {
-				sendValidationFailResponse(ctx);
-				return;
-			}
-			
-			String lifeRecipientFacebookId = bodyParameters2.get("life_receiver_facebook_id");
-			
-			if(!validateFacebookId(lifeRecipientFacebookId)) {
-				sendValidationFailResponse(ctx);
-				return;
-			}
-			
-			Player lifeRecipient = DataBaseMethods.getPlayerByFacebookId(lifeRecipientFacebookId, game.getPrefix(), dbConnection);
-			
-			int created2 = ApiMethods.createConfirmedLifeRequest(game.getPrefix(), generateUuidWithoutDash(), playerId.getValue(), lifeRecipient.getPlayerId(), dbConnection);
-			
-			if(created2 < 1) {
-				sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while life request creation", HttpResponseStatus.INTERNAL_SERVER_ERROR));
-				return;
-			}
-			
-			sendHttpResponse(ctx, buildSimpleResponse("Success", "Life reuqest created successfully", HttpResponseStatus.OK));
+			handleCreateLifeRequest(ctx, fullHttpRequest, game.getPrefix(), LifeRequestCreationType.SEND_LIFE, playerId.getValue());
 			break;
 		case CONFIRM_LIFE_REQUEST:
-			Map<String, String> bodyParameters3 = parseParameters(inputContent);
-			
-			if(!simpleValidation(new String[] {"life_request_id"}, bodyParameters3)) {
-				sendValidationFailResponse(ctx);
-				return;
-			}
-			
-			String lifeRequestId = bodyParameters3.get("life_request_id");
-			
-			if(!validateUUID(lifeRequestId)) {
-				sendValidationFailResponse(ctx);
-				return;
-			}
-			
-			int confirmed = ApiMethods.confirmLifeRequest(game.getPrefix(), lifeRequestId, dbConnection);
-			
-			if(confirmed < 1) {
-				sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while life request status upadte", HttpResponseStatus.INTERNAL_SERVER_ERROR));
-				return;
-			}
-			
-			sendHttpResponse(ctx, buildSimpleResponse("Success", "Life reuqest statuss updated successfully", HttpResponseStatus.OK));
-			
+			handleLifeRequestUpdateStatus(ctx, fullHttpRequest, game.getPrefix(), "confirm");
 			break;
 		case DENY_LIFE_REQUEST:
-			handleLifeRequestDeletion(ctx, fullHttpRequest, game.getPrefix());
+			handleLifeRequestUpdateStatus(ctx, fullHttpRequest, game.getPrefix(), "deny");
 			break;
 		case ACCEPT_LIFE:
-			handleLifeRequestDeletion(ctx, fullHttpRequest, game.getPrefix());
+			handleLifeRequestUpdateStatus(ctx, fullHttpRequest, game.getPrefix(), "deny");
 			break;
 		case REFUSE_LIFE:
-			handleLifeRequestDeletion(ctx, fullHttpRequest, game.getPrefix());
+			handleLifeRequestUpdateStatus(ctx, fullHttpRequest, game.getPrefix(), "deny");
 			break;
 		case LIFE_REQUESTS:
 			JSONObject lifeRequests = ApiMethods.getLifeRequests(game.getPrefix(), playerId.getValue(), dbConnection);
@@ -528,25 +461,77 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		}
 	}
 	
-	private void handleLifeRequestDeletion(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, String gamePrefix) throws SQLException {
+	enum LifeRequestCreationType { NORMAL, SEND_LIFE }
+	
+	private void handleCreateLifeRequest(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, String gamePrefix, LifeRequestCreationType status, String playerId) throws JSONException, SQLException {
 		String inputContent = fullHttpRequest.content().toString(CharsetUtil.UTF_8);
-		Map<String, String> bodyParameters = parseParameters(inputContent);
+		String lifeRequestStatus = "open";
 		
-		if(!simpleValidation(new String[] {"life_request_id"}, bodyParameters)) {
-			sendValidationFailResponse(ctx);
-			return;
+		if(status == LifeRequestCreationType.SEND_LIFE) {
+			lifeRequestStatus = "confirmed";
 		}
 		
-		String lifeRequestId2 = bodyParameters.get("life_request_id");
+		JSONArray inputArray = new JSONArray(inputContent);
 		
-		if(!validateUUID(lifeRequestId2)) {
-			sendValidationFailResponse(ctx);
-			return;
+		List<LifeRequest> lifeRequestList = new ArrayList<>();
+		
+		for (int i = 0; i < inputArray.length(); i++) {
+			String lifeSenderFBid = inputArray.getString(i);
+			
+			if(!validateFacebookId(lifeSenderFBid)) {
+				continue;
+			}
+			
+			Player lifeSender = DataBaseMethods.getPlayerByFacebookId(lifeSenderFBid, gamePrefix, dbConnection);
+			
+			if(lifeSender == null) {
+				continue;
+			}
+			
+			if(status == LifeRequestCreationType.NORMAL) {
+				lifeRequestList.add(new LifeRequest(generateUuidWithoutDash(), lifeSender.getPlayerId(), playerId, lifeRequestStatus));
+			} else if(status == LifeRequestCreationType.SEND_LIFE) {
+				lifeRequestList.add(new LifeRequest(generateUuidWithoutDash(), playerId, lifeSender.getPlayerId(), lifeRequestStatus));
+			}
 		}
 		
-		int deleted = ApiMethods.denyLifeRequest(gamePrefix, lifeRequestId2, dbConnection);
+		int created = ApiMethods.createLifeRequests(gamePrefix, lifeRequestList, dbConnection);
 		
-		if(deleted < 1) {
+		//
+		// Not need check count of created requests, because there may be repeated requests for the same player that will not be created
+		//
+		
+		/*if(created != lifeRequestList.size()) {
+			sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while life request creation", HttpResponseStatus.INTERNAL_SERVER_ERROR));
+			return;
+		}*/
+		
+		sendHttpResponse(ctx, buildSimpleResponse("Success", "Life reuqests created successfully", HttpResponseStatus.OK));
+	}
+	
+	private void handleLifeRequestUpdateStatus(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, String gamePrefix, String status) throws SQLException, JSONException {
+		String inputContent = fullHttpRequest.content().toString(CharsetUtil.UTF_8);
+		JSONArray lifeRequestsIdsArray = new JSONArray(inputContent);
+		List<String> lifeRequestIdList = new ArrayList<>();
+		
+		for (int i = 0; i < lifeRequestsIdsArray.length(); i++) {
+			String lifeRequestid = lifeRequestsIdsArray.getString(i);
+			
+			if(!validateUUID(lifeRequestid)) {
+				continue;
+			}
+			lifeRequestIdList.add(lifeRequestid);
+		}
+		
+		int updated = 0;
+		
+		if(status == "confirm") {
+			updated = ApiMethods.confirmLifeRequests(gamePrefix, lifeRequestIdList, dbConnection);
+		} else if(status == "deny") {
+			updated = ApiMethods.denyLifeRequests(gamePrefix, lifeRequestIdList, dbConnection);
+		}
+		
+		if(updated < 1) {
 			sendHttpResponse(ctx, buildSimpleResponse("Error", "An error occurred while life request status upadte", HttpResponseStatus.INTERNAL_SERVER_ERROR));
 			return;
 		}
