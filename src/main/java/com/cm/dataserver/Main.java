@@ -93,7 +93,6 @@ public class Main {
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
 			e.printStackTrace(pw);
-			logManager.log("initialization_error", "", sw.toString(), "");
 		} finally {
             if(workerGroup != null) workerGroup.shutdownGracefully();
             if(bossGroup != null) bossGroup.shutdownGracefully();

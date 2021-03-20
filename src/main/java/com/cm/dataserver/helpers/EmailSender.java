@@ -89,8 +89,10 @@ public class EmailSender {
 			oauthAccessToken = readAccessToken(accessTokenFilePath);
 		}
 		
+		StringBuilder logContent = new StringBuilder();
+		
 		if(oauthAccessToken.expire()) {
-			logManager.addLine("mail", "Access token expired, get new token...");
+			logContent.append("Access token expired, get new token...\n");
 			
 			String request = "client_id=" + URLEncoder.encode(oauthClientId, "UTF-8")
             	+ "&client_secret=" + URLEncoder.encode(oauthClientSecret, "UTF-8")
@@ -108,12 +110,12 @@ public class EmailSender {
 			conn.connect();
 	       
 			String result = new BufferedReader(new InputStreamReader(conn.getInputStream())).lines().collect(Collectors.joining("\n"));
-			logManager.addLine("mail", "Response from "+oauthTokenUrl+": "+result);
+			logContent.append("Response from ").append(oauthTokenUrl).append(": ").append(result).append("\n");
 			JSONObject jsonResult = new JSONObject(result);
 			oauthAccessToken.setAccessToken(jsonResult.getString("access_token"));
 			oauthAccessToken.setGenerationTimestamp(System.currentTimeMillis());
 			oauthAccessToken.setExpirationPeriod((long) (jsonResult.getInt("expires_in") * 1000));
-			logManager.addLine("mail", "New token recived: "+oauthAccessToken.getAccessToken());
+			logContent.append("New token recived: ").append(oauthAccessToken.getAccessToken()).append("\n");
 			writeAccessToken(accessTokenFilePath, oauthAccessToken);
 		}
 		
@@ -132,10 +134,10 @@ public class EmailSender {
         transport.sendMessage(message, message.getAllRecipients());
 
         transport.close();
-
-        logManager.addLine("mail", "Content: "+content);
-        logManager.addLine("mail", "Mail sent to "+emailTo);
-        logManager.addLine("mail", "\n");
+        
+        logContent.append("Content: ").append(content).append("\n");
+        logContent.append("Mail sent to ").append(emailTo).append("\n\n");
+        logManager.log("mail", logContent.toString());
 	}
 	
 	public void asyncSend(String emailTo, String subject, String content) {
@@ -211,6 +213,6 @@ public class EmailSender {
 		StringWriter sw = new StringWriter();
 		PrintWriter pw = new PrintWriter(sw);
 		e.printStackTrace(pw);
-		logManager.addLine("mail", sw.toString());
+		logManager.log("mail", sw.toString());
 	}
 }
