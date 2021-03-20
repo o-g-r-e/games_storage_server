@@ -294,18 +294,18 @@ public class ApiMethods {
 		return SqlMethods.delete("DELETE FROM "+gamePrefix+"messages WHERE id=? AND recipient_id=?", new TypedValueArray(messageId, playerId).getQueryValues(), connection);
 	}
 	
-	public static int createLifeRequest(String gamePrefix, String requestId, String requestedPlayerId, String needyPlayerId, Connection connection) throws SQLException {
-		TypedValueArray typedValueArray = new TypedValueArray(requestId, requestedPlayerId, needyPlayerId);
+	public static int createLifeRequest(String gamePrefix, String requestId, String lifeSender, String lifeReceiver, Connection connection) throws SQLException {
+		TypedValueArray typedValueArray = new TypedValueArray(requestId, lifeSender, lifeReceiver);
 		return SqlMethods.insert("INSERT INTO "+gamePrefix+"life_requests (id, life_sender, life_receiver, status) VALUES (?,?,?,'open')", typedValueArray.getQueryValues(), connection);
 	}
 	
-	public static int createConfirmedLifeRequest(String gamePrefix, String requestId, String requestedPlayerId, String needyPlayerId, Connection connection) throws SQLException {
+	public static int createConfirmedLifeRequest(String gamePrefix, String requestId, String lifeSender, String lifeReceiver, Connection connection) throws SQLException {
 		
 		//
 		// This method create 'confirmed' life request, that to be able to send life directly to player, without opened request creation
 		//
 		
-		TypedValueArray typedValueArray = new TypedValueArray(requestId, requestedPlayerId, needyPlayerId);
+		TypedValueArray typedValueArray = new TypedValueArray(requestId, lifeSender, lifeReceiver);
 		return SqlMethods.insert("INSERT INTO "+gamePrefix+"life_requests (id, life_sender, life_receiver, status) VALUES (?,?,?,'confirmed')", typedValueArray.getQueryValues(), connection);
 	}
 	
