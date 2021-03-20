@@ -987,24 +987,12 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		sendHttpResponse(ctx, buildResponse(responseContent, HttpResponseStatus.OK));
 	}
 	
-	/*private FullHttpResponse buildSimpleResponse(String status, String message, HttpResponseStatus httpStatus, Map<String, String> headers) {
-		return buildResponse(jsonObject(status, message), httpStatus, headers);
-	}*/
-	
 	private FullHttpResponse buildSimpleResponse(String status, String message, HttpResponseStatus httpStatus) {
 		return buildResponse(jsonObject(status, message), httpStatus);
 	}
 	
 	private FullHttpResponse response(String message, HttpResponseStatus httpStatus) {
 		return buildResponse(message, httpStatus);
-	}
-	
-	private FullHttpResponse buildResponse(String content, HttpResponseStatus httpStatus, /*HttpHeaders headers*/Map<String, String> headers) {
-		DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpStatus, Unpooled.copiedBuffer(content, CharsetUtil.UTF_8));
-		//response.headers().add(headers);
-		addResponseHeaders(response, headers);
-		response.headers().setInt(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
-		return response;
 	}
 	
 	private FullHttpResponse buildResponse(String content, HttpResponseStatus httpStatus) {
@@ -1016,12 +1004,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	
 	private String httpRequestToString(FullHttpRequest httpRequest) {
 		return httpRequest.toString().substring(httpRequest.toString().indexOf("\n")+1)+"\n\n"+httpRequest.content().toString(CharsetUtil.UTF_8);
-	}
-	
-	private void addResponseHeaders(FullHttpResponse httpResponse, Map<String, String> headers) {
-		for(Map.Entry<String, String> h : headers.entrySet()) {
-			httpResponse.headers().add(h.getKey(), h.getValue());
-		}
 	}
 	
 	private Map<String, String> parseParameters(String input) {
