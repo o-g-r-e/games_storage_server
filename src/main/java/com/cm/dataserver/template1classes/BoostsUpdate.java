@@ -19,16 +19,16 @@ public class BoostsUpdate {
 	private StringBuilder insertRequest = new StringBuilder("INSERT INTO ");
 	private boolean needInsert = false;
 	
-	public BoostsUpdate(JSONArray jsonLevels, List<Row> exsistingLevels, PlayerId playerId, String boostsTableName) throws JSONException {
+	public BoostsUpdate(JSONArray jsonBoosts, List<Row> exsistingBoosts, PlayerId playerId, String boostsTableName) throws JSONException {
 		insertRequest.append(boostsTableName).append(" (").append(playerId.getFieldName()).append(", name, count) VALUES ");
 		
-		for(Row r : exsistingLevels) {
+		for(Row r : exsistingBoosts) {
 			existingLevelsMap.put(r.getString("name"), r.getString("name"));
 		}
 		
-		for(int i=0; i<jsonLevels.length(); i++) {
+		for(int i=0; i<jsonBoosts.length(); i++) {
 			
-			JSONObject inputJsonLevel = jsonLevels.getJSONObject(i);
+			JSONObject inputJsonLevel = jsonBoosts.getJSONObject(i);
 			
 			String name = inputJsonLevel.getString("name");
 			int count = inputJsonLevel.getInt("count");

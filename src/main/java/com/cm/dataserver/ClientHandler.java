@@ -64,7 +64,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private Connection dbConnection;
 	//private GamesDbEngine dbManager;
 	private LogManager logManager;
-	private String errorLogFilePrefix = "error";
 	private static final GameTemplate MATCH_3_TEMPLATE = GameTemplate.match3Template();
 	//private static Map<String, String> defaultResponseHeaders;
 	private final String defaultPlayerIdFieldName = "playerId";
@@ -141,13 +140,13 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				
 			case BAD:
 				FullHttpResponse httpResponse = buildSimpleResponse("Error", "Bad request group", HttpResponseStatus.BAD_REQUEST);
-				logManager.log(errorLogFilePrefix, httpRequestToString(fullHttpRequest), "ERROR: Bad request group".toUpperCase(), httpResponse.toString());
+				logManager.error(httpRequestToString(fullHttpRequest), "ERROR: Bad request group".toUpperCase(), httpResponse.toString());
 				sendHttpResponse(ctx, httpResponse);
 				break;
 				
 			default:
 				FullHttpResponse httpResponse2 = buildSimpleResponse("Error", "Bad request group", HttpResponseStatus.BAD_REQUEST);
-				logManager.log(errorLogFilePrefix, httpRequestToString(fullHttpRequest), "ERROR: Bad request group".toUpperCase(), httpResponse2.toString());
+				logManager.error(httpRequestToString(fullHttpRequest), "ERROR: Bad request group".toUpperCase(), httpResponse2.toString());
 				sendHttpResponse(ctx, httpResponse2);
 				break;
 			}
@@ -165,7 +164,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			
 			e.printStackTrace(pw);
 			FullHttpResponse httpResponse = buildSimpleResponse("Error", e.getMessage()/*"An error occurred during processing"*/, HttpResponseStatus.INTERNAL_SERVER_ERROR);
-			logManager.log(errorLogFilePrefix, httpRequestToString(fullHttpRequest), sw.toString(), httpResponse.toString());
+			logManager.error(httpRequestToString(fullHttpRequest), sw.toString(), httpResponse.toString());
 			sendHttpResponse(ctx, httpResponse);
 		} finally {
 			try {
@@ -182,7 +181,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		
 		PlayerId playerId = new PlayerId("playerId", fullHttpRequest.headers().get(Authorization.PLAYER_ID_HEADER));
 		
-		ServerURI.RequestName requestName = ServerURI.parseRequestName(fullHttpRequest.uri());
+		ServerURI.RequestName requestName = ServerURI.parseRequestUri(fullHttpRequest.uri());
 		
 		switch (requestName) {
 		case LEVEL:
@@ -372,9 +371,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			}
 			
 			if(status == LifeRequestCreationType.NORMAL) {
-				lifeRequestList.add(new LifeRequest(generateUuidWithoutDash(), lifeSender.getPlayerId(), playerId, lifeRequestStatus));
+				lifeRequestList.add(new LifeRequest(StringDataHelper.generateBigId(), lifeSender.getPlayerId(), playerId, lifeRequestStatus));
 			} else if(status == LifeRequestCreationType.SEND_LIFE) {
-				lifeRequestList.add(new LifeRequest(generateUuidWithoutDash(), playerId, lifeSender.getPlayerId(), lifeRequestStatus));
+				lifeRequestList.add(new LifeRequest(StringDataHelper.generateBigId(), playerId, lifeSender.getPlayerId(), lifeRequestStatus));
 			}
 		}
 		
@@ -420,10 +419,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		}
 		
 		sendHttpResponse(ctx, buildSimpleResponse("Success", "Life reuqest statuss updated successfully", HttpResponseStatus.OK));
-	}
-	
-	private String generateUuidWithoutDash() {
-		return UUID.randomUUID().toString().replace("-", "");
 	}
 
 	private void handleAllowedRequest(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest, Game game) throws SQLException, FileNotFoundException, ClassNotFoundException, IOException, JSONException, InvalidKeyException, NoSuchAlgorithmException {
@@ -547,7 +542,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 
 	private void handleSystemRequest(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, MessagingException, InvalidKeyException, NoSuchAlgorithmException, FileNotFoundException, IOException, ClassNotFoundException {
 		
-		ServerURI.RequestName requestName = ServerURI.parseRequestName(httpRequest.uri());
+		ServerURI.RequestName requestName = ServerURI.parseRequestUri(httpRequest.uri());
 		
 		switch (requestName) {
 		case REGISTER_GAME:
@@ -619,7 +614,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	
 	private void handlePlayerMessage(ChannelHandlerContext ctx, FullHttpRequest httpRequest, Game game) throws SQLException {
 		
-		ServerURI.RequestName requestName = ServerURI.parseRequestName(httpRequest.uri());
+		ServerURI.RequestName requestName = ServerURI.parseRequestUri(httpRequest.uri());
 		PlayerId playerId = new PlayerId("playerId", httpRequest.headers().get(Authorization.PLAYER_ID_HEADER));
 		switch (requestName) {
 		case SEND_MESSAGE:
@@ -792,7 +787,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	private void handleApiRequest(ChannelHandlerContext ctx, FullHttpRequest httpRequest, Game game) throws SQLException, JSONException, InvalidKeyException, NoSuchAlgorithmException {
 		String responseContent = "";
 		
-		ServerURI.RequestName requestName = ServerURI.parseRequestName(httpRequest.uri());
+		ServerURI.RequestName requestName = ServerURI.parseRequestUri(httpRequest.uri());
 		String requestBody = httpRequest.content().toString(CharsetUtil.UTF_8);
 		PlayerId playerId = new PlayerId("playerId", httpRequest.headers().get(Authorization.PLAYER_ID_HEADER));
 		

@@ -10,12 +10,16 @@ import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.util.CharsetUtil;
+
 public class LogManager {
 	
 	private static ExecutorService executorService;
 	private static String logsDirectoryPath;
 	private static SimpleDateFormat formatter= new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z");
 	private static String logTemplate = "[%s]:%s";
+	private static String errorLogFilePrefix = "error";
 	
 	class LogService implements Runnable {
 		private String prefix;
@@ -42,12 +46,12 @@ public class LogManager {
 		if(!logsDirectory.exists()) logsDirectory.mkdirs();
 	}
 
-	public void log(String filePrefix, String inputRequest, String logContent, String response) {
-		executorService.submit(new LogService(filePrefix,  String.format(logTemplate, currentDateTime(), "\n"+inputRequest+"\n\n"+logContent+"\n\n"+response+"\n\n")));
+	public void error(String inputRequest, String logContent, String response) {
+		executorService.submit(new LogService(errorLogFilePrefix,  String.format(logTemplate, currentDateTime(), "\n"+inputRequest+"\n\n"+logContent+"\n\n"+response+"\n\n")));
 	}
 
-	public void log(String filePrefix, String inputRequest, String logContent) {
-		executorService.submit(new LogService(filePrefix,  String.format(logTemplate, currentDateTime(), "\n"+inputRequest+"\n\n"+logContent+"\n\n")));
+	public void error(String inputRequest, String logContent) {
+		executorService.submit(new LogService(errorLogFilePrefix,  String.format(logTemplate, currentDateTime(), "\n"+inputRequest+"\n\n"+logContent+"\n\n")));
 	}
 	
 	public void log(String filePrefix, String logContent) {
@@ -57,5 +61,9 @@ public class LogManager {
 	private String currentDateTime() {
 		Date date = new Date(System.currentTimeMillis());
 		return formatter.format(date);
+	}
+	
+	public static String httpRequestToString(FullHttpRequest httpRequest) {
+		return httpRequest.toString().substring(httpRequest.toString().indexOf("\n")+1)+"\n\n"+httpRequest.content().toString(CharsetUtil.UTF_8);
 	}
 }

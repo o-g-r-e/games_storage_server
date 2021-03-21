@@ -48,8 +48,6 @@ public class ServerURI {
 			requestGroupMap.put("game", RequestGroup.GAME);
 			requestGroupMap.put("message", RequestGroup.MESSAGE);
 			
-			
-			
 			requestMap = new HashMap<>();
 			requestMap.put("/system/register_game", RequestName.REGISTER_GAME);
 			requestMap.put("/system/set_special_request", RequestName.CREATE_SPEC_REQUEST);
@@ -76,11 +74,11 @@ public class ServerURI {
 			requestMap.put("/message/delete", RequestName.DELETE_MESSAGE);
 		}
 		
-		private static Pattern requestNamePattern = Pattern.compile("^\\/\\w+\\/\\w+");
+		private static Pattern requestUriPattern = Pattern.compile("^\\/\\w+\\/\\w+");
 		private static Pattern requestGroupPattern = Pattern.compile("^\\/(\\w+)\\/?");
 		
-		public static RequestName parseRequestName(String urlPath) {
-			Matcher requestNameMatcher = requestNamePattern.matcher(urlPath);
+		public static RequestName parseRequestUri(String urlPath) {
+			Matcher requestNameMatcher = requestUriPattern.matcher(urlPath);
 			if(requestNameMatcher.find()) return requestMap.get(requestNameMatcher.group());
 			return null;
 		}

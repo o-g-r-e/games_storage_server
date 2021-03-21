@@ -71,12 +71,15 @@ public class Authorization {
 		return true;
 	}
 	
-	private boolean checkPlayerId(String playerId, String gamePrefix, Connection connection) throws SQLException {
-		if( playerId == null || 
-			playerId.length() <= 0 || 
-			playerId.contains("%") || 
-			playerId.contains("_") || 
-			DataBaseMethods.getPlayerById(new PlayerId("playerId", playerId), gamePrefix, connection) == null) {
+	public boolean isPlayerExists(String playerId, Game game, Connection connection) throws SQLException {
+		if(DataBaseMethods.getPlayerById(new PlayerId("playerId", playerId), game.getPrefix(), connection) == null) {
+			return false;
+		}
+		return true;
+	}
+	
+	public boolean checkPlayerId(String playerId, Connection connection) throws SQLException {
+		if( playerId == null || StringDataHelper.validatePlayerId(playerId)) {
 			return false;
 		}
 		return true;
@@ -96,7 +99,7 @@ public class Authorization {
 		
 		String playerId = httpRequest.headers().get(Authorization.PLAYER_ID_HEADER);
 		
-		if(!checkPlayerId(playerId, game.getPrefix(), connection)) {
+		if(!checkPlayerId(playerId, connection) || !isPlayerExists(playerId, game, connection)) {
 			statusCode = Code.PLAYER_AUTH_FAIL;
 			return false;
 		}
@@ -130,5 +133,23 @@ public class Authorization {
 			return "Authorization success";
 		}
 		return "Unknown aouthorization status";
+	}
+	
+	public static Game parseGame(FullHttpRequest httpRequest, Connection dbConnection) throws SQLException {
+		
+		String authorizationString = httpRequest.headers().get("Authorization");
+		
+		if(authorizationString != null && authorizationString.length() > 0 && authorizationString.contains(":")) {
+			String gameHash = authorizationString.substring(authorizationString.indexOf(":")+1);
+			return DataBaseMethods.getGameByHash(gameHash, dbConnection);
+		}
+
+		String apiKey = httpRequest.headers().get("API_key");
+		
+		if(apiKey != null && apiKey.length() > 0) {
+			return DataBaseMethods.getGameByKey(apiKey, dbConnection);
+		}
+		
+		return null;
 	}
 }
