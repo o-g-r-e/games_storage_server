@@ -51,6 +51,10 @@ public class SqlMethods {
 		connection.prepareStatement(query.toString()).execute();
 	}
 	
+	public static void createView(String name, String sqlSelect, Connection connection) throws SQLException {
+		connection.prepareStatement("CREATE OR REPLACE VIEW "+name+" AS "+sqlSelect).execute();
+	}
+	
 	public static List<Row> select(String sql, Connection connection) throws SQLException {
 		Statement pstmt = connection.createStatement();
 		ResultSet resultSet = pstmt.executeQuery(sql);

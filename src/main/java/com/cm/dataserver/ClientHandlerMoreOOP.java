@@ -102,6 +102,8 @@ public class ClientHandlerMoreOOP extends SimpleChannelInboundHandler<FullHttpRe
 			} else {
 				Game game = authorization(ctx, fullHttpRequest);
 				
+				statistic(game, fullHttpRequest.uri(), dbConnection);
+				
 				PlayerId playerId = new PlayerId("playerId", fullHttpRequest.headers().get(Authorization.PLAYER_ID_HEADER));
 				
 				if(!StringDataHelper.validatePlayerId(playerId.getValue())) {
@@ -129,7 +131,7 @@ public class ClientHandlerMoreOOP extends SimpleChannelInboundHandler<FullHttpRe
 			e.printStackTrace(pw);
 			FullHttpResponse httpResponse = HttpResponseTemplates.buildSimpleResponse("Error", e.getMessage()/*"An error occurred during processing"*/, HttpResponseStatus.INTERNAL_SERVER_ERROR);
 			logManager.error(LogManager.httpRequestToString(fullHttpRequest), sw.toString(), httpResponse.toString());
-			//sendHttpResponse(ctx, httpResponse);
+			sendHttpResponse(ctx, httpResponse);
 		} finally {
 			try {
 				if(dbConnection != null) dbConnection.close();
@@ -149,5 +151,9 @@ public class ClientHandlerMoreOOP extends SimpleChannelInboundHandler<FullHttpRe
 		}
 		
 		return game;
+	}
+	
+	private void statistic(Game game, String uri, Connection dbConnection) throws SQLException {
+		GameHandler.updateStatistic(game, uri, dbConnection);
 	}
 }

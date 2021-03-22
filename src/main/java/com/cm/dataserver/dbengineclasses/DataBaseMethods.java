@@ -89,7 +89,7 @@ public class DataBaseMethods  {
 	
 	public static Game getGameByKey(String apiKey, Connection connection) throws SQLException {
 		List<Row> rows = SqlMethods.select("SELECT * FROM games WHERE api_key=? LIMIT 1", new QueryTypedValue(apiKey), connection);
-		return rowToGame(rows.get(0), connection);
+		return rowToGame(rows.get(0));
 	}
 
 	public static Game getGameByHash(String gameHash, Connection connection) throws SQLException {
@@ -99,18 +99,18 @@ public class DataBaseMethods  {
 			return null;
 		}
 		
-		return rowToGame(rows.get(0), connection);
+		return rowToGame(rows.get(0));
 	}
 	
-	private static Game rowToGame(Row row, Connection connection) throws SQLException {
-		int id = (int) row.get("id");
-		String gameName = (String)row.get("name");
-		String gameType = (String)row.get("type");
-		int ownerId = (int)row.get("owner_id");
-		String apiKey = (String)row.get("api_key");
-		String secretKey = (String)row.get("api_secret");
-		String prefix = (String)row.get("prefix");
-		String hash = (String)row.get("hash");
+	private static Game rowToGame(Row row) throws SQLException {
+		int id = row.containsCell("id")?(int)row.get("id"):-1;
+		String gameName = row.containsCell("name")?(String)row.get("name"):null;
+		String gameType = row.containsCell("type")?(String)row.get("type"):null;
+		int ownerId = row.containsCell("owner_id")?(int)row.get("owner_id"):-1;
+		String apiKey = row.containsCell("api_key")?(String)row.get("api_key"):null;
+		String secretKey = row.containsCell("api_secret")?(String)row.get("api_secret"):null;
+		String prefix = row.containsCell("prefix")?(String)row.get("prefix"):null;
+		String hash = row.containsCell("hash")?(String)row.get("hash"):null;
 		return new Game(id, gameName, gameType, ownerId, apiKey, secretKey, prefix, hash);
 	}
 
@@ -213,6 +213,28 @@ public class DataBaseMethods  {
 		}
 		
 		return new Owner((int) rows.get(0).get("id"), (String) rows.get(0).get("email"));
+	}
+	
+	public static List<String> getAllGamePrefixes(Connection dbConnection) throws SQLException {
+		List<String> result = new ArrayList<>();
+		List<Row> rows = SqlMethods.select("SELECT prefix FROM games", dbConnection);
+		
+		for (Row row : rows) {
+			result.add(row.getString("prefix"));
+		}
+		
+		return result;
+	}
+	
+	public static List<Game> getAllGames(Connection dbConnection) throws SQLException {
+		List<Game> result = new ArrayList<>();
+		List<Row> rows = SqlMethods.select("SELECT id,prefix FROM games", dbConnection);
+		
+		for (Row row : rows) {
+			result.add(rowToGame(row));
+		}
+		
+		return result;
 	}
 	
 	/*public static int serverTypeToMysqType(String serverType) {

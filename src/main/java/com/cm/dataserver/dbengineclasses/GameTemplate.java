@@ -72,11 +72,18 @@ public class GameTemplate {
 		
 		lifeRequestsTemplate.addIndex(new TableIndex("sender_receiver", new String[] {"life_sender", "life_receiver"}, true));
 		
+		TableTemplate requestsStatisticTemplate = new TableTemplate("requests_statistic", 
+																	new Field[] {new Field(Types.VARCHAR, "uri").defNull(false).setLength(32), 
+																	new Field(Types.INTEGER, "count")}, "uri");
+		
+		requestsStatisticTemplate.addIndex(new TableIndex("uniq_uri", new String[] {"uri"}, true));
+		
 		tblTemplates.add(levelsTemplate);
 		tblTemplates.add(playersTemplate);
 		tblTemplates.add(boostsTemplate);
 		tblTemplates.add(messagesTemplate);
 		tblTemplates.add(lifeRequestsTemplate);
+		tblTemplates.add(requestsStatisticTemplate);
 		
 		return new GameTemplate("Match 3", tblTemplates);
 	}

@@ -8,14 +8,17 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.cm.dataserver.Authorization;
 import com.cm.dataserver.StringDataHelper;
 import com.cm.dataserver.UriAnnotation;
 import com.cm.dataserver.basedbclasses.Field;
+import com.cm.dataserver.basedbclasses.SqlMethods;
 import com.cm.dataserver.basedbclasses.TableTemplate;
 import com.cm.dataserver.dbengineclasses.DataBaseMethods;
+import com.cm.dataserver.dbengineclasses.Game;
 import com.cm.dataserver.dbengineclasses.GameTemplate;
 import com.cm.dataserver.dbengineclasses.Owner;
 import com.cm.dataserver.helpers.EmailSender;
@@ -98,6 +101,26 @@ public class SystemHandler extends RootHandler {
 		
 		dbConnection.commit();
 		dbConnection.setAutoCommit(true);
+		
+		List<Game> allGames = DataBaseMethods.getAllGames(dbConnection);
+		StringBuilder viewSql = new StringBuilder();
+		for (int i = 0; i < allGames.size(); i++) {
+			
+			Game game = allGames.get(i);
+			String sql = "SELECT\r\n"
+					+ game.getId()+" game_id,\r\n"
+					+ "rs.uri, epsilon_test.\r\n"
+					+ "rs.count \r\n"
+					+ "FROM \r\n"
+					+ game.getPrefix()+"requests_statistic rs";
+			viewSql.append(sql);
+			
+			if(i < allGames.size()-1) {
+				viewSql.append("\r\nUNION\r\n");
+			}
+		}
+		
+		SqlMethods.createView("requests_statistic", viewSql.toString(), dbConnection);
 		
 		//Game game = DataBaseMethods.getGameByKey(apiKey, connection);
 		if("Yes".equals(bodyParameters.get("send_mail"))) {

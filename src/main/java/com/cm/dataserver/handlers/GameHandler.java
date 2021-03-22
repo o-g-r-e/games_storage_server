@@ -15,6 +15,7 @@ import com.cm.dataserver.UriAnnotation;
 import com.cm.dataserver.basedbclasses.QueryTypedValue;
 import com.cm.dataserver.basedbclasses.Row;
 import com.cm.dataserver.basedbclasses.SqlMethods;
+import com.cm.dataserver.basedbclasses.TypedValueArray;
 import com.cm.dataserver.dbengineclasses.DataBaseMethods;
 import com.cm.dataserver.dbengineclasses.Game;
 import com.cm.dataserver.dbengineclasses.PlayerId;
@@ -283,5 +284,9 @@ public class GameHandler extends RootHandler {
 	public void lifeRewuests(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws SQLException, JSONException {
 		JSONObject lifeRequests = GameMethods.getLifeRequests(game.getPrefix(), playerId.getValue(), dbConnection);
 		sendHttpResponse(ctx, HttpResponseTemplates.buildResponse(lifeRequests.toString(), HttpResponseStatus.OK));
+	}
+	
+	public static int updateStatistic(Game game, String uri, Connection connection) throws SQLException {
+		return SqlMethods.insert("INSERT INTO "+game.getPrefix()+"requests_statistic VALUES (?,?) ON DUPLICATE KEY UPDATE count=count+1", new TypedValueArray(uri, 1).getQueryValues(), connection);
 	}
 }
