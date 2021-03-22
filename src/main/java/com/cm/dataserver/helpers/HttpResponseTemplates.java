@@ -1,4 +1,4 @@
-package com.cm.dataserver.handlers;
+package com.cm.dataserver.helpers;
 
 import com.cm.dataserver.StringDataHelper;
 

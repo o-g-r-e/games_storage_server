@@ -21,6 +21,7 @@ public class StringDataHelper {
 	private static Pattern emailPattern = Pattern.compile("^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])$");
 	private static Pattern yesNoPattern = Pattern.compile("^(yes|Yes|no|No)$");
 	private static Pattern playerIdPattern = Pattern.compile("^[a-z0-9]{8}-[a-z0-9]{8}$");
+	private static Pattern base64pattern = Pattern.compile("^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$");
 	
 	public static String parseSpecialRequestName(String urlPath) {
 		Matcher requestNameMatcher = specialRequestNamePattern.matcher(urlPath);
@@ -30,6 +31,10 @@ public class StringDataHelper {
 	
 	public static boolean validateFacebookId(String facebookId) {
 		return facebookIdPattern.matcher(facebookId).find();
+	}
+	
+	public static boolean validateBase64(String base64string) {
+		return base64pattern.matcher(base64string).find();
 	}
 	
 	public static boolean validateUUID(String uuid) {

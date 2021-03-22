@@ -22,6 +22,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.cm.databaseserver.exceptions.AuthorizationException;
 import com.cm.dataserver.basedbclasses.Field;
 import com.cm.dataserver.basedbclasses.QueryTypedValue;
 import com.cm.dataserver.basedbclasses.Row;
@@ -86,6 +87,18 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		this.emailSender = emailSender;
 	}
 	
+	private Game authorization(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws InvalidKeyException, NoSuchAlgorithmException, AuthorizationException, SQLException {
+		Authorization.AuthValue auth = Authorization.authorization(fullHttpRequest);
+		
+		Game game = DataBaseMethods.getGameByHash(auth.getGameHash(), dbConnection);
+		
+		if(game == null) {
+			throw new AuthorizationException("Authorization Exception: Game not found");
+		}
+		
+		return game;
+	}
+	
 	@Override
     public void channelRead0(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) {
 		ServerURI.RequestGroup requestGroup = ServerURI.requestGroup(fullHttpRequest.uri());
@@ -100,15 +113,13 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 				return;
 			}
 			
-			Authorization auth = new Authorization();
-			
-			if(requestGroup == ServerURI.RequestGroup.PLAYER_REQUEST && !auth.checkAuthorizationHeader(fullHttpRequest)) {
-				sendHttpResponse(ctx, buildSimpleResponse("Error", auth.getStatusMessage(), HttpResponseStatus.OK));
+			if(requestGroup == ServerURI.RequestGroup.PLAYER_REQUEST && !Authorization.checkAuthorizationHeader(fullHttpRequest)) {
+				sendHttpResponse(ctx, buildSimpleResponse("Error", "Authorization error", HttpResponseStatus.OK));
 				return;
 			}
 			
-			if(requestGroup != ServerURI.RequestGroup.BASE && requestGroup != ServerURI.RequestGroup.PLAYER_REQUEST && !auth.authorization(fullHttpRequest, game, dbConnection)) {
-				sendHttpResponse(ctx, buildSimpleResponse("Error", auth.getStatusMessage(), HttpResponseStatus.OK));
+			if(requestGroup != ServerURI.RequestGroup.BASE && requestGroup != ServerURI.RequestGroup.PLAYER_REQUEST && !Authorization.checkAuthorizationHeader(fullHttpRequest)) {
+				sendHttpResponse(ctx, buildSimpleResponse("Error", "Authorization error", HttpResponseStatus.OK));
 				return;
 			}
 			
@@ -564,7 +575,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 	}
 	
 	private void handleSpecailRequestsList(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, InvalidKeyException, NoSuchAlgorithmException {
-		Game game = parseGame(httpRequest);
+		/*Game game = parseGame(httpRequest);
 		
 		if(game == null) {
 			sendHttpResponse(ctx, buildSimpleResponse("Error", "Game not found", HttpResponseStatus.OK));
@@ -588,7 +599,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 			}
 		}
 		
-		sendHttpResponse(ctx, buildSimpleResponse("special_requests", output.toString(), HttpResponseStatus.OK));
+		sendHttpResponse(ctx, buildSimpleResponse("special_requests", output.toString(), HttpResponseStatus.OK));*/
 	}
 
 	private void handleDeleteGame(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException {

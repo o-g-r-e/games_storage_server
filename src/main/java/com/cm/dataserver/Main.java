@@ -83,7 +83,7 @@ public class Main {
 	        			pipeline.addLast(new HttpObjectAggregator(1048576));
 	                	//channel.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(2048));
 	        			pipeline.addLast(new CorsHandler(corsConfig));
-	                	pipeline.addLast(new ClientHandler(dbcm, logManager, emailSender));
+	                	pipeline.addLast(new ClientHandlerMoreOOP(dbcm, logManager, emailSender));
 	                }
 	        	});
 	            

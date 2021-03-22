@@ -17,16 +17,19 @@ import javax.mail.MessagingException;
 
 import org.json.JSONException;
 
+import com.cm.databaseserver.exceptions.AuthorizationException;
 import com.cm.dataserver.dbengineclasses.DataBaseMethods;
 import com.cm.dataserver.dbengineclasses.Game;
 import com.cm.dataserver.dbengineclasses.GameTemplate;
 import com.cm.dataserver.dbengineclasses.PlayerId;
+import com.cm.dataserver.handlers.ApiHandler;
 import com.cm.dataserver.handlers.GameHandler;
-import com.cm.dataserver.handlers.HttpResponseTemplates;
+import com.cm.dataserver.handlers.MessagesHandler;
 import com.cm.dataserver.handlers.PlayerHandler;
 import com.cm.dataserver.handlers.RootHandler;
 import com.cm.dataserver.handlers.SystemHandler;
 import com.cm.dataserver.helpers.EmailSender;
+import com.cm.dataserver.helpers.HttpResponseTemplates;
 import com.cm.dataserver.helpers.LogManager;
 
 import io.netty.channel.ChannelHandlerContext;
@@ -45,17 +48,14 @@ public class ClientHandlerMoreOOP extends SimpleChannelInboundHandler<FullHttpRe
 	private EmailSender emailSender;
 	private static Map<Class<?>, RootHandler> handlerClasses;
 	private static Map<String, Method> handlers;
-	//private Game currentGame;
 	
-	public ClientHandlerMoreOOP(DatabaseConnectionManager dbConnectionPool, LogManager logManager, EmailSender emailSender) throws IOException {
-		this.dbConnectionPool = dbConnectionPool;
-		this.logManager = logManager;
-		this.emailSender = emailSender;
-		
+	static {
 		handlerClasses = new HashMap<>();
 		//handlerClasses.put(SystemHandler.class, new SystemHandler(dbConnection, MATCH_3_TEMPLATE, emailSender));
 		//handlerClasses.put(PlayerHandler.class, new PlayerHandler(dbConnection));
-		handlerClasses.put(GameHandler.class, new GameHandler(dbConnection/*, currentGame*/));
+		handlerClasses.put(GameHandler.class, new GameHandler());
+		handlerClasses.put(ApiHandler.class, new ApiHandler());
+		handlerClasses.put(MessagesHandler.class, new MessagesHandler());
 		
 		handlers = new HashMap<>();
 		for(Map.Entry<Class<?>, RootHandler> handlerClass : handlerClasses.entrySet()) {
@@ -66,6 +66,12 @@ public class ClientHandlerMoreOOP extends SimpleChannelInboundHandler<FullHttpRe
 				}
 			}
 		}
+	}
+	
+	public ClientHandlerMoreOOP(DatabaseConnectionManager dbConnectionPool, LogManager logManager, EmailSender emailSender) throws IOException {
+		this.dbConnectionPool = dbConnectionPool;
+		this.logManager = logManager;
+		this.emailSender = emailSender;
 	}
 	
 	private void sendHttpResponse(ChannelHandlerContext ctx, FullHttpResponse httpResponse) {
@@ -89,40 +95,24 @@ public class ClientHandlerMoreOOP extends SimpleChannelInboundHandler<FullHttpRe
 				new SystemHandler(dbConnection, MATCH_3_TEMPLATE, emailSender).handleRegisterGame(ctx, fullHttpRequest);
 				
 			} else if("/player/authorization".equals(fullHttpRequest.uri())) {
-				
-				Game game = Authorization.parseGame(fullHttpRequest, dbConnection);
-				if(game == null) {
-					sendGameNotFound(ctx);
-					return;
-				}
+				Game game = authorization(ctx, fullHttpRequest);
 				
 				new PlayerHandler(dbConnection).handlePlayerRequest(ctx, fullHttpRequest, game);
 				
 			} else {
-				Authorization auth = new Authorization();
-				
-				if(!auth.checkAuthorizationHeader(fullHttpRequest)) {
-					sendHttpResponse(ctx, HttpResponseTemplates.buildSimpleResponse("Error", auth.getStatusMessage(), HttpResponseStatus.OK));
-					return;
-				}
-				
-				Game game = Authorization.parseGame(fullHttpRequest, dbConnection);
-				if(game == null) {
-					sendGameNotFound(ctx);
-					return;
-				}
+				Game game = authorization(ctx, fullHttpRequest);
 				
 				PlayerId playerId = new PlayerId("playerId", fullHttpRequest.headers().get(Authorization.PLAYER_ID_HEADER));
 				
-				if(!auth.checkPlayerId(playerId.getValue(), dbConnection)) {
-					sendHttpResponse(ctx, HttpResponseTemplates.buildSimpleResponse("Error", auth.getStatusMessage(), HttpResponseStatus.OK));
+				if(!StringDataHelper.validatePlayerId(playerId.getValue())) {
+					sendHttpResponse(ctx, HttpResponseTemplates.buildSimpleResponse("Error", "Player authorization fail", HttpResponseStatus.OK));
 					return;
 				}
 				
 				String inputContent = fullHttpRequest.content().toString(CharsetUtil.UTF_8);
 				
 				Method handler = handlers.get(fullHttpRequest.uri());
-				handler.invoke(handlerClasses.get(handler.getClass()), ctx, inputContent, game, playerId);
+				handler.invoke(handlerClasses.get(handler.getDeclaringClass()), ctx, inputContent, game, playerId, dbConnection);
 			}
 		} catch (Exception e) {
 			StringWriter sw = new StringWriter();
@@ -147,5 +137,17 @@ public class ClientHandlerMoreOOP extends SimpleChannelInboundHandler<FullHttpRe
 				e.printStackTrace();
 			}
 		}
+	}
+	
+	private Game authorization(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws InvalidKeyException, NoSuchAlgorithmException, AuthorizationException, SQLException {
+		Authorization.AuthValue auth = Authorization.authorization(fullHttpRequest);
+		
+		Game game = DataBaseMethods.getGameByHash(auth.getGameHash(), dbConnection);
+		
+		if(game == null) {
+			throw new AuthorizationException("Authorization Exception: Game not found");
+		}
+		
+		return game;
 	}
 }

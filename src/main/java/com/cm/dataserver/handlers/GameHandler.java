@@ -18,6 +18,7 @@ import com.cm.dataserver.basedbclasses.SqlMethods;
 import com.cm.dataserver.dbengineclasses.DataBaseMethods;
 import com.cm.dataserver.dbengineclasses.Game;
 import com.cm.dataserver.dbengineclasses.PlayerId;
+import com.cm.dataserver.helpers.HttpResponseTemplates;
 import com.cm.dataserver.template1classes.BoostsUpdate;
 import com.cm.dataserver.template1classes.GameMethods;
 import com.cm.dataserver.template1classes.LevelsUpdate;
@@ -31,16 +32,8 @@ import io.netty.util.CharsetUtil;
 
 public class GameHandler extends RootHandler {
 	
-	private Connection dbConnection;
-	//private Game currentGame;
-	
-	public GameHandler(Connection dbConnection/*, Game game*/) {
-		this.dbConnection = dbConnection;
-		//this.currentGame = game;
-	}
-	
 	@UriAnnotation(uri="/game/levels")
-	private void levels(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId) throws JSONException, SQLException {
+	public void levels(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
 		
 		JSONArray jsonLevels = new JSONArray(inputContent);
 		
@@ -69,7 +62,7 @@ public class GameHandler extends RootHandler {
 	}
 	
 	@UriAnnotation(uri="/game/boosts")
-	private void boosts(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId) throws JSONException, SQLException {
+	public void boosts(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
 		
 		JSONArray jsonBoosts = new JSONArray(inputContent);
 		
@@ -98,7 +91,7 @@ public class GameHandler extends RootHandler {
 	}
 	
 	@UriAnnotation(uri="/game/leaderboard")
-	private void leadboard(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId) throws SQLException {
+	public void leadboard(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws SQLException {
 		
 		String playersTableName = game.getPrefix()+"players";
 		String levelsTableName = game.getPrefix()+"levels";
@@ -113,7 +106,7 @@ public class GameHandler extends RootHandler {
 	}
 	
 	@UriAnnotation(uri="/game/playerprogress")
-	private void playerProgress(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId) throws JSONException, SQLException {
+	public void playerProgress(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
 		JSONObject filter = new JSONObject(inputContent);
 		
 		JSONArray fbIds = filter.has("f_ids")?filter.getJSONArray("f_ids"):null;
@@ -146,7 +139,7 @@ public class GameHandler extends RootHandler {
 	}
 	
 	@UriAnnotation(uri="/game/maxplayerprogress")
-	private void maxPlayerProgress(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId) throws JSONException, SQLException {
+	public void maxPlayerProgress(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
 		JSONArray fbIds1 = new JSONArray(inputContent);
 		
 		String playersTableName2 = game.getPrefix()+"players";
@@ -178,7 +171,7 @@ public class GameHandler extends RootHandler {
 	
 	enum LifeRequestCreationType { NORMAL, SEND_LIFE }
 	
-	private void handleCreateLifeRequest(ChannelHandlerContext ctx, String inputContent, String gamePrefix, LifeRequestCreationType status, String playerId) throws JSONException, SQLException {
+	private void handleCreateLifeRequest(ChannelHandlerContext ctx, String inputContent, String gamePrefix, LifeRequestCreationType status, String playerId, Connection dbConnection) throws JSONException, SQLException {
 		String lifeRequestStatus = "open";
 		
 		if(status == LifeRequestCreationType.SEND_LIFE) {
@@ -224,20 +217,20 @@ public class GameHandler extends RootHandler {
 	}
 	
 	@UriAnnotation(uri="/game/create_life_request")
-	private void createLifeRequest(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId) throws JSONException, SQLException {
-		handleCreateLifeRequest(ctx, inputContent, game.getPrefix(), LifeRequestCreationType.NORMAL, playerId.getValue());
+	public void createLifeRequest(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
+		handleCreateLifeRequest(ctx, inputContent, game.getPrefix(), LifeRequestCreationType.NORMAL, playerId.getValue(), dbConnection);
 	}
 	
 	@UriAnnotation(uri="/game/send_life")
-	private void sendLife(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId) throws JSONException, SQLException {
+	public void sendLife(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
 		
 		//
 		// This case create 'confirmed' life request, that to be able to send life directly to player, without opened request creation
 		//
-		handleCreateLifeRequest(ctx, inputContent, game.getPrefix(), LifeRequestCreationType.SEND_LIFE, playerId.getValue());
+		handleCreateLifeRequest(ctx, inputContent, game.getPrefix(), LifeRequestCreationType.SEND_LIFE, playerId.getValue(), dbConnection);
 	}
 	
-	private void handleLifeRequestUpdateStatus(ChannelHandlerContext ctx, String inputContent, String gamePrefix, String status) throws SQLException, JSONException {
+	private void handleLifeRequestUpdateStatus(ChannelHandlerContext ctx, String inputContent, String gamePrefix, String status, Connection dbConnection) throws SQLException, JSONException {
 		JSONArray lifeRequestsIdsArray = new JSONArray(inputContent);
 		List<String> lifeRequestIdList = new ArrayList<>();
 		
@@ -267,27 +260,27 @@ public class GameHandler extends RootHandler {
 	}
 	
 	@UriAnnotation(uri="/game/confirm_life_request")
-	private void confirmLifeRequest(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId) throws SQLException, JSONException {
-		handleLifeRequestUpdateStatus(ctx, inputContent, game.getPrefix(), "confirm");
+	public void confirmLifeRequest(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws SQLException, JSONException {
+		handleLifeRequestUpdateStatus(ctx, inputContent, game.getPrefix(), "confirm", dbConnection);
 	}
 	
 	@UriAnnotation(uri="/game/deny_life_request")
-	private void denyLifeRequest(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId) throws SQLException, JSONException {
-		handleLifeRequestUpdateStatus(ctx, inputContent, game.getPrefix(), "deny");
+	public void denyLifeRequest(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws SQLException, JSONException {
+		handleLifeRequestUpdateStatus(ctx, inputContent, game.getPrefix(), "deny", dbConnection);
 	}
 	
 	@UriAnnotation(uri="/game/accept_life")
-	private void acceptLifeRequest(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId) throws SQLException, JSONException {
-		handleLifeRequestUpdateStatus(ctx, inputContent, game.getPrefix(), "deny");
+	public void acceptLifeRequest(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws SQLException, JSONException {
+		handleLifeRequestUpdateStatus(ctx, inputContent, game.getPrefix(), "deny", dbConnection);
 	}
 	
 	@UriAnnotation(uri="/game/refuse_life")
-	private void refuseLifeRequest(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId) throws SQLException, JSONException {
-		handleLifeRequestUpdateStatus(ctx, inputContent, game.getPrefix(), "deny");
+	public void refuseLifeRequest(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws SQLException, JSONException {
+		handleLifeRequestUpdateStatus(ctx, inputContent, game.getPrefix(), "deny", dbConnection);
 	}
 	
 	@UriAnnotation(uri="/game/life_requests")
-	private void lifeRewuests(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId) throws SQLException, JSONException {
+	public void lifeRewuests(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws SQLException, JSONException {
 		JSONObject lifeRequests = GameMethods.getLifeRequests(game.getPrefix(), playerId.getValue(), dbConnection);
 		sendHttpResponse(ctx, HttpResponseTemplates.buildResponse(lifeRequests.toString(), HttpResponseStatus.OK));
 	}

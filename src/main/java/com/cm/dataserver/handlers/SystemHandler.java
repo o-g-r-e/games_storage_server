@@ -19,6 +19,7 @@ import com.cm.dataserver.dbengineclasses.DataBaseMethods;
 import com.cm.dataserver.dbengineclasses.GameTemplate;
 import com.cm.dataserver.dbengineclasses.Owner;
 import com.cm.dataserver.helpers.EmailSender;
+import com.cm.dataserver.helpers.HttpResponseTemplates;
 import com.cm.dataserver.helpers.RandomKeyGenerator;
 
 import io.netty.channel.ChannelHandlerContext;

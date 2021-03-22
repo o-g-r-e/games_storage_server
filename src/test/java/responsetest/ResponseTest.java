@@ -262,7 +262,7 @@ public class ResponseTest {
 			testRequest(testMessage.withContent("1").toString(), "/message/send", messageSuccessResponse);
 			String playerIdMem = playerId;
 			playerId = "emfvv9zi-4wwb3gjc";
-			testRequest("", "/message/fetch_my_messages", "[{\"facebookId\":\"8373351478\",\"id\":1,\"message_content\":\"1\",\"type\":\"lives\"},{\"facebookId\":\"8373351478\",\"id\":2,\"message_content\":\"2\",\"type\":\"lives\"},{\"facebookId\":\"8373351478\",\"id\":3,\"message_content\":\"3\",\"type\":\"lives\"},{\"facebookId\":\"8373351478\",\"id\":4,\"message_content\":\"1\",\"type\":\"lives\"}]");
+			testRequest("", "/message/fetch_my_messages", "[{\"id\":1,\"message_content\":\"1\",\"sender_facebook_id\":\"8373351478\",\"type\":\"lives\"},{\"id\":2,\"message_content\":\"2\",\"sender_facebook_id\":\"8373351478\",\"type\":\"lives\"},{\"id\":3,\"message_content\":\"3\",\"sender_facebook_id\":\"8373351478\",\"type\":\"lives\"},{\"id\":4,\"message_content\":\"1\",\"sender_facebook_id\":\"8373351478\",\"type\":\"lives\"}]");
 			
 			String deleteMessageSuccessResponse = "{\"Success\":\"Message deleted successfully\"}";
 			testMessage.recipientFacebookId = "6186682720";
