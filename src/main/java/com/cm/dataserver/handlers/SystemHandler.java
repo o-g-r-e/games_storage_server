@@ -109,7 +109,7 @@ public class SystemHandler extends RootHandler {
 			Game game = allGames.get(i);
 			String sql = "SELECT\r\n"
 					+ game.getId()+" game_id,\r\n"
-					+ "rs.uri, epsilon_test.\r\n"
+					+ "rs.uri,\r\n"
 					+ "rs.count \r\n"
 					+ "FROM \r\n"
 					+ game.getPrefix()+"requests_statistic rs";
