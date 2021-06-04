@@ -51,6 +51,7 @@ public class Authorization {
 	}
 
 	public static boolean checkAuthorizationHeader(FullHttpRequest httpRequest) throws InvalidKeyException, NoSuchAlgorithmException {
+		if(!httpRequest.headers().contains("Authorization")) return false;
 		String authorization = httpRequest.headers().get("Authorization");
 		String gameHash = authorization.substring(authorization.indexOf(":")+1);
 		String requestHash = authorization.substring(0, authorization.indexOf(":"));

@@ -99,6 +99,8 @@ public class ClientHandlerMoreOOP extends SimpleChannelInboundHandler<FullHttpRe
 				
 				new PlayerHandler(dbConnection).handlePlayerRequest(ctx, fullHttpRequest, game);
 				
+			} else if("/echo".equals(fullHttpRequest.uri())) {
+				sendHttpResponse(ctx, HttpResponseTemplates.response("{\"status\":\"success\",\"message\":\"Echo OK\"}", HttpResponseStatus.OK));
 			} else {
 				Game game = authorization(ctx, fullHttpRequest);
 				

@@ -63,11 +63,12 @@ public class Main {
 	        workerGroup = new NioEventLoopGroup();
 	        
 	        boolean sslEnable = "Yes".equals(settings.get("enableSsl"));
-	        
+	        ServerSslProvider serverSslProvider = ServerSslProvider.getInstance();
 	        if(sslEnable) {
 	        	File tlsCert = new File(settings.get("cert"));
 	        	File tlsPrivateKey = new File(settings.get("privateKey"));
-	        	sslContext = SslContextBuilder.forServer(tlsCert, tlsPrivateKey).sslProvider(SslProvider.OPENSSL).clientAuth(ClientAuth.NONE).build();
+	        	//sslContext = SslContextBuilder.forServer(tlsCert, tlsPrivateKey).sslProvider(SslProvider.OPENSSL).clientAuth(ClientAuth.NONE).build();
+	        	serverSslProvider.init(tlsCert, tlsPrivateKey).setLogManager(logManager);
 	        }
 	        CorsConfig corsConfig = CorsConfigBuilder.forAnyOrigin().allowNullOrigin().allowCredentials().allowedRequestHeaders("Authorization", "api_key", "player_id", "Test-Object-Query", "Content-Type").build();
 	        ServerBootstrap b = new ServerBootstrap();
@@ -77,7 +78,7 @@ public class Main {
 	        		@Override
 	                public void initChannel(SocketChannel channel) throws Exception {
 	        			ChannelPipeline pipeline = channel.pipeline();
-	        			if(sslEnable) pipeline.addLast(sslContext.newHandler(channel.alloc()));
+	        			if(sslEnable) pipeline.addLast(serverSslProvider.getSslContext().newHandler(channel.alloc()));
 	        			pipeline.addLast(new HttpRequestDecoder());
 	        			pipeline.addLast(new HttpResponseEncoder());
 	        			pipeline.addLast(new HttpObjectAggregator(1048576));
