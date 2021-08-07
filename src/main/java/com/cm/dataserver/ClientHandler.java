@@ -688,10 +688,10 @@ public class ClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
 		String gameName = bodyParameters.get("game_name");
 		String email = bodyParameters.get("email");
 		
-		if(!StringDataHelper.validateGameCreationParameters(gameName, email, m3)) {
+		/*if(!StringDataHelper.validateGameCreationParameters(gameName, email, m3)) {
 			sendValidationFailResponse(ctx);
 			return;
-		}
+		}*/
 		
 		boolean isMath3 = "Yes".equals(m3);
 		String gameType = isMath3?"math3":"default";

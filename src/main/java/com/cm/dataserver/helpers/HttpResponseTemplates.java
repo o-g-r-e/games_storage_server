@@ -30,6 +30,10 @@ public class HttpResponseTemplates {
 	}
 	
 	public static FullHttpResponse validationFailResponse(ChannelHandlerContext ctx) {
-		return buildSimpleResponse("Error", "Parameters validation failed", HttpResponseStatus.BAD_REQUEST);
+		return buildSimpleResponse("Error", "Parameters validation failed", HttpResponseStatus.OK);
+	}
+	
+	public static FullHttpResponse badInvoiceResponse(ChannelHandlerContext ctx) {
+		return buildSimpleResponse("Error", "Bad invoice or could't validate invoice", HttpResponseStatus.OK);
 	}
 }

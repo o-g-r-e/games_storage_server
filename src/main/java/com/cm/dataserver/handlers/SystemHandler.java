@@ -1,7 +1,12 @@
 package com.cm.dataserver.handlers;
 
+import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
@@ -10,6 +15,11 @@ import java.sql.Types;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.cm.dataserver.Authorization;
 import com.cm.dataserver.StringDataHelper;
@@ -24,6 +34,7 @@ import com.cm.dataserver.dbengineclasses.Owner;
 import com.cm.dataserver.helpers.EmailSender;
 import com.cm.dataserver.helpers.HttpResponseTemplates;
 import com.cm.dataserver.helpers.RandomKeyGenerator;
+import com.cm.dataserver.helpers.Settings;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -42,26 +53,56 @@ public class SystemHandler extends RootHandler {
 		this.emailSender = emailSender;
 	}
 	
+	private static boolean checkInvoice(String invoice) throws MalformedURLException, IOException, JSONException {
+		
+		String serivceUrl = "https://api.assetstore.unity3d.com";
+		String key = Settings.invoiceKey;
+		String requestPath = "/publisher/v1/invoice/verify.json";
+		String requestParameters = "key=%s&invoice=%s";
+		
+		HttpURLConnection conn = (HttpURLConnection) new URL(serivceUrl + requestPath + "?" + String.format(requestParameters, key, invoice)).openConnection();
+		conn.connect();
+		String response = new BufferedReader(new InputStreamReader(conn.getInputStream())).lines().collect(Collectors.joining("\n"));
+		JSONObject json = new JSONObject(response);
+		
+		JSONArray invoicesArray = json.getJSONArray("invoices");
+		
+		if(invoicesArray.length() <= 0) {
+			return false;
+		}
+		
+		String responseDownloaded = invoicesArray.getJSONObject(0).getString("downloaded");
+		String responseRefunded = invoicesArray.getJSONObject(0).getString("refunded");
+		
+		return "Yes".equals(responseDownloaded) && "No".equals(responseRefunded);
+	}
+	
 	@UriAnnotation(uri="/system/register_game")
-	public void handleRegisterGame(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, InvalidKeyException, NoSuchAlgorithmException, FileNotFoundException, ClassNotFoundException, IOException {
+	public void handleRegisterGame(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, InvalidKeyException, NoSuchAlgorithmException, FileNotFoundException, ClassNotFoundException, IOException, JSONException {
 		Map<String, String> bodyParameters = StringDataHelper.parseParameters(httpRequest.content().toString(CharsetUtil.UTF_8));
 		
-		if(!StringDataHelper.simpleValidation(new String[] {"game_name", "email", "match3", "send_mail"}, bodyParameters)) {
+		if(!StringDataHelper.simpleValidation(new String[] {"game_name", "email", "match3", "send_mail", "invoice"}, bodyParameters)) {
 			sendValidationFailResponse(ctx);
 			return;
 		}
 		
 		
-		String m3 = bodyParameters.get("match3");
+		String match3 = bodyParameters.get("match3");
 		String gameName = bodyParameters.get("game_name");
 		String email = bodyParameters.get("email");
+		String invoice = bodyParameters.get("invoice");
 		
-		if(!StringDataHelper.validateGameCreationParameters(gameName, email, m3)) {
+		if(!StringDataHelper.validateGameCreationParameters(gameName, email, match3, invoice)) {
 			sendValidationFailResponse(ctx);
 			return;
 		}
 		
-		boolean isMath3 = "Yes".equals(m3);
+		if(!checkInvoice(invoice)) {
+			sendBadInvoiceResponse(ctx);
+			return;
+		}
+		
+		boolean isMath3 = "Yes".equals(match3);
 		String gameType = isMath3?"math3":"default";
 		String apiKey = RandomKeyGenerator.nextString(24);
 		String apiSecret = RandomKeyGenerator.nextString(45);

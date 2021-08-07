@@ -21,4 +21,8 @@ public class RootHandler {
 	protected void sendValidationFailResponse(ChannelHandlerContext ctx) {
 		sendHttpResponse(ctx, HttpResponseTemplates.validationFailResponse(ctx));
 	}
+	
+	protected void sendBadInvoiceResponse(ChannelHandlerContext ctx) {
+		sendHttpResponse(ctx, HttpResponseTemplates.badInvoiceResponse(ctx));
+	}
 }

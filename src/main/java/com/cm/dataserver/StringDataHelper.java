@@ -22,6 +22,7 @@ public class StringDataHelper {
 	private static Pattern yesNoPattern = Pattern.compile("^(yes|Yes|no|No)$");
 	private static Pattern playerIdPattern = Pattern.compile("^[a-z0-9]{8}-[a-z0-9]{8}$");
 	private static Pattern base64pattern = Pattern.compile("^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$");
+	private static Pattern invoicePattern = Pattern.compile("^IN\\d{12}$");
 	
 	public static String parseSpecialRequestName(String urlPath) {
 		Matcher requestNameMatcher = specialRequestNamePattern.matcher(urlPath);
@@ -41,10 +42,11 @@ public class StringDataHelper {
 		return uuidPattern.matcher(uuid).find();
 	}
 	
-	public static boolean validateGameCreationParameters(String gameName, String email, String isMathc3) {
+	public static boolean validateGameCreationParameters(String gameName, String email, String isMathc3, String invoice) {
 		return gameNamePattern.matcher(gameName).find()&&
 			   emailPattern.matcher(email).find()&&
-			   yesNoPattern.matcher(isMathc3).find();
+			   yesNoPattern.matcher(isMathc3).find()&&
+			   invoicePattern.matcher(invoice).find();
 	}
 	
 	public static boolean validatePlayerId(String playerId) {

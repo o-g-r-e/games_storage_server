@@ -8,6 +8,7 @@ import java.util.Scanner;
 
 public class Settings {
 	private Map<String, String> parameters = new HashMap<>();
+	public static String invoiceKey;
 	
 	public Settings(File settingsFile) throws FileNotFoundException {
 		Scanner scanner = null;
@@ -16,12 +17,16 @@ public class Settings {
 			while (scanner.hasNextLine()) {
 				String line = scanner.nextLine();
 				String[] s = line.split("=");
-				if("".equals(line) || s.length < 2) continue;
+				if("".equals(line) || line.startsWith("#") || s.length < 2) continue;
 				parameters.put(s[0], s[1]);
 			}
 		} finally {
 			if(scanner != null) {
 				scanner.close();
+			}
+			
+			if(parameters.containsKey("invoiceKey")) {
+				invoiceKey = parameters.get("invoiceKey");
 			}
 		}
 	}

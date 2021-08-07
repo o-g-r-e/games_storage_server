@@ -36,8 +36,8 @@ public class ResponseTest {
 	private static String playerId = "";
 	private static String prefix = "";
 	
-	private Pattern successfullyGameResponsePattern = Pattern.compile("^\\{\"game_name\":\""+gameName+"\",\"api_key\":\"[a-zA-Z0-9]{24}\",\"api_secret\":\"[a-zA-Z0-9]{45}\",\"status\":\"success\"\\}$");
-	private Pattern successfullyPlayerAuthorizationPattern = Pattern.compile("^\\{\"playerId\":\"[a-z0-9]{8}\\-[a-z0-9]{8}\"\\}$");
+	private Pattern okCreateGamePattern = Pattern.compile("^\\{\"game_name\":\""+gameName+"\",\"api_key\":\"[a-zA-Z0-9]{24}\",\"api_secret\":\"[a-zA-Z0-9]{45}\",\"status\":\"success\"\\}$");
+	private Pattern okAuthorizationPattern = Pattern.compile("^\\{\"playerId\":\"[a-z0-9]{8}\\-[a-z0-9]{8}\"\\}$");
 	
 	private Connection createDatabaseConnection(String connectionUrl, String username, String password) throws SQLException {
 		return (Connection) DriverManager.getConnection(connectionUrl, username, password);
@@ -64,7 +64,13 @@ public class ResponseTest {
 		return result;
 	}
 	
-	private void initTestDatabase(Statement statement, String[] queries) throws SQLException {
+	private void executeSqlScript(Statement statement, String scriptContent) throws SQLException {
+		String[] queries = scriptContent.split(";");
+		for (int i = 0; i < queries.length; i++)
+			statement.executeUpdate(queries[i].trim());
+	}
+	
+	/*private void initTestDatabase(Statement statement, String[] queries) throws SQLException {
 		for (int i = 0; i < queries.length; i++)
 			statement.executeUpdate(queries[i].trim());
 	}
@@ -72,9 +78,9 @@ public class ResponseTest {
 	private void createTables(Statement statement, String[] queries) throws SQLException {
 		for (int i = 0; i < queries.length; i++)
 			statement.executeUpdate(queries[i].trim());
-	}
+	}*/
 	
-	private void createTables(Statement statement) throws SQLException {
+	/*private void createGameTables(Statement statement) throws SQLException {
 		statement.executeUpdate("CREATE TABLE `"+prefix+"test_table` (\r\n"
 				+ "    `id` int(11) NOT NULL AUTO_INCREMENT,\r\n"
 				+ "    `playerId` varchar(17) NOT NULL,\r\n"
@@ -105,16 +111,16 @@ public class ResponseTest {
 				+ "('mgw8vrhu-bp3lu9yk', '3998823149'),\r\n"
 				+ "('weoh98bf-vjyziipb', '4979193465'),\r\n"
 				+ "('qig0qa8a-w4m3spwa', '1464368749');");
+	}*/
+	
+	private String registerGameRequest(String gameName, String clientEmail, String match3, String sendMail) throws IOException {
+		 return new HttpClient(host+"/system/register_game").doPost(String.format("game_name=%s&email=%s&match3=%s&send_mail=%s&invoice=%s", gameName, clientEmail, match3, sendMail, "IN010201106266")).getResponseBody();
 	}
 	
-	private String createGame(String gameName, String clientEmail, String match3, String sendMail) throws IOException {
-		 return new HttpClient(host+"/system/register_game").doPost(String.format("game_name=%s&email=%s&match3=%s&send_mail=%s", gameName, clientEmail, match3, sendMail)).getResponseBody();
-	}
-	
-	private void testGameCreation() throws IOException, JSONException, InvalidKeyException, NoSuchAlgorithmException {
-		String response = createGame(gameName, ownerEmail, "Yes", "No");
+	private void createGameTest() throws IOException, JSONException, InvalidKeyException, NoSuchAlgorithmException {
+		String response = registerGameRequest(gameName, ownerEmail, "Yes", "No");
 		System.out.println("Game creation response: "+response);
-		assertTrue("Game creation: ", successfullyGameResponsePattern.matcher(response).find());
+		assertTrue("Game creation: ", okCreateGamePattern.matcher(response).find());
 		JSONObject json = new JSONObject(response);
 		String apiKey = json.getString("api_key");
 		String apiSecret = json.getString("api_secret");
@@ -123,18 +129,18 @@ public class ResponseTest {
 		gameHmac = Base64.getEncoder().encodeToString(hmac(apiSecret.getBytes(), apiKey.getBytes()));
 	}
 	
-	private String playerAuthorization(String facebookId) throws InvalidKeyException, MalformedURLException, NoSuchAlgorithmException, IOException {
+	private String playerAuthorizationRequest(String facebookId) throws InvalidKeyException, MalformedURLException, NoSuchAlgorithmException, IOException {
 		String url = "/player/authorization";
 		return new HttpClient(host+url)
 					.addHeader("Authorization", computeRequestHmac(gameHmac, url)+":"+gameHmac)
 					.doPost("facebookId="+facebookId).getResponseBody();
 	}
 	
-	private void testPlayerAuthorization() throws InvalidKeyException, MalformedURLException, NoSuchAlgorithmException, IOException, JSONException {
-		String response = playerAuthorization(playerFacebookId);
+	private void playerLoginTest() throws InvalidKeyException, MalformedURLException, NoSuchAlgorithmException, IOException, JSONException {
+		String response = playerAuthorizationRequest(playerFacebookId);
 		System.out.println("Player authorization response: "+response);
 		
-		assertTrue("Player authorization: ", successfullyPlayerAuthorizationPattern.matcher(response).find());
+		assertTrue("Player authorization: ", okAuthorizationPattern.matcher(response).find());
 		
 		playerId = new JSONObject(response).getString("playerId");
 	}
@@ -159,38 +165,50 @@ public class ResponseTest {
 		}
 	}
 	
-	private void testSendMessage(JSONObject messageQuery) {
+	private void prepareSchema(Statement statement) throws SQLException {
+		String sqlFileContent = readFileContent(".\\src\\test\\resources\\responsetest\\schema.sql");
 		
+		if(sqlFileContent == null) {
+			fail("Fail: Empty SQL file content");
+			return;
+		}
+		
+		executeSqlScript(statement, sqlFileContent);
+	}
+	
+	private void createGameData(Statement statement) throws SQLException {
+		String sqlFileContent = readFileContent(".\\src\\test\\resources\\responsetest\\game_data.sql");
+		
+		if(sqlFileContent == null) {
+			fail("Fail: Empty SQL file content");
+			return;
+		}
+		
+		executeSqlScript(statement, String.format(sqlFileContent, prefix, prefix, prefix));
 	}
 	
 	@Test
 	public void test() {
 		Connection databaseConnection = null;
-		HttpURLConnection serverConnnection = null;
+		//HttpURLConnection serverConnnection = null;
 		try {
 			databaseConnection = createDatabaseConnection("jdbc:mysql://localhost:3306?useSSL=false", "root", "1234567890");
 			Statement statement = (Statement) databaseConnection.createStatement();
 			
-			String sqlFileContent = readFileContent(".\\src\\test\\resources\\responsetest\\schema.sql");
+			prepareSchema(statement);
 			
-			if(sqlFileContent == null) {
-				fail("Fail: Error in sql file read");
-				return;
-			}
-			
-			initTestDatabase(statement, sqlFileContent.split(";"));
-			testGameCreation();
+			createGameTest();
 			
 			if(prefix == null || prefix.length() <= 0 || gameHmac == null || gameHmac.length() <= 0) {
 				fail("Game creation fail");
 				return;
 			}
 			
-			createTables(statement);
+			createGameData(statement);
 			
-			testPlayerAuthorization();
+			playerLoginTest();
 			
-			if(playerId.length() <= 0) {
+			if(playerId == null || playerId.length() <= 0) {
 				fail("Player authorization fail");
 				return;
 			}
@@ -313,7 +331,7 @@ public class ResponseTest {
 			e.printStackTrace();
 			fail();
 		} finally {
-			if(serverConnnection != null) serverConnnection.disconnect();
+			//if(serverConnnection != null) serverConnnection.disconnect();
 			try {
 				if(databaseConnection != null) databaseConnection.close();
 			} catch (SQLException e) {
