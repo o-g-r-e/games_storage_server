@@ -46,11 +46,10 @@ public class ClientHandlerMoreOOP extends SimpleChannelInboundHandler<FullHttpRe
 	private static final GameTemplate MATCH_3_TEMPLATE = GameTemplate.match3Template();
 	private final String defaultPlayerIdFieldName = "playerId";
 	private EmailSender emailSender;
-	private static Map<Class<?>, RootHandler> handlerClasses;
+	private static Map<Class<?>, RootHandler> handlerClasses = new HashMap<>();
 	private static Map<String, Method> handlers;
 	
 	static {
-		handlerClasses = new HashMap<>();
 		//handlerClasses.put(SystemHandler.class, new SystemHandler(dbConnection, MATCH_3_TEMPLATE, emailSender));
 		//handlerClasses.put(PlayerHandler.class, new PlayerHandler(dbConnection));
 		handlerClasses.put(GameHandler.class, new GameHandler());

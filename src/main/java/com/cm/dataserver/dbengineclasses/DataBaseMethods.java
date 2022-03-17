@@ -237,6 +237,28 @@ public class DataBaseMethods  {
 		return result;
 	}
 	
+	public static List<Game> getOwnerGames(Connection dbConnection, String[] fields, String ownerEmail) throws SQLException {
+		List<Game> result = new ArrayList<>();
+		List<Row> owners = SqlMethods.select("SELECT id FROM owners WHERE email=? LIMIT 1", new QueryTypedValue(ownerEmail), dbConnection);
+		
+		if(owners.size() <= 0) return result;
+		
+		String queryFields = "*";
+		
+		if(fields != null && fields.length > 0) {
+			queryFields = String.join(",", fields);
+		}
+		
+		int ownerId = owners.get(0).getInt("id");
+		List<Row> games = SqlMethods.select("SELECT "+queryFields+" FROM games WHERE owner_id=?", new QueryTypedValue(ownerId), dbConnection);
+		
+		for (Row row : games) {
+			result.add(rowToGame(row));
+		}
+		
+		return result;
+	}
+	
 	/*public static int serverTypeToMysqType(String serverType) {
 		switch (serverType) {
 		case "integer":

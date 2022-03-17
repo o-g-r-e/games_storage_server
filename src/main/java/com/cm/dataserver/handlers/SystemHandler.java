@@ -77,6 +77,32 @@ public class SystemHandler extends RootHandler {
 		return "Yes".equals(responseDownloaded) && "No".equals(responseRefunded);
 	}
 	
+	@UriAnnotation(uri="/system/games")
+	public void games(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, InvalidKeyException, NoSuchAlgorithmException, FileNotFoundException, ClassNotFoundException, IOException, JSONException {
+		Map<String, String> bodyParameters = StringDataHelper.parseParameters(httpRequest.content().toString(CharsetUtil.UTF_8));
+		
+		if(!StringDataHelper.simpleValidation(new String[] {"email"}, bodyParameters)) {
+			sendValidationFailResponse(ctx);
+			return;
+		}
+		
+		String email = bodyParameters.get("email");
+		
+		List<Game> ownerGames = DataBaseMethods.getOwnerGames(dbConnection, new String[] {"id", "name"},  email);
+		
+		StringBuilder jsonGames = new StringBuilder("[");
+		
+		for (int i = 0; i < ownerGames.size(); i++) {
+			Game g = ownerGames.get(i);
+			jsonGames.append(String.format("{\"%s\":%d,\"%s\":\"%s\"}", "id", g.getId(), "name", g.getName()));
+			if(i<ownerGames.size()-1) jsonGames.append(",");
+		}
+		
+		sendHttpResponse(ctx, HttpResponseTemplates.response(jsonGames.toString(), HttpResponseStatus.OK));
+	}
+	
+	
+	
 	@UriAnnotation(uri="/system/register_game")
 	public void handleRegisterGame(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, InvalidKeyException, NoSuchAlgorithmException, FileNotFoundException, ClassNotFoundException, IOException, JSONException {
 		Map<String, String> bodyParameters = StringDataHelper.parseParameters(httpRequest.content().toString(CharsetUtil.UTF_8));
