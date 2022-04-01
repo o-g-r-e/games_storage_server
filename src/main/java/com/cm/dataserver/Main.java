@@ -40,15 +40,7 @@ public class Main {
 		
 		try {
 			logManager = new LogManager(8);
-			String settingsPath = null;
-			if(args.length < 1) {
-				settingsPath = new File(".").getCanonicalPath()+File.separator+"settings"+File.separator+".settings";
-			} else {
-				settingsPath = args[0];
-			}
-			
-			
-			settings = new Settings(new File(settingsPath));
+			settings = new Settings(new File(p(".", "settings", ".settings")));
 			
 			DatabaseConnectionManager dbcm = new DatabaseConnectionPoolApache(new DataBaseConnectionParameters("jdbc:mysql", settings.get("dbAddr"), 
 																												   settings.get("dbPort"), 
@@ -91,12 +83,22 @@ public class Main {
 	        b.bind(Integer.parseInt(settings.get("serverPort"))).sync().channel().closeFuture().sync();
 	        
 		} catch (IOException /*| CertificateException*/ | InterruptedException e) {
-			StringWriter sw = new StringWriter();
+			/* StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
-			e.printStackTrace(pw);
+			e.printStackTrace(pw); */
+			e.printStackTrace();
 		} finally {
             if(workerGroup != null) workerGroup.shutdownGracefully();
             if(bossGroup != null) bossGroup.shutdownGracefully();
         }
+	}
+
+	private static String p(String... path) {
+		StringBuilder result = new StringBuilder();
+		for (String fName : path) {
+			result.append(fName).append(File.separator);
+		}
+
+		return result.toString();
 	}
 }

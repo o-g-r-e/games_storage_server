@@ -43,7 +43,6 @@ public class ClientHandlerMoreOOP extends SimpleChannelInboundHandler<FullHttpRe
 	private DatabaseConnectionManager dbConnectionPool;
 	private Connection dbConnection;
 	private LogManager logManager;
-	private static final GameTemplate MATCH_3_TEMPLATE = GameTemplate.match3Template();
 	private final String defaultPlayerIdFieldName = "playerId";
 	private EmailSender emailSender;
 	private static Map<Class<?>, RootHandler> handlerClasses = new HashMap<>();
@@ -91,7 +90,7 @@ public class ClientHandlerMoreOOP extends SimpleChannelInboundHandler<FullHttpRe
 			
 			if("/system/register_game".equals(fullHttpRequest.uri())) {
 				
-				new SystemHandler(dbConnection, MATCH_3_TEMPLATE, emailSender).handleRegisterGame(ctx, fullHttpRequest);
+				new SystemHandler(dbConnection, emailSender).handleRegisterGame(ctx, fullHttpRequest);
 				
 			} else if("/player/authorization".equals(fullHttpRequest.uri())) {
 				Game game = authorization(ctx, fullHttpRequest);

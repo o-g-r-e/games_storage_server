@@ -70,6 +70,8 @@ public class Field {
 			return "VARCHAR("+length+")";
 		case Types.FLOAT:
 			return "DECIMAL(5,2)";
+		case Types.TIMESTAMP:
+			return "DATETIME";
 		}
 		
 		return null;

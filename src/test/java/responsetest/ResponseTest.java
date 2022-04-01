@@ -35,6 +35,7 @@ public class ResponseTest {
 	private static final String playerFacebookId = "8373351478";
 	private static String playerId = "";
 	private static String prefix = "";
+	private static String resourcesPath = ".\\src\\test\\resources\\responsetest\\";
 	
 	private Pattern okCreateGamePattern = Pattern.compile("^\\{\"game_name\":\""+gameName+"\",\"api_key\":\"[a-zA-Z0-9]{24}\",\"api_secret\":\"[a-zA-Z0-9]{45}\",\"status\":\"success\"\\}$");
 	private Pattern okAuthorizationPattern = Pattern.compile("^\\{\"playerId\":\"[a-z0-9]{8}\\-[a-z0-9]{8}\"\\}$");
@@ -166,7 +167,7 @@ public class ResponseTest {
 	}
 	
 	private void prepareSchema(Statement statement) throws SQLException {
-		String sqlFileContent = readFileContent(".\\src\\test\\resources\\responsetest\\schema.sql");
+		String sqlFileContent = readFileContent(resourcesPath+"schema.sql");
 		
 		if(sqlFileContent == null) {
 			fail("Fail: Empty SQL file content");
@@ -177,7 +178,7 @@ public class ResponseTest {
 	}
 	
 	private void createGameData(Statement statement) throws SQLException {
-		String sqlFileContent = readFileContent(".\\src\\test\\resources\\responsetest\\game_data.sql");
+		String sqlFileContent = readFileContent(resourcesPath+"game_data.sql");
 		
 		if(sqlFileContent == null) {
 			fail("Fail: Empty SQL file content");
@@ -213,9 +214,9 @@ public class ResponseTest {
 				return;
 			}
 			
-			String apiInsertJsonContent = readFileContent(".\\src\\test\\resources\\responsetest\\api_insert.json");
-			String apiSelectJsonContent = readFileContent(".\\src\\test\\resources\\responsetest\\api_select.json");
-			String apiUpdateJsonContent = readFileContent(".\\src\\test\\resources\\responsetest\\api_update.json");
+			String apiInsertJsonContent = readFileContent(resourcesPath+"api_insert.json");
+			String apiSelectJsonContent = readFileContent(resourcesPath+"api_select.json");
+			String apiUpdateJsonContent = readFileContent(resourcesPath+"api_update.json");
 			
 			if(apiInsertJsonContent == null || apiSelectJsonContent == null || apiUpdateJsonContent == null) {
 				fail("Fail: Fail to read json files.");

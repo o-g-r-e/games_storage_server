@@ -44,12 +44,12 @@ import io.netty.util.CharsetUtil;
 public class SystemHandler extends RootHandler {
 	
 	private Connection dbConnection;
-	private GameTemplate math3Template;
 	private EmailSender emailSender;
+	private static final GameTemplate MATCH_3_TEMPLATE = GameTemplate.match3Template();
+	private static final GameTemplate CASUAL_TEMPLATE = GameTemplate.casualGameTemplate();
 	
-	public SystemHandler(Connection dbConnection, GameTemplate math3Template, EmailSender emailSender) {
+	public SystemHandler(Connection dbConnection, EmailSender emailSender) {
 		this.dbConnection = dbConnection;
-		this.math3Template = math3Template;
 		this.emailSender = emailSender;
 	}
 	
@@ -101,35 +101,37 @@ public class SystemHandler extends RootHandler {
 		sendHttpResponse(ctx, HttpResponseTemplates.response(jsonGames.toString(), HttpResponseStatus.OK));
 	}
 	
-	
-	
 	@UriAnnotation(uri="/system/register_game")
 	public void handleRegisterGame(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, InvalidKeyException, NoSuchAlgorithmException, FileNotFoundException, ClassNotFoundException, IOException, JSONException {
 		Map<String, String> bodyParameters = StringDataHelper.parseParameters(httpRequest.content().toString(CharsetUtil.UTF_8));
 		
-		if(!StringDataHelper.simpleValidation(new String[] {"game_name", "email", "match3", "send_mail", "invoice"}, bodyParameters)) {
+		if(!StringDataHelper.simpleValidation(new String[] {"game_name", "email", "type", "send_mail", "invoice"}, bodyParameters)) {
 			sendValidationFailResponse(ctx);
 			return;
 		}
 		
 		
-		String match3 = bodyParameters.get("match3");
+		String type = bodyParameters.get("type");
 		String gameName = bodyParameters.get("game_name");
 		String email = bodyParameters.get("email");
 		String invoice = bodyParameters.get("invoice");
 		
-		if(!StringDataHelper.validateGameCreationParameters(gameName, email, match3, invoice)) {
+		if(!StringDataHelper.validateGameCreationParameters(gameName, email, type, invoice)) {
 			sendValidationFailResponse(ctx);
 			return;
 		}
 		
-		if(!checkInvoice(invoice)) {
+		//UNCOMMENT THIS BLOCK AFTER TEST:
+		//UNCOMMENT THIS BLOCK AFTER TEST:
+		//UNCOMMENT THIS BLOCK AFTER TEST:
+		//UNCOMMENT THIS BLOCK AFTER TEST:
+		//UNCOMMENT THIS BLOCK AFTER TEST:
+		/* if(!checkInvoice(invoice)) {
 			sendBadInvoiceResponse(ctx);
 			return;
-		}
+		} */
 		
-		boolean isMath3 = "Yes".equals(match3);
-		String gameType = isMath3?"math3":"default";
+		String gameType = type==null?"default":type;
 		String apiKey = RandomKeyGenerator.nextString(24);
 		String apiSecret = RandomKeyGenerator.nextString(45);
 		
@@ -160,9 +162,11 @@ public class SystemHandler extends RootHandler {
 			sendHttpResponse(ctx, HttpResponseTemplates.buildSimpleResponse("Error", "An error occurred while adding the game", HttpResponseStatus.INTERNAL_SERVER_ERROR));
 			return;
 		}
-		if("Yes".equals(bodyParameters.get("match3"))) {
-			DataBaseMethods.createGameTables(math3Template, prefix, dbConnection); //throw exception if not successfully
-		} else {
+		if("match3".equals(type)) {
+			DataBaseMethods.createGameTables(MATCH_3_TEMPLATE, prefix, dbConnection); //throw exception if not successfully
+		 } else if("casual".equals(type)) {
+			DataBaseMethods.createGameTables(CASUAL_TEMPLATE, prefix, dbConnection);
+		 } else {
 			DataBaseMethods.createGameTable(new TableTemplate("players", new Field[] {new Field(Types.VARCHAR, "playerId").setLength(17).defNull(false), new Field(Types.VARCHAR, "facebookId")}, "playerId"), prefix, dbConnection);
 		}
 		
