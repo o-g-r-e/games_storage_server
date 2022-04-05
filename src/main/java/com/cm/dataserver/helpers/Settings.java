@@ -31,7 +31,11 @@ public class Settings {
 		}
 	}
 
-	public String get(String parameterName) {
+	public String getString(String parameterName) {
 		return parameters.get(parameterName)==null?"":parameters.get(parameterName);
+	}
+
+	public boolean getBool(String parameterName) {
+		return "Yes".equals(getString(parameterName));
 	}
 }

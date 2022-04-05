@@ -42,23 +42,23 @@ public class Main {
 			logManager = new LogManager(8);
 			settings = new Settings(new File(p(".", "settings", ".settings")));
 			
-			DatabaseConnectionManager dbcm = new DatabaseConnectionPoolApache(new DataBaseConnectionParameters("jdbc:mysql", settings.get("dbAddr"), 
-																												   settings.get("dbPort"), 
-																												   settings.get("dbName"), 
-																												   settings.get("dbUser"), 
-																												   settings.get("dbPassword")));
+			DatabaseConnectionManager dbcm = new DatabaseConnectionPoolApache(new DataBaseConnectionParameters("jdbc:mysql", settings.getString("dbAddr"), 
+																												   settings.getString("dbPort"), 
+																												   settings.getString("dbName"), 
+																												   settings.getString("dbUser"), 
+																												   settings.getString("dbPassword")));
 			
-			emailSender = new EmailSender(settings.get("smtpServer"), settings.get("smtpUser"), settings.get("oauthClientId"), settings.get("oauthClientSecret"), settings.get("oauthRefreshToken"), settings.get("oauthTokenUrl"), settings.get("accessTokenPath"), settings.get("emailFrom"), logManager);
-	        emailSender.enable("Yes".equals(settings.get("sendEmail")));
+			emailSender = new EmailSender(settings.getString("smtpServer"), settings.getString("smtpUser"), settings.getString("oauthClientId"), settings.getString("oauthClientSecret"), settings.getString("oauthRefreshToken"), settings.getString("oauthTokenUrl"), settings.getString("accessTokenPath"), settings.getString("emailFrom"), logManager);
+	        emailSender.enable(settings.getBool("sendEmail"));
 			
 			bossGroup = new NioEventLoopGroup();
 	        workerGroup = new NioEventLoopGroup();
 	        
-	        boolean sslEnable = "Yes".equals(settings.get("enableSsl"));
+	        boolean sslEnable = settings.getBool("enableSsl");
 	        ServerSslProvider serverSslProvider = ServerSslProvider.getInstance();
 	        if(sslEnable) {
-	        	File tlsCert = new File(settings.get("cert"));
-	        	File tlsPrivateKey = new File(settings.get("privateKey"));
+	        	File tlsCert = new File(settings.getString("cert"));
+	        	File tlsPrivateKey = new File(settings.getString("privateKey"));
 	        	//sslContext = SslContextBuilder.forServer(tlsCert, tlsPrivateKey).sslProvider(SslProvider.OPENSSL).clientAuth(ClientAuth.NONE).build();
 	        	serverSslProvider.init(tlsCert, tlsPrivateKey).setLogManager(logManager);
 	        }
@@ -76,11 +76,11 @@ public class Main {
 	        			pipeline.addLast(new HttpObjectAggregator(1048576));
 	                	//channel.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(2048));
 	        			pipeline.addLast(new CorsHandler(corsConfig));
-	                	pipeline.addLast(new ClientHandlerMoreOOP(dbcm, logManager, emailSender));
+	                	pipeline.addLast(new ClientHandlerMoreOOP(dbcm, logManager, emailSender, settings));
 	                }
 	        	});
 	            
-	        b.bind(Integer.parseInt(settings.get("serverPort"))).sync().channel().closeFuture().sync();
+	        b.bind(Integer.parseInt(settings.getString("serverPort"))).sync().channel().closeFuture().sync();
 	        
 		} catch (IOException /*| CertificateException*/ | InterruptedException e) {
 			/* StringWriter sw = new StringWriter();

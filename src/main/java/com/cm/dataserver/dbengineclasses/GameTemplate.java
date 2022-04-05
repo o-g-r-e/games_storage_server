@@ -103,13 +103,14 @@ public class GameTemplate {
 	public static GameTemplate casualGameTemplate() {
 		List<TableTemplate> tblTemplates = GameTemplate.match3Template().getTableTemplates();
 
-		Field[] eventsFields = new Field[] { new Field(Types.INTEGER, "id").defNull(false).setLength(4),
+		Field[] eventsFields = new Field[] { new Field(Types.VARCHAR, "uuid").defNull(false).setLength(36),
 											 new Field(Types.VARCHAR, "status").defNull(false),
 											 new Field(Types.TIMESTAMP, "end").defNull(false),
-											 new Field(Types.VARCHAR, "nagrada").defNull(false),
-											 new Field(Types.VARCHAR, "winner_id").setLength(17) };
+											 new Field(Types.VARCHAR, "reward").defNull(false),
+											 new Field(Types.VARCHAR, "winner_id").setLength(17),
+											 new Field(Types.VARCHAR, "reward_received").setLength(3) };
 
-		TableTemplate scoreEventsTemplate = new TableTemplate("score_events", eventsFields, "id");
+		TableTemplate scoreEventsTemplate = new TableTemplate("score_events", eventsFields, "uuid");
 		
 		Field[] initScoreBalanceFields = new Field[] {new Field(Types.VARCHAR, "playerId").defNull(false).setLength(17),
 													  new Field(Types.INTEGER, "init_score_balance").defNull(false)};

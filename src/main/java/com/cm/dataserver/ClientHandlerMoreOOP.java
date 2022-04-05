@@ -31,6 +31,7 @@ import com.cm.dataserver.handlers.SystemHandler;
 import com.cm.dataserver.helpers.EmailSender;
 import com.cm.dataserver.helpers.HttpResponseTemplates;
 import com.cm.dataserver.helpers.LogManager;
+import com.cm.dataserver.helpers.Settings;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -47,6 +48,7 @@ public class ClientHandlerMoreOOP extends SimpleChannelInboundHandler<FullHttpRe
 	private EmailSender emailSender;
 	private static Map<Class<?>, RootHandler> handlerClasses = new HashMap<>();
 	private static Map<String, Method> handlers;
+	private Settings settings;
 	
 	static {
 		//handlerClasses.put(SystemHandler.class, new SystemHandler(dbConnection, MATCH_3_TEMPLATE, emailSender));
@@ -66,10 +68,11 @@ public class ClientHandlerMoreOOP extends SimpleChannelInboundHandler<FullHttpRe
 		}
 	}
 	
-	public ClientHandlerMoreOOP(DatabaseConnectionManager dbConnectionPool, LogManager logManager, EmailSender emailSender) throws IOException {
+	public ClientHandlerMoreOOP(DatabaseConnectionManager dbConnectionPool, LogManager logManager, EmailSender emailSender, Settings settings) throws IOException {
 		this.dbConnectionPool = dbConnectionPool;
 		this.logManager = logManager;
 		this.emailSender = emailSender;
+		this.settings = settings;
 	}
 	
 	private void sendHttpResponse(ChannelHandlerContext ctx, FullHttpResponse httpResponse) {
@@ -90,7 +93,7 @@ public class ClientHandlerMoreOOP extends SimpleChannelInboundHandler<FullHttpRe
 			
 			if("/system/register_game".equals(fullHttpRequest.uri())) {
 				
-				new SystemHandler(dbConnection, emailSender).handleRegisterGame(ctx, fullHttpRequest);
+				new SystemHandler(dbConnection, emailSender, settings.getBool("allowTestInvoice")).handleRegisterGame(ctx, fullHttpRequest);
 				
 			} else if("/player/authorization".equals(fullHttpRequest.uri())) {
 				Game game = authorization(ctx, fullHttpRequest);

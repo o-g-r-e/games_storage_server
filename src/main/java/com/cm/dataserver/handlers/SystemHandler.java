@@ -47,14 +47,18 @@ public class SystemHandler extends RootHandler {
 	private EmailSender emailSender;
 	private static final GameTemplate MATCH_3_TEMPLATE = GameTemplate.match3Template();
 	private static final GameTemplate CASUAL_TEMPLATE = GameTemplate.casualGameTemplate();
+	private boolean allowTestInvoice;
 	
-	public SystemHandler(Connection dbConnection, EmailSender emailSender) {
+	public SystemHandler(Connection dbConnection, EmailSender emailSender, boolean allowTestInvoice) {
 		this.dbConnection = dbConnection;
 		this.emailSender = emailSender;
+		this.allowTestInvoice = allowTestInvoice;
 	}
 	
-	private static boolean checkInvoice(String invoice) throws MalformedURLException, IOException, JSONException {
+	private boolean checkInvoice(String invoice) throws MalformedURLException, IOException, JSONException {
 		
+		if(allowTestInvoice && "IN121212121210".equals(invoice)) return true;
+
 		String serivceUrl = "https://api.assetstore.unity3d.com";
 		String key = Settings.invoiceKey;
 		String requestPath = "/publisher/v1/invoice/verify.json";
@@ -121,15 +125,10 @@ public class SystemHandler extends RootHandler {
 			return;
 		}
 		
-		//UNCOMMENT THIS BLOCK AFTER TEST:
-		//UNCOMMENT THIS BLOCK AFTER TEST:
-		//UNCOMMENT THIS BLOCK AFTER TEST:
-		//UNCOMMENT THIS BLOCK AFTER TEST:
-		//UNCOMMENT THIS BLOCK AFTER TEST:
-		/* if(!checkInvoice(invoice)) {
+		if(!checkInvoice(invoice)) {
 			sendBadInvoiceResponse(ctx);
 			return;
-		} */
+		}
 		
 		String gameType = type==null?"default":type;
 		String apiKey = RandomKeyGenerator.nextString(24);
@@ -191,7 +190,7 @@ public class SystemHandler extends RootHandler {
 			}
 		}
 		
-		SqlMethods.createView("requests_statistic", viewSql.toString(), dbConnection);
+		//SqlMethods.createView("requests_statistic", viewSql.toString(), dbConnection);
 		
 		//Game game = DataBaseMethods.getGameByKey(apiKey, connection);
 		if("Yes".equals(bodyParameters.get("send_mail"))) {
