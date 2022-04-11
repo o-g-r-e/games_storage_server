@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.regex.Matcher;
 
 import com.cm.dataserver.helpers.EmailSender;
 import com.cm.dataserver.helpers.LogManager;
@@ -40,7 +41,7 @@ public class Main {
 		
 		try {
 			logManager = new LogManager(8);
-			settings = new Settings(new File(p(".", "settings", ".settings")));
+			settings = new Settings(new File(p("./settings/.settings")));
 			
 			DatabaseConnectionManager dbcm = new DatabaseConnectionPoolApache(new DataBaseConnectionParameters("jdbc:mysql", settings.getString("dbAddr"), 
 																												   settings.getString("dbPort"), 
@@ -93,12 +94,7 @@ public class Main {
         }
 	}
 
-	private static String p(String... path) {
-		StringBuilder result = new StringBuilder();
-		for (String fName : path) {
-			result.append(fName).append(File.separator);
-		}
-
-		return result.toString();
+	private static String p(String path) {
+		return path.replaceAll("/", Matcher.quoteReplacement(File.separator));
 	}
 }

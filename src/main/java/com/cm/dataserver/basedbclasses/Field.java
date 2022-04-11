@@ -85,4 +85,8 @@ public class Field {
 		
 		return result.toString();
 	}
+
+	public static Field autoIncId() {
+		return new Field(Types.INTEGER, "id").defNull(false).setAutoIncrement(true);
+	}
 }

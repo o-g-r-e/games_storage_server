@@ -47,6 +47,14 @@ public class DataBaseMethods  {
 		for(TableIndex tIndex : table.getIndices()) {
 			SqlMethods.createIndex(tIndex.getName(), prefix+table.getName(), tIndex.getFields(), tIndex.isUnique(), connection);
 		}
+
+		List<List<QueryTypedValue>> insertData = table.getDataForInsert();
+
+		String sqlInsert = table.buildSqlInsert(prefix);
+
+		for (List<QueryTypedValue> rowData : insertData) {
+			SqlMethods.insert(sqlInsert, rowData, connection);
+		}
 	}
 	
 	public static int regOwner(String email, Connection connection) throws SQLException {

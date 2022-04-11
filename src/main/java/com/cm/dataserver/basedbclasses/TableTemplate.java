@@ -1,5 +1,6 @@
 package com.cm.dataserver.basedbclasses;
 
+import java.sql.SQLDataException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -7,6 +8,7 @@ public class TableTemplate {
 	private String name;
 	private Field[] cols;
 	private List<TableIndex> indices = new ArrayList<>();
+	private List<List<QueryTypedValue>> insert = new ArrayList<>();
 	private String primaryKey = null;
 	
 	public TableTemplate(String name, Field[] cols, String primaryKey) {
@@ -37,5 +39,31 @@ public class TableTemplate {
 
 	public String getPrimaryKey() {
 		return primaryKey;
+	}
+
+	public void addData(List<QueryTypedValue> values) {
+		insert.add(values);
+	}
+
+	public List<List<QueryTypedValue>> getDataForInsert() {
+		return insert;
+	}
+
+	public String buildSqlInsert(String namePrefix) {
+
+		if(cols == null || cols.length <= 0 || insert == null || insert.size() <= 0) return null;
+
+		List<String> fieldsNames = new ArrayList<>();
+		List<String> queryValues = new ArrayList<>();
+
+		for (Field field : cols) {
+			if(field.isAutoIncrement()) continue;
+			fieldsNames.add(field.getName());
+			queryValues.add("?");
+		}
+
+		return String.format("INSERT INTO %s (%s) VALUES (%s)", namePrefix+name, 
+																String.join(",", fieldsNames), 
+																String.join(",", queryValues));
 	}
 }

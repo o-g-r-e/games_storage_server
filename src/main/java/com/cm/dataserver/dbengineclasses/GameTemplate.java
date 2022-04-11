@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.cm.dataserver.basedbclasses.Field;
+import com.cm.dataserver.basedbclasses.QueryTypedValue;
 import com.cm.dataserver.basedbclasses.TableIndex;
 import com.cm.dataserver.basedbclasses.TableTemplate;
 
@@ -40,7 +41,7 @@ public class GameTemplate {
 		
 		List<TableTemplate> tblTemplates = new ArrayList<>();
 
-		Field[] levelsFields = new Field[] { new Field(Types.INTEGER, "id")      .defNull(false).setAutoIncrement(true),
+		Field[] levelsFields = new Field[] { Field.autoIncId(),
 											 new Field(Types.VARCHAR, "playerId").defNull(false).setLength(17),
 				  							 new Field(Types.INTEGER, "level")   .defNull(false),
 											 new Field(Types.INTEGER, "score")   .defNull(false),
@@ -57,7 +58,7 @@ public class GameTemplate {
 		
 		playersTemplate.addIndex(new TableIndex("playerId_unique", new String[] {"facebookId"}, true));
 
-		Field[] boostsFields = new Field[] { new Field(Types.INTEGER, "id")      .defNull(false).setAutoIncrement(true),
+		Field[] boostsFields = new Field[] { Field.autoIncId(),
 											 new Field(Types.VARCHAR, "playerId").defNull(false).setLength(17), 
 				  							 new Field(Types.VARCHAR, "name")    .defNull(false).setLength(24), 
 											 new Field(Types.INTEGER, "count")   .setDefaultValue("0") };
@@ -66,7 +67,7 @@ public class GameTemplate {
 		
 		boostsTemplate.addIndex(new TableIndex("playerId_boostName", new String[] {"playerId", "name"}, true));
 		
-		/* Field[] messagesFileds = new Field[] { new Field(Types.INTEGER, "id").defNull(false).setAutoIncrement(true),
+		/* Field[] messagesFileds = new Field[] { Field.autoIncId(),
 											   new Field(Types.VARCHAR, "type").defNull(false).setLength(15), 
 											   new Field(Types.VARCHAR, "sender_id").defNull(false).setLength(17), 
 											   new Field(Types.VARCHAR, "recipient_id").defNull(false).setLength(17), 
@@ -74,7 +75,7 @@ public class GameTemplate {
 
 		TableTemplate messagesTemplate = new TableTemplate("messages", messagesFileds, "id"); */
 		
-		Field[] lifeReuestsFields = new Field[] { new Field(Types.INTEGER, "id")           .defNull(false).setLength(32),
+		Field[] lifeReuestsFields = new Field[] { Field.autoIncId(),
 												  new Field(Types.VARCHAR, "life_sender")  .defNull(false).setLength(17), 
 												  new Field(Types.VARCHAR, "life_receiver").defNull(false).setLength(17), 
 												  new Field(Types.VARCHAR, "status")       .defNull(false).setLength(9) };
@@ -103,10 +104,13 @@ public class GameTemplate {
 	public static GameTemplate casualGameTemplate() {
 		List<TableTemplate> tblTemplates = GameTemplate.match3Template().getTableTemplates();
 
+		TableTemplate rewardsTemplate = new TableTemplate("rewards", new Field[] {Field.autoIncId(), new Field(Types.VARCHAR, "name").defNull(false).setLength(16)}, "id");
+		rewardsTemplate.addData(List.of(new QueryTypedValue(Types.VARCHAR, "scores")));
+
 		Field[] eventsFields = new Field[] { new Field(Types.VARCHAR, "uuid").defNull(false).setLength(36),
 											 new Field(Types.VARCHAR, "status").defNull(false),
 											 new Field(Types.TIMESTAMP, "end").defNull(false),
-											 new Field(Types.VARCHAR, "reward").defNull(false),
+											 new Field(Types.INTEGER, "reward_id").defNull(false),
 											 new Field(Types.VARCHAR, "winner_id").setLength(17),
 											 new Field(Types.VARCHAR, "reward_received").setLength(3) };
 
@@ -125,6 +129,7 @@ public class GameTemplate {
 		tblTemplates.add(scoreEventsTemplate);
 		tblTemplates.add(initScoreBalanceTemplate);
 		tblTemplates.add(lastEventLeadersTemplate);
+		tblTemplates.add(rewardsTemplate);
 
 		return new GameTemplate("Casual Game", tblTemplates);
 	}

@@ -9,7 +9,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.cm.dataserver.Authorization;
 import com.cm.dataserver.StringDataHelper;
 import com.cm.dataserver.UriAnnotation;
 import com.cm.dataserver.basedbclasses.QueryTypedValue;
@@ -27,9 +26,7 @@ import com.cm.dataserver.template1classes.LifeRequest;
 import com.cm.dataserver.template1classes.Player;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.util.CharsetUtil;
 
 public class GameHandler extends RootHandler {
 	
