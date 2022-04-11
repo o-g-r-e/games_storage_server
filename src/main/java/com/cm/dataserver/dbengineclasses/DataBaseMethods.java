@@ -42,7 +42,7 @@ public class DataBaseMethods  {
 	}
 	
 	public static void createGameTable(TableTemplate table, String prefix, Connection connection) throws SQLException {
-		SqlMethods.createTable(prefix+table.getName(), table.getCols(), table.getPrimaryKey(), connection);
+		SqlMethods.createTable(prefix, table, connection);
 			
 		for(TableIndex tIndex : table.getIndices()) {
 			SqlMethods.createIndex(tIndex.getName(), prefix+table.getName(), tIndex.getFields(), tIndex.isUnique(), connection);

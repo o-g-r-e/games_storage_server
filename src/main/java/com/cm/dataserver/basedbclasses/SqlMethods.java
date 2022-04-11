@@ -31,7 +31,36 @@ public class SqlMethods {
 	
 	private static boolean printQueries = false;
 	
-	public static void createTable(String name, Field[] fields, String primaryKey, Connection connection) throws SQLException {
+	public static void createTable(String tableNamePrefix, TableTemplate tableTemplate, Connection connection) throws SQLException {
+		StringBuilder query = new StringBuilder("CREATE TABLE IF NOT EXISTS "+tableNamePrefix+tableTemplate.getName()+" (");
+
+		Field[] fields = tableTemplate.getCols();
+		
+		for (int i = 0; i < fields.length; i++) {
+			query.append(fields[i].toString());
+			
+			if(i < fields.length-1) {
+				query.append(", ");
+			}
+		}
+		
+		if(tableTemplate.getPrimaryKey() != null) {
+			query.append(", PRIMARY KEY (`"+tableTemplate.getPrimaryKey()+"`)");
+		}
+
+		for(ForeignKey fk : tableTemplate.getForeignKeys()) {
+			String keyField = fk.getKeyField();
+			String fTable = tableNamePrefix+fk.getForeignTableName();
+			String fField = fk.getForeignFieldName();
+			query.append(", FOREIGN KEY ("+keyField+") REFERENCES "+fTable+"("+fField+")");
+		}
+		
+		query.append(");");
+		
+		connection.prepareStatement(query.toString()).execute();
+	}
+
+	/*public static void createTableWithForeignKey(String name, Field[] fields, String primaryKey, TableTemplate table, Connection connection) throws SQLException {
 		StringBuilder query = new StringBuilder("CREATE TABLE IF NOT EXISTS "+name+" (");
 		
 		for (int i = 0; i < fields.length; i++) {
@@ -45,11 +74,15 @@ public class SqlMethods {
 		if(primaryKey != null) {
 			query.append(", PRIMARY KEY (`"+primaryKey+"`)");
 		}
+
+		if(foreignKeySql != null) {
+			query.append(",").append(foreignKeySql);
+		}
 		
 		query.append(");");
 		
 		connection.prepareStatement(query.toString()).execute();
-	}
+	}*/
 	
 	public static void createView(String name, String sqlSelect, Connection connection) throws SQLException {
 		connection.prepareStatement("CREATE OR REPLACE VIEW "+name+" AS "+sqlSelect).execute();

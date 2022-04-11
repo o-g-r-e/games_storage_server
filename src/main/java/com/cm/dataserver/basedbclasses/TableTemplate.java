@@ -10,6 +10,7 @@ public class TableTemplate {
 	private List<TableIndex> indices = new ArrayList<>();
 	private List<List<QueryTypedValue>> insert = new ArrayList<>();
 	private String primaryKey = null;
+	private List<ForeignKey> foreignKeys = new ArrayList<>();
 	
 	public TableTemplate(String name, Field[] cols, String primaryKey) {
 		this.name = name;
@@ -39,6 +40,15 @@ public class TableTemplate {
 
 	public String getPrimaryKey() {
 		return primaryKey;
+	}
+
+	public List<ForeignKey> getForeignKeys() {
+		return foreignKeys;
+	}
+
+	public TableTemplate addForeignKey(ForeignKey foreignKey) {
+		this.foreignKeys.add(foreignKey);
+		return this;
 	}
 
 	public void addData(List<QueryTypedValue> values) {

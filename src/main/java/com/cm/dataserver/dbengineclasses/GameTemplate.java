@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.cm.dataserver.basedbclasses.Field;
+import com.cm.dataserver.basedbclasses.ForeignKey;
 import com.cm.dataserver.basedbclasses.QueryTypedValue;
 import com.cm.dataserver.basedbclasses.TableIndex;
 import com.cm.dataserver.basedbclasses.TableTemplate;
@@ -47,7 +48,7 @@ public class GameTemplate {
 											 new Field(Types.INTEGER, "score")   .defNull(false),
 											 new Field(Types.INTEGER, "stars")   .defNull(false) };
 
-		TableTemplate levelsTemplate = new TableTemplate("levels", levelsFields, "id");
+		TableTemplate levelsTemplate = new TableTemplate("levels", levelsFields, "id").addForeignKey(new ForeignKey("playerId", "players", "playerId"));
 		
 		levelsTemplate.addIndex(new TableIndex("playerId_level", new String[] {"playerId", "level"}, true));
 
@@ -63,7 +64,7 @@ public class GameTemplate {
 				  							 new Field(Types.VARCHAR, "name")    .defNull(false).setLength(24), 
 											 new Field(Types.INTEGER, "count")   .setDefaultValue("0") };
 				
-		TableTemplate boostsTemplate = new TableTemplate("boosts", boostsFields, "id");
+		TableTemplate boostsTemplate = new TableTemplate("boosts", boostsFields, "id").addForeignKey(new ForeignKey("playerId", "players", "playerId"));
 		
 		boostsTemplate.addIndex(new TableIndex("playerId_boostName", new String[] {"playerId", "name"}, true));
 		
@@ -80,7 +81,7 @@ public class GameTemplate {
 												  new Field(Types.VARCHAR, "life_receiver").defNull(false).setLength(17), 
 												  new Field(Types.VARCHAR, "status")       .defNull(false).setLength(9) };
 
-		TableTemplate lifeRequestsTemplate = new TableTemplate("life_requests", lifeReuestsFields, "id");
+		TableTemplate lifeRequestsTemplate = new TableTemplate("life_requests", lifeReuestsFields, "id").addForeignKey(new ForeignKey("life_sender", "players", "playerId")).addForeignKey(new ForeignKey("life_receiver", "players", "playerId"));
 		
 		lifeRequestsTemplate.addIndex(new TableIndex("sender_receiver", new String[] {"life_sender", "life_receiver"}, true));
 		
@@ -91,8 +92,8 @@ public class GameTemplate {
 		
 		requestsStatisticTemplate.addIndex(new TableIndex("uniq_uri", new String[] {"uri"}, true));
 		
-		tblTemplates.add(levelsTemplate);
 		tblTemplates.add(playersTemplate);
+		tblTemplates.add(levelsTemplate);
 		tblTemplates.add(boostsTemplate);
 		//tblTemplates.add(messagesTemplate);
 		tblTemplates.add(lifeRequestsTemplate);
@@ -114,22 +115,25 @@ public class GameTemplate {
 											 new Field(Types.VARCHAR, "winner_id").setLength(17),
 											 new Field(Types.VARCHAR, "reward_received").setLength(3) };
 
-		TableTemplate scoreEventsTemplate = new TableTemplate("score_events", eventsFields, "uuid");
+		ForeignKey rewardFK = new ForeignKey("reward_id", "rewards", "id");
+		ForeignKey winnerFK = new ForeignKey("winner_id", "players", "playerId");
+
+		TableTemplate scoreEventsTemplate = new TableTemplate("score_events", eventsFields, "uuid").addForeignKey(rewardFK).addForeignKey(winnerFK);
 		
 		Field[] initScoreBalanceFields = new Field[] {new Field(Types.VARCHAR, "playerId").defNull(false).setLength(17),
 													  new Field(Types.INTEGER, "init_score_balance").defNull(false)};
 
-		TableTemplate initScoreBalanceTemplate = new TableTemplate("initial_score_balance", initScoreBalanceFields, "playerId");
+		TableTemplate initScoreBalanceTemplate = new TableTemplate("initial_score_balance", initScoreBalanceFields, "playerId").addForeignKey(new ForeignKey("playerId", "players", "playerId"));
 
 		Field[] lastEventLeadersFields = new Field[] {new Field(Types.VARCHAR, "playerId").defNull(false).setLength(17),
 													  new Field(Types.INTEGER, "earned_scores").defNull(false)};
 
-		TableTemplate lastEventLeadersTemplate = new TableTemplate("last_event_leaders", lastEventLeadersFields, "playerId");
+		TableTemplate lastEventLeadersTemplate = new TableTemplate("last_event_leaders", lastEventLeadersFields, "playerId").addForeignKey(new ForeignKey("playerId", "players", "playerId"));
 
+		tblTemplates.add(rewardsTemplate);
 		tblTemplates.add(scoreEventsTemplate);
 		tblTemplates.add(initScoreBalanceTemplate);
 		tblTemplates.add(lastEventLeadersTemplate);
-		tblTemplates.add(rewardsTemplate);
 
 		return new GameTemplate("Casual Game", tblTemplates);
 	}
