@@ -108,9 +108,9 @@ public class GameTemplate {
 		Field[] rewFields = new Field[] {Field.autoIncId(), new Field(Types.VARCHAR, "name").defNull(false).setLength(16), new Field(Types.INTEGER, "count").defNull(false)};
 
 		TableTemplate rewardsTemplate = new TableTemplate("rewards", rewFields, "id");
-		rewardsTemplate.addData(List.of(new QueryTypedValue(Types.VARCHAR, "scores")));
+		rewardsTemplate.addData(List.of(new QueryTypedValue(Types.VARCHAR, "scores"), new QueryTypedValue(Types.INTEGER, 1000)));
 
-		Field[] eventsFields = new Field[] { new Field(Types.VARCHAR, "uuid").defNull(false).setLength(36),
+		Field[] eventsFields = new Field[] {Field.autoIncId(), new Field(Types.VARCHAR, "uuid").defNull(false).setLength(36),
 											 new Field(Types.VARCHAR, "status").defNull(false),
 											 new Field(Types.TIMESTAMP, "end").defNull(false),
 											 new Field(Types.INTEGER, "reward_id").defNull(false),
