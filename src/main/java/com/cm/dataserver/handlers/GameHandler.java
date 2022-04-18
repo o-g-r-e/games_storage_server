@@ -286,4 +286,9 @@ public class GameHandler extends RootHandler {
 	public static int updateStatistic(Game game, String uri, Connection connection) throws SQLException {
 		return SqlMethods.insert("INSERT INTO "+game.getPrefix()+"requests_statistic VALUES (?,?) ON DUPLICATE KEY UPDATE count=count+1", new TypedValueArray(uri, 1).getQueryValues(), connection);
 	}
+
+	@UriAnnotation(uri="/game/check_event")
+	public void checkEvent(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
+		
+	}
 }

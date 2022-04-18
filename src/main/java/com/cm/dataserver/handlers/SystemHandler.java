@@ -46,7 +46,7 @@ public class SystemHandler extends RootHandler {
 	private Connection dbConnection;
 	private EmailSender emailSender;
 	private static final GameTemplate MATCH_3_TEMPLATE = GameTemplate.match3Template();
-	private static final GameTemplate CASUAL_TEMPLATE = GameTemplate.casualGameTemplate();
+	private static final GameTemplate CASUAL_TEMPLATE = GameTemplate.gameWithEventsSystemTemplate();
 	private boolean allowTestInvoice;
 	
 	public SystemHandler(Connection dbConnection, EmailSender emailSender, boolean allowTestInvoice) {
@@ -104,23 +104,30 @@ public class SystemHandler extends RootHandler {
 		
 		sendHttpResponse(ctx, HttpResponseTemplates.response(jsonGames.toString(), HttpResponseStatus.OK));
 	}
+
+	private boolean isTrueValue(String val) {
+		if(val != null && "true".equals(val)) {
+			return true;
+		}
+
+		return false;
+	}
 	
 	@UriAnnotation(uri="/system/register_game")
 	public void handleRegisterGame(ChannelHandlerContext ctx, FullHttpRequest httpRequest) throws SQLException, InvalidKeyException, NoSuchAlgorithmException, FileNotFoundException, ClassNotFoundException, IOException, JSONException {
 		Map<String, String> bodyParameters = StringDataHelper.parseParameters(httpRequest.content().toString(CharsetUtil.UTF_8));
 		
-		if(!StringDataHelper.simpleValidation(new String[] {"game_name", "email", "type", "send_mail", "invoice"}, bodyParameters)) {
+		if(!StringDataHelper.simpleValidation(new String[] {"game_name", "email", "send_mail", "invoice"}, bodyParameters)) {
 			sendValidationFailResponse(ctx);
 			return;
 		}
-		
-		
-		String type = bodyParameters.get("type");
+
+		boolean withEvents = isTrueValue(bodyParameters.get("with_events"));
 		String gameName = bodyParameters.get("game_name");
 		String email = bodyParameters.get("email");
 		String invoice = bodyParameters.get("invoice");
 		
-		if(!StringDataHelper.validateGameCreationParameters(gameName, email, type, invoice)) {
+		if(!StringDataHelper.validateGameCreationParameters(gameName, email, invoice)) {
 			sendValidationFailResponse(ctx);
 			return;
 		}
@@ -130,7 +137,6 @@ public class SystemHandler extends RootHandler {
 			return;
 		}
 		
-		String gameType = type==null?"default":type;
 		String apiKey = RandomKeyGenerator.nextString(24);
 		String apiSecret = RandomKeyGenerator.nextString(45);
 		
@@ -154,19 +160,19 @@ public class SystemHandler extends RootHandler {
 		
 		dbConnection.setAutoCommit(false);
 		String prefix = DataBaseMethods.generateTablePrefix(gameName, apiKey);
-		int added = DataBaseMethods.insertGame(gameName, gameType, owner.getId(), apiKey, apiSecret, prefix, Authorization.generateHmacHash(apiSecret, apiKey), dbConnection);
+
+		int added = DataBaseMethods.insertGame(gameName, withEvents?"match3_WithEvents":"match3", owner.getId(), apiKey, apiSecret, prefix, Authorization.generateHmacHash(apiSecret, apiKey), dbConnection);
 		
 		if(added < 1) {
 			dbConnection.rollback();
 			sendHttpResponse(ctx, HttpResponseTemplates.buildSimpleResponse("Error", "An error occurred while adding the game", HttpResponseStatus.INTERNAL_SERVER_ERROR));
 			return;
 		}
-		if("match3".equals(type)) {
-			DataBaseMethods.createGameTables(MATCH_3_TEMPLATE, prefix, dbConnection); //throw exception if not successfully
-		 } else if("casual".equals(type)) {
+		
+		if(withEvents) {
 			DataBaseMethods.createGameTables(CASUAL_TEMPLATE, prefix, dbConnection);
-		 } else {
-			DataBaseMethods.createGameTable(new TableTemplate("players", new Field[] {new Field(Types.VARCHAR, "playerId").setLength(17).defNull(false), new Field(Types.VARCHAR, "facebookId")}, "playerId"), prefix, dbConnection);
+		} else {
+			DataBaseMethods.createGameTables(MATCH_3_TEMPLATE, prefix, dbConnection); //throw exception if not successfully
 		}
 		
 		dbConnection.commit();

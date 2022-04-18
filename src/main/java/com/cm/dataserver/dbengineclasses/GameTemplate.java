@@ -102,7 +102,7 @@ public class GameTemplate {
 		return new GameTemplate("Match 3", tblTemplates);
 	}
 
-	public static GameTemplate casualGameTemplate() {
+	public static GameTemplate gameWithEventsSystemTemplate() {
 		List<TableTemplate> tblTemplates = GameTemplate.match3Template().getTableTemplates();
 
 		TableTemplate rewardsTemplate = new TableTemplate("rewards", new Field[] {Field.autoIncId(), new Field(Types.VARCHAR, "name").defNull(false).setLength(16)}, "id");

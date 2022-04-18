@@ -20,7 +20,6 @@ public class StringDataHelper {
 	private static Pattern gameNamePattern = Pattern.compile("^[a-zA-Z][a-zA-Z0-9\\s]+$");
 	private static Pattern emailPattern = Pattern.compile("^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])$");
 	private static Pattern yesNoPattern = Pattern.compile("^(yes|Yes|no|No)$");
-	private static Pattern gameTypePattern = Pattern.compile("^(match3|casual)$");
 	private static Pattern playerIdPattern = Pattern.compile("^[a-z0-9]{8}-[a-z0-9]{8}$");
 	private static Pattern base64pattern = Pattern.compile("^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$");
 	private static Pattern invoicePattern = Pattern.compile("^IN\\d{12}$");
@@ -43,10 +42,9 @@ public class StringDataHelper {
 		return uuidPattern.matcher(uuid).find();
 	}
 	
-	public static boolean validateGameCreationParameters(String gameName, String email, String gameType, String invoice) {
+	public static boolean validateGameCreationParameters(String gameName, String email, String invoice) {
 		return gameNamePattern.matcher(gameName).find()&&
 			   emailPattern.matcher(email).find()&&
-			   gameTypePattern.matcher(gameType).find()&&
 			   invoicePattern.matcher(invoice).find();
 	}
 	
