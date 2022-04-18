@@ -120,7 +120,7 @@ public class GameTemplate {
 		ForeignKey rewardFK = new ForeignKey("reward_id", "rewards", "id");
 		ForeignKey winnerFK = new ForeignKey("winner_id", "players", "playerId");
 
-		TableTemplate scoreEventsTemplate = new TableTemplate("score_events", eventsFields, "uuid").addForeignKey(rewardFK).addForeignKey(winnerFK);
+		TableTemplate scoreEventsTemplate = new TableTemplate("score_events", eventsFields, "id").addForeignKey(rewardFK).addForeignKey(winnerFK);
 		
 		Field[] initScoreBalanceFields = new Field[] {new Field(Types.VARCHAR, "playerId").defNull(false).setLength(17),
 													  new Field(Types.INTEGER, "init_score_balance").defNull(false)};
