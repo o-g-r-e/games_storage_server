@@ -105,7 +105,9 @@ public class GameTemplate {
 	public static GameTemplate gameWithEventsSystemTemplate() {
 		List<TableTemplate> tblTemplates = GameTemplate.match3Template().getTableTemplates();
 
-		TableTemplate rewardsTemplate = new TableTemplate("rewards", new Field[] {Field.autoIncId(), new Field(Types.VARCHAR, "name").defNull(false).setLength(16)}, "id");
+		Field[] rewFields = new Field[] {Field.autoIncId(), new Field(Types.VARCHAR, "name").defNull(false).setLength(16), new Field(Types.INTEGER, "count").defNull(false)};
+
+		TableTemplate rewardsTemplate = new TableTemplate("rewards", rewFields, "id");
 		rewardsTemplate.addData(List.of(new QueryTypedValue(Types.VARCHAR, "scores")));
 
 		Field[] eventsFields = new Field[] { new Field(Types.VARCHAR, "uuid").defNull(false).setLength(36),
