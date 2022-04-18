@@ -32,6 +32,7 @@ import com.cm.dataserver.basedbclasses.queryclasses.SimpleSqlExpression;
 import com.cm.dataserver.helpers.RandomKeyGenerator;
 import com.cm.dataserver.template1classes.Player;
 import com.cm.dataserver.template1classes.PlayerMessage;
+import com.cm.dataserver.template1classes.eventsclasses.Event;
 
 public class DataBaseMethods  {
 	
@@ -278,4 +279,11 @@ public class DataBaseMethods  {
 		}
 		return Types.NULL;
 	}*/
+
+	public static List<Event> getActualEvents(String gamePrefix, Connection connection) {
+		List<Event> result = new ArrayList<>();
+		List<Row> owners = SqlMethods.select("SELECT end,reward FROM "+gamePrefix+"score_events WHERE email=? LIMIT 1", new QueryTypedValue(ownerEmail), dbConnection);
+
+		return result;
+	}
 }
