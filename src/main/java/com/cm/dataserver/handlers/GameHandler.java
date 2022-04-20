@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -31,6 +33,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class GameHandler extends RootHandler {
+
+	private static Pattern uuidPattern = Pattern.compile("eventUuid=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})");
 	
 	@UriAnnotation(uri="/game/levels")
 	public void levels(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
@@ -310,9 +314,28 @@ public class GameHandler extends RootHandler {
 	@UriAnnotation(uri="/game/pickup_all_rewards")
 	public void pickupAllRewards(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
 		List<Reward> rewards = DataBaseMethods.getPlayerRewards(game.getPrefix(), playerId, dbConnection);
+
+		if(rewards.size() <= 0) {
+			sendHttpResponse(ctx, HttpResponseTemplates.buildResponse("{\"result\":\"fail\"}", HttpResponseStatus.OK));
+			return;
+		}
+
 		for (Reward r : rewards) {
 			SqlMethods.update("UPDATE "+game.getPrefix()+"score_events SET reward_received='yes' WHERE (uuid=?);", new QueryTypedValue(r.getEventUuid()), dbConnection);
 		}
-		sendHttpResponse(ctx, HttpResponseTemplates.buildResponse("{'result':'success'}", HttpResponseStatus.OK));
+		sendHttpResponse(ctx, HttpResponseTemplates.buildResponse("{\"result\":\"success\"}", HttpResponseStatus.OK));
+	}
+
+	@UriAnnotation(uri="/game/pickup_reward")
+	public void pickupReward(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
+		Matcher matcher = uuidPattern.matcher(inputContent);
+		if(matcher.find() && matcher.groupCount() >= 1 && matcher.group(1) != null) {
+			String eventUuid = matcher.group(1);
+			int updateResult = SqlMethods.update("UPDATE "+game.getPrefix()+"score_events SET reward_received='yes' WHERE uuid=? AND reward_received='no';", new QueryTypedValue(eventUuid), dbConnection);
+			sendHttpResponse(ctx, HttpResponseTemplates.buildResponse(updateResult>0?"{\"result\":\"success\"}":"{\"result\":\"fail\"}", HttpResponseStatus.OK));
+			return;
+		}
+
+		sendHttpResponse(ctx, HttpResponseTemplates.buildResponse("{\"result\":\"fail\",\"message\":\"possibly wrong uuid\"}", HttpResponseStatus.OK));
 	}
 }
