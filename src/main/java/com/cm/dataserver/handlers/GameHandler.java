@@ -25,6 +25,7 @@ import com.cm.dataserver.template1classes.LevelsUpdate;
 import com.cm.dataserver.template1classes.LifeRequest;
 import com.cm.dataserver.template1classes.Player;
 import com.cm.dataserver.template1classes.eventsclasses.Event;
+import com.cm.dataserver.template1classes.eventsclasses.Reward;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -292,5 +293,17 @@ public class GameHandler extends RootHandler {
 	public void checkEvent(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
 		Event ev = DataBaseMethods.getActualEvent(game.getPrefix(), dbConnection);
 		sendHttpResponse(ctx, HttpResponseTemplates.buildResponse(ev.toJson(), HttpResponseStatus.OK));
+	}
+
+	@UriAnnotation(uri="/game/check_rewards")
+	public void checkRewards(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
+		List<Reward> rewards = DataBaseMethods.getPlayerRewards(game.getPrefix(), playerId, dbConnection);
+		StringBuilder responseContent = new StringBuilder("[");
+		for (Reward r : rewards) {
+			responseContent.append(r.toJson()).append(",");
+		}
+		responseContent.deleteCharAt(responseContent.length() - 1);
+		responseContent.append("]");
+		sendHttpResponse(ctx, HttpResponseTemplates.buildResponse(responseContent.toString(), HttpResponseStatus.OK));
 	}
 }

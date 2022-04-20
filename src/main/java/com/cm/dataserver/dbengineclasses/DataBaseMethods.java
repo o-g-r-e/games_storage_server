@@ -288,7 +288,19 @@ public class DataBaseMethods  {
 		List<Row> rewards = SqlMethods.select("SELECT name,count FROM "+gamePrefix+"rewards WHERE id=? LIMIT 1", new QueryTypedValue(rewardId), connection);
 		String rewardName = rewards.get(0).getString("name");
 		int rewardCount = rewards.get(0).getInt("count");
-		result.add(new Event(events.get(0).getString("end"), new Reward(rewardName, rewardCount)));
+		result.add(new Event(events.get(0).getString("end"), new Reward(null, rewardName, rewardCount)));
 		return result.get(0);
+	}
+
+	public static List<Reward> getPlayerRewards(String gamePrefix, PlayerId playerId, Connection connection) throws SQLException {
+		List<Reward> result = new ArrayList<>();
+
+		List<Row> rows = SqlMethods.select("SELECT evs.uuid,rws.name,rws.count FROM "+gamePrefix+"score_events AS evs JOIN "+gamePrefix+"rewards AS rws ON rws.id=evs.reward_id WHERE evs.status='complete' AND evs.winner_id=? AND evs.reward_received='no'", new QueryTypedValue(playerId.getValue()), connection);
+
+		for (Row row : rows) {
+			result.add(new Reward(row.getString("uuid"), row.getString("name"), row.getInt("count")));
+		}
+
+		return result;
 	}
 }
