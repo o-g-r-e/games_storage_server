@@ -33,6 +33,7 @@ import com.cm.dataserver.helpers.RandomKeyGenerator;
 import com.cm.dataserver.template1classes.Player;
 import com.cm.dataserver.template1classes.PlayerMessage;
 import com.cm.dataserver.template1classes.eventsclasses.Event;
+import com.cm.dataserver.template1classes.eventsclasses.Reward;
 
 public class DataBaseMethods  {
 	
@@ -280,10 +281,14 @@ public class DataBaseMethods  {
 		return Types.NULL;
 	}*/
 
-	public static List<Event> getActualEvents(String gamePrefix, Connection connection) {
+	public static Event getActualEvent(String gamePrefix, Connection connection) throws SQLException {
 		List<Event> result = new ArrayList<>();
-		//List<Row> owners = SqlMethods.select("SELECT end,reward FROM "+gamePrefix+"score_events WHERE email=? LIMIT 1", new QueryTypedValue(ownerEmail), dbConnection);
-
-		return result;
+		List<Row> events = SqlMethods.select("SELECT end,reward_id FROM "+gamePrefix+"score_events WHERE status LIKE 'active' ORDER BY id DESC LIMIT 1", connection);
+		int rewardId = events.get(0).getInt("reward_id");
+		List<Row> rewards = SqlMethods.select("SELECT name,count FROM "+gamePrefix+"rewards WHERE id=? LIMIT 1", new QueryTypedValue(rewardId), connection);
+		String rewardName = rewards.get(0).getString("name");
+		int rewardCount = rewards.get(0).getInt("count");
+		result.add(new Event(events.get(0).getString("end"), new Reward(rewardName, rewardCount)));
+		return result.get(0);
 	}
 }

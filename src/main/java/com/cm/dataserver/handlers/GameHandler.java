@@ -24,6 +24,7 @@ import com.cm.dataserver.template1classes.GameMethods;
 import com.cm.dataserver.template1classes.LevelsUpdate;
 import com.cm.dataserver.template1classes.LifeRequest;
 import com.cm.dataserver.template1classes.Player;
+import com.cm.dataserver.template1classes.eventsclasses.Event;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -289,6 +290,7 @@ public class GameHandler extends RootHandler {
 
 	@UriAnnotation(uri="/game/check_event")
 	public void checkEvent(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
-		
+		Event ev = DataBaseMethods.getActualEvent(game.getPrefix(), dbConnection);
+		sendHttpResponse(ctx, HttpResponseTemplates.buildResponse(ev.toJson(), HttpResponseStatus.OK));
 	}
 }
