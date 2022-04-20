@@ -306,4 +306,13 @@ public class GameHandler extends RootHandler {
 		responseContent.append("]");
 		sendHttpResponse(ctx, HttpResponseTemplates.buildResponse(responseContent.toString(), HttpResponseStatus.OK));
 	}
+
+	@UriAnnotation(uri="/game/pickup_all_rewards")
+	public void pickupAllRewards(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
+		List<Reward> rewards = DataBaseMethods.getPlayerRewards(game.getPrefix(), playerId, dbConnection);
+		for (Reward r : rewards) {
+			SqlMethods.update("UPDATE "+game.getPrefix()+"score_events SET reward_received='yes' WHERE (uuid=?);", new QueryTypedValue(r.getEventUuid()), dbConnection);
+		}
+		sendHttpResponse(ctx, HttpResponseTemplates.buildResponse("{'result':'success'}", HttpResponseStatus.OK));
+	}
 }
