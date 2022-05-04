@@ -13,6 +13,10 @@ import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
 
 public class HttpResponseTemplates {
+
+	public static FullHttpResponse SuccessJson(HttpResponseStatus httpStatus) {
+		return buildResponse("{\"status\":\"success\"}", httpStatus);
+	}
 	
 	public static FullHttpResponse buildSimpleResponse(String status, String message, HttpResponseStatus httpStatus) {
 		return buildResponse(StringDataHelper.jsonObject(status, message), httpStatus);

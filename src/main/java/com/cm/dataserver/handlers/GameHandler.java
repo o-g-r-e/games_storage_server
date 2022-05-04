@@ -320,9 +320,17 @@ public class GameHandler extends RootHandler {
 			return;
 		}
 
+		int updated = 0;
+
 		for (Reward r : rewards) {
-			SqlMethods.update("UPDATE "+game.getPrefix()+"score_events SET reward_received='yes' WHERE (uuid=?);", new QueryTypedValue(r.getEventUuid()), dbConnection);
+			updated += SqlMethods.update("UPDATE "+game.getPrefix()+"score_events SET reward_received='yes' WHERE uuid=?;", new QueryTypedValue(r.getEventUuid()), dbConnection);
 		}
+
+		if(updated <= 0) {
+			sendHttpResponse(ctx, HttpResponseTemplates.buildResponse("{\"result\":\"error\"}", HttpResponseStatus.OK));
+			return;
+		}
+
 		sendHttpResponse(ctx, HttpResponseTemplates.buildResponse("{\"result\":\"success\"}", HttpResponseStatus.OK));
 	}
 
@@ -331,8 +339,11 @@ public class GameHandler extends RootHandler {
 		Matcher matcher = uuidPattern.matcher(inputContent);
 		if(matcher.find() && matcher.groupCount() >= 1 && matcher.group(1) != null) {
 			String eventUuid = matcher.group(1);
-			int updateResult = SqlMethods.update("UPDATE "+game.getPrefix()+"score_events SET reward_received='yes' WHERE uuid=? AND reward_received='no';", new QueryTypedValue(eventUuid), dbConnection);
-			sendHttpResponse(ctx, HttpResponseTemplates.buildResponse(updateResult>0?"{\"result\":\"success\"}":"{\"result\":\"fail\"}", HttpResponseStatus.OK));
+			List<QueryTypedValue> sqlValues = new ArrayList<>();
+			sqlValues.add(new QueryTypedValue(eventUuid));
+			sqlValues.add(new QueryTypedValue(playerId.getValue()));
+			int updateResult = SqlMethods.update("UPDATE "+game.getPrefix()+"score_events SET reward_received='yes' WHERE uuid=? AND reward_received='no' AND winner_id=?;", sqlValues, dbConnection);
+			sendHttpResponse(ctx, HttpResponseTemplates.buildResponse(updateResult>0?"{\"result\":\"success\"}":"{\"result\":\"fail\",\"message\":\"possibly you not have rewards\"}", HttpResponseStatus.OK));
 			return;
 		}
 
