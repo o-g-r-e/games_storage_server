@@ -110,9 +110,10 @@ public class GameTemplate {
 		TableTemplate rewardsTemplate = new TableTemplate("rewards", rewFields, "id");
 		rewardsTemplate.addData(List.of(new QueryTypedValue(Types.VARCHAR, "scores"), new QueryTypedValue(Types.INTEGER, 1000)));
 
-		Field[] eventsFields = new Field[] {Field.autoIncId(), new Field(Types.VARCHAR, "uuid").defNull(false).setLength(36),
+		Field[] eventsFields = new Field[] {Field.autoIncId(),
 											 new Field(Types.VARCHAR, "status").defNull(false),
-											 new Field(Types.TIMESTAMP, "end").defNull(false),
+											 new Field(Types.TIMESTAMP, "start_date").defNull(false),
+											 new Field(Types.TIMESTAMP, "end_date").defNull(false),
 											 new Field(Types.INTEGER, "reward_id").defNull(false),
 											 new Field(Types.VARCHAR, "winner_id").setLength(17),
 											 new Field(Types.VARCHAR, "reward_received").setLength(3) };

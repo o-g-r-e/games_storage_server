@@ -93,7 +93,7 @@ public class ClientHandlerMoreOOP extends SimpleChannelInboundHandler<FullHttpRe
 			
 			if("/system/register_game".equals(fullHttpRequest.uri())) {
 				
-				new SystemHandler(dbConnection, emailSender, settings.getBool("allowTestInvoice")).handleRegisterGame(ctx, fullHttpRequest);
+				new SystemHandler(dbConnection, emailSender, settings.getString("testInvoice")).handleRegisterGame(ctx, fullHttpRequest);
 				
 			} else if("/player/authorization".equals(fullHttpRequest.uri())) {
 				Game game = authorization(ctx, fullHttpRequest);

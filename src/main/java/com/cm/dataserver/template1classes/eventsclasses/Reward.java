@@ -1,22 +1,22 @@
 package com.cm.dataserver.template1classes.eventsclasses;
 
 public class Reward {
-    private String eventUuid;
+    private String eventId;
     private String name;
     private int count;
     
-    public Reward(String eventUuid, String name, int count) {
-        this.eventUuid = eventUuid;
+    public Reward(String eventId, String name, int count) {
+        this.eventId = eventId;
         this.name = name;
         this.count = count;
     }
 
-    public String getEventUuid() {
-        return eventUuid;
+    public String getEventId() {
+        return eventId;
     }
 
-    public void setEventUuid(String eventUuid) {
-        this.eventUuid = eventUuid;
+    public void setEventId(String eventId) {
+        this.eventId = eventId;
     }
 
     public String getName() {
@@ -36,6 +36,6 @@ public class Reward {
     }
 
     public String toJson() {
-        return String.format("{'eventUuid':'%s','rewardName':'%s','count':'%s'}", eventUuid, name, count);
+        return String.format("{'rewardId':'%s','rewardName':'%s','count':'%s'}", eventId, name, count);
     }
 }

@@ -20,6 +20,6 @@ public class Event {
     }
 
     public String toJson() {
-        return String.format("{'%s':'%s','%s':'%s','%s':'%s'}", "end", endDate, "rewardName", reward.getName(), "rewardCount", reward.getCount());
+        return String.format("{'%s':'%s','%s':'%s','%s':'%s'}", "endDate", endDate, "rewardName", reward.getName(), "rewardCount", reward.getCount());
     }
 }

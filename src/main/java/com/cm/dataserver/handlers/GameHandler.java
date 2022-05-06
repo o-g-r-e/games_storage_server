@@ -323,7 +323,7 @@ public class GameHandler extends RootHandler {
 		int updated = 0;
 
 		for (Reward r : rewards) {
-			updated += SqlMethods.update("UPDATE "+game.getPrefix()+"score_events SET reward_received='yes' WHERE uuid=?;", new QueryTypedValue(r.getEventUuid()), dbConnection);
+			updated += SqlMethods.update("UPDATE "+game.getPrefix()+"score_events SET reward_received='yes' WHERE id=?;", new QueryTypedValue(r.getEventId()), dbConnection);
 		}
 
 		if(updated <= 0) {
@@ -336,17 +336,22 @@ public class GameHandler extends RootHandler {
 
 	@UriAnnotation(uri="/game/pickup_reward")
 	public void pickupReward(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
+		
 		Matcher matcher = uuidPattern.matcher(inputContent);
+
 		if(matcher.find() && matcher.groupCount() >= 1 && matcher.group(1) != null) {
-			String eventUuid = matcher.group(1);
+
+			String eventId = matcher.group(1);
+
 			List<QueryTypedValue> sqlValues = new ArrayList<>();
-			sqlValues.add(new QueryTypedValue(eventUuid));
+			sqlValues.add(new QueryTypedValue(eventId));
 			sqlValues.add(new QueryTypedValue(playerId.getValue()));
-			int updateResult = SqlMethods.update("UPDATE "+game.getPrefix()+"score_events SET reward_received='yes' WHERE uuid=? AND reward_received='no' AND winner_id=?;", sqlValues, dbConnection);
+
+			int updateResult = SqlMethods.update("UPDATE "+game.getPrefix()+"score_events SET reward_received='yes' WHERE id=? AND reward_received='no' AND winner_id=?;", sqlValues, dbConnection);
 			sendHttpResponse(ctx, HttpResponseTemplates.buildResponse(updateResult>0?"{\"result\":\"success\"}":"{\"result\":\"fail\",\"message\":\"possibly you not have rewards\"}", HttpResponseStatus.OK));
 			return;
 		}
 
-		sendHttpResponse(ctx, HttpResponseTemplates.buildResponse("{\"result\":\"fail\",\"message\":\"possibly wrong uuid\"}", HttpResponseStatus.OK));
+		sendHttpResponse(ctx, HttpResponseTemplates.buildResponse("{\"result\":\"fail\",\"message\":\"possibly wrong reward id\"}", HttpResponseStatus.OK));
 	}
 }

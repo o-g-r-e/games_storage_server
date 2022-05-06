@@ -47,17 +47,22 @@ public class SystemHandler extends RootHandler {
 	private EmailSender emailSender;
 	private static final GameTemplate MATCH_3_TEMPLATE = GameTemplate.match3Template();
 	private static final GameTemplate CASUAL_TEMPLATE = GameTemplate.gameWithEventsSystemTemplate();
-	private boolean allowTestInvoice;
+	private String testInvoice;
 	
-	public SystemHandler(Connection dbConnection, EmailSender emailSender, boolean allowTestInvoice) {
+	public SystemHandler(Connection dbConnection, EmailSender emailSender, String testInvoice) {
 		this.dbConnection = dbConnection;
 		this.emailSender = emailSender;
-		this.allowTestInvoice = allowTestInvoice;
+		this.testInvoice = testInvoice;
+	}
+
+	public SystemHandler(Connection dbConnection, EmailSender emailSender) {
+		this.dbConnection = dbConnection;
+		this.emailSender = emailSender;
 	}
 	
 	private boolean checkInvoice(String invoice) throws MalformedURLException, IOException, JSONException {
 		
-		if(allowTestInvoice && "IN121212121210".equals(invoice)) return true;
+		if(testInvoice != null && testInvoice.equals(invoice)) return true;
 
 		String serivceUrl = "https://api.assetstore.unity3d.com";
 		String key = Settings.invoiceKey;
