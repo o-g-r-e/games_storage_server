@@ -34,7 +34,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class GameHandler extends RootHandler {
 
-	private static Pattern uuidPattern = Pattern.compile("eventUuid=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})");
+	private static Pattern rewardIdPattern = Pattern.compile("rewardId=(\\d+)");
 	
 	@UriAnnotation(uri="/game/levels")
 	public void levels(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
@@ -337,7 +337,7 @@ public class GameHandler extends RootHandler {
 	@UriAnnotation(uri="/game/pickup_reward")
 	public void pickupReward(ChannelHandlerContext ctx, String inputContent, Game game, PlayerId playerId, Connection dbConnection) throws JSONException, SQLException {
 		
-		Matcher matcher = uuidPattern.matcher(inputContent);
+		Matcher matcher = rewardIdPattern.matcher(inputContent);
 
 		if(matcher.find() && matcher.groupCount() >= 1 && matcher.group(1) != null) {
 
